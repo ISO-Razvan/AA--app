@@ -1,0 +1,242 @@
+.lucrari-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.lucrari-list-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.lucrari-list-toolbar h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.lucrari-list-count {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin-top: var(--space-1);
+}
+
+.lucrari-list-toolbar-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.lucrari-search {
+  width: 100%;
+}
+
+.lucrari-search .text-input {
+  max-width: 520px;
+}
+
+.lucrari-table-row {
+  cursor: pointer;
+}
+
+.lucrare-card {
+  cursor: pointer;
+}
+
+.lucrari-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.lucrari-table-wrap {
+  overflow-x: auto;
+  padding: 0;
+}
+
+.lucrari-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  min-width: 920px;
+}
+
+.lucrari-table th {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.lucrari-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.lucrari-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.lucrari-table tbody tr:hover {
+  background: var(--color-surface-alt);
+}
+
+.lucrari-table-nr {
+  font-weight: 700;
+  color: var(--color-blue-strong);
+  white-space: nowrap;
+}
+
+.lucrari-table-dinti {
+  max-width: 220px;
+}
+
+.lucrari-table-nota {
+  max-width: 240px;
+  color: var(--color-text-secondary);
+}
+
+.lucrari-table-livrare {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.lucrare-badges {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-blue {
+  background: var(--color-blue-soft);
+  color: var(--color-blue-strong);
+}
+
+.badge-purple {
+  background: var(--color-purple-soft);
+  color: var(--color-purple-strong);
+}
+
+.badge-neutral {
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.lucrari-cards {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.lucrare-card {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lucrare-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.lucrare-card-nr {
+  font-weight: 700;
+  color: var(--color-blue-strong);
+}
+
+.lucrare-card-livrare {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.lucrare-card-tip {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.lucrare-card-line {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.lucrare-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  font-size: 0.88rem;
+  margin-top: var(--space-1);
+}
+
+.lucrare-card-grid p {
+  margin-top: 2px;
+}
+
+.lucrari-csv-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.import-summary {
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  font-size: 0.9rem;
+  position: relative;
+  padding-right: var(--space-7);
+}
+
+.import-summary-ok {
+  background: var(--color-success-soft);
+  color: #1f6b4d;
+}
+
+.import-summary-warn {
+  background: var(--color-danger-soft);
+  color: #8a2f42;
+}
+
+.import-summary ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-4);
+}
+
+.import-summary-dismiss {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  min-height: 32px;
+  padding: 0 var(--space-3);
+}
+
+@media (max-width: 880px) {
+  .lucrari-table-wrap {
+    display: none;
+  }
+  .lucrari-cards {
+    display: flex;
+  }
+}

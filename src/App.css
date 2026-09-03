@@ -1,0 +1,69 @@
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.app-header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app-logo-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-blue), var(--color-purple));
+  flex-shrink: 0;
+}
+
+.app-header-brand h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.app-header-brand p {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.app-header-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.app-main {
+  flex: 1;
+  padding: var(--space-5);
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    padding: var(--space-3) var(--space-4);
+  }
+  .app-main {
+    padding: var(--space-3);
+  }
+  .app-header-brand h1 {
+    font-size: 1rem;
+  }
+}

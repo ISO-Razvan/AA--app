@@ -1,0 +1,176 @@
+:root {
+  color-scheme: light;
+
+  /* Culori — paletă deschisă, accente albastru/mov deschis */
+  --color-bg: #F8F9FD;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F2F4FB;
+  --color-border: #E5E8F3;
+  --color-text: #1E2233;
+  --color-text-secondary: #6B7180;
+  --color-text-muted: #9AA0B4;
+
+  --color-blue: #7C9CF7;
+  --color-blue-soft: #E8EDFE;
+  --color-blue-strong: #5578E8;
+
+  --color-purple: #B79CF7;
+  --color-purple-soft: #F0E9FE;
+  --color-purple-strong: #9573E8;
+
+  --color-danger: #E0637A;
+  --color-danger-soft: #FBE7EB;
+  --color-success: #3FB88A;
+  --color-success-soft: #E4F7EF;
+
+  /* Grilă de spațiere, bază 8px */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(30, 34, 51, 0.06), 0 1px 1px rgba(30, 34, 51, 0.04);
+  --shadow-md: 0 4px 16px rgba(30, 34, 51, 0.08), 0 2px 4px rgba(30, 34, 51, 0.04);
+  --shadow-lg: 0 12px 40px rgba(30, 34, 51, 0.14), 0 4px 12px rgba(30, 34, 51, 0.06);
+
+  --tap-min: 44px;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, p {
+  margin: 0;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-blue-strong);
+  outline-offset: 2px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--color-blue-strong);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: #4468d6;
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.btn-secondary:hover {
+  background: var(--color-surface-alt);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+.btn-ghost:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.text-input,
+.select-input {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.text-input:focus,
+.select-input:focus {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px var(--color-blue-soft);
+  outline: none;
+}
+
+textarea.text-input {
+  min-height: 80px;
+  padding: var(--space-3);
+  resize: vertical;
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}

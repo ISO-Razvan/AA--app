@@ -1,0 +1,153 @@
+.dental-chart {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.dc-svg {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+}
+
+.dc-guide {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+
+.dc-arch-label {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.dc-tooth {
+  cursor: pointer;
+}
+
+.dc-tooth-hit {
+  fill: transparent;
+}
+
+.dc-tooth-shape {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 1.4;
+  transition: fill 0.12s ease, stroke 0.12s ease;
+}
+
+.dc-tooth:hover .dc-tooth-shape {
+  stroke: var(--color-blue);
+}
+
+.dc-tooth-selected .dc-tooth-shape {
+  fill: var(--color-blue);
+  stroke: var(--color-blue-strong);
+}
+
+.dc-label {
+  font-size: 10.5px;
+  fill: var(--color-text-secondary);
+  pointer-events: none;
+  user-select: none;
+}
+
+.dc-link-dot {
+  fill: var(--color-surface);
+  stroke: var(--color-blue);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+.dc-link-dot:hover {
+  stroke: var(--color-purple-strong);
+}
+
+.dc-link-dot-active {
+  fill: var(--color-purple);
+  stroke: var(--color-purple-strong);
+}
+
+.dc-connector {
+  stroke: var(--color-purple-strong);
+  stroke-width: 2;
+  stroke-dasharray: 3 4;
+  stroke-linecap: round;
+}
+
+.dc-center-tooth {
+  cursor: pointer;
+}
+
+.dc-center-hit {
+  fill: transparent;
+}
+
+.dc-center-root {
+  fill: var(--color-surface-alt);
+  stroke: var(--color-border);
+  stroke-width: 1.4;
+}
+
+.dc-center-crown {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 1.8;
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+
+.dc-center-tooth:hover .dc-center-crown {
+  stroke: var(--color-blue);
+}
+
+.dc-center-hint {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--color-text-muted);
+  pointer-events: none;
+  user-select: none;
+}
+
+.dc-center-label {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--color-text-secondary);
+}
+
+.dc-color-popover {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  width: min(240px, 80%);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dc-color-popover-close {
+  align-self: flex-end;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+}
+
+.dental-chart-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
