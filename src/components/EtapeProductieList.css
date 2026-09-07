@@ -1,0 +1,153 @@
+.etape-card {
+  padding: var(--space-5);
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.etape-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.etape-header p {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+.etape-loading {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.etape-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.etape-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+}
+
+.etape-row-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+}
+
+.etape-durata {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-border);
+}
+
+.etape-durata-label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.etape-durata-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.etape-durata-input {
+  width: 72px;
+  min-height: 40px;
+  text-align: right;
+}
+
+.etape-durata-unit {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.etape-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--color-blue-soft);
+  color: var(--color-blue-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.etape-nume {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.etape-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.etape-move-btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.etape-delete-btn {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  color: var(--color-danger);
+}
+
+.etape-delete-btn:hover {
+  background: var(--color-danger-soft);
+}
+
+.etape-empty {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  padding: var(--space-3);
+}
+
+.etape-add-form {
+  display: flex;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.etape-add-form .text-input {
+  flex: 1;
+}
+
+.etape-error {
+  font-size: 0.85rem;
+  color: var(--color-danger);
+}
+
+@media (max-width: 480px) {
+  .etape-add-form {
+    flex-direction: column;
+  }
+}

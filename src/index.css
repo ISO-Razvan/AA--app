@@ -1,27 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap');
+
 :root {
   color-scheme: light;
+
+  /* Fonturi — display pentru titluri/etichete, body pentru text/input-uri */
+  --font-display: 'Plus Jakarta Sans', 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* Culori — paletă deschisă, accente albastru/mov deschis */
   --color-bg: #F8F9FD;
   --color-surface: #FFFFFF;
   --color-surface-alt: #F2F4FB;
-  --color-border: #E5E8F3;
+  --color-surface-header: #EEF1FA;
+  --color-neutral-soft: #E3E6F3;
+  --color-border: #DFE3F1;
   --color-text: #1E2233;
   --color-text-secondary: #6B7180;
   --color-text-muted: #9AA0B4;
 
+  --color-blue-light: #EEF3FF;
   --color-blue: #7C9CF7;
   --color-blue-soft: #E8EDFE;
   --color-blue-strong: #5578E8;
+  --color-blue-dark: #35479E;
 
+  --color-purple-light: #F6F1FE;
   --color-purple: #B79CF7;
   --color-purple-soft: #F0E9FE;
   --color-purple-strong: #9573E8;
+  --color-purple-dark: #6C48B8;
 
   --color-danger: #E0637A;
   --color-danger-soft: #FBE7EB;
+  --color-danger-strong: #C23F57;
+
   --color-success: #3FB88A;
   --color-success-soft: #E4F7EF;
+  --color-success-strong: #1F8F68;
+
+  --color-warning: #D18B2C;
+  --color-warning-soft: #FBF0DD;
+  --color-warning-strong: #A8690F;
 
   /* Grilă de spațiere, bază 8px */
   --space-1: 4px;
@@ -37,13 +56,13 @@
   --radius-lg: 20px;
   --radius-pill: 999px;
 
-  --shadow-sm: 0 1px 2px rgba(30, 34, 51, 0.06), 0 1px 1px rgba(30, 34, 51, 0.04);
-  --shadow-md: 0 4px 16px rgba(30, 34, 51, 0.08), 0 2px 4px rgba(30, 34, 51, 0.04);
-  --shadow-lg: 0 12px 40px rgba(30, 34, 51, 0.14), 0 4px 12px rgba(30, 34, 51, 0.06);
+  --shadow-sm: 0 2px 6px rgba(30, 34, 51, 0.07), 0 1px 2px rgba(30, 34, 51, 0.05);
+  --shadow-md: 0 6px 20px rgba(30, 34, 51, 0.10), 0 2px 6px rgba(30, 34, 51, 0.05);
+  --shadow-lg: 0 16px 48px rgba(30, 34, 51, 0.16), 0 6px 16px rgba(30, 34, 51, 0.07);
 
   --tap-min: 44px;
 
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
 }
 
 * {
@@ -69,10 +88,19 @@ h1, h2, h3, h4, p {
   margin: 0;
 }
 
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
 button, input, select, textarea {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
+}
+
+button {
+  font-family: var(--font-display);
 }
 
 button {
@@ -136,8 +164,9 @@ button {
 
 .field-label {
   display: block;
+  font-family: var(--font-display);
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-secondary);
   margin-bottom: var(--space-2);
 }
@@ -173,4 +202,94 @@ textarea.text-input {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border);
+}
+
+/* Declanșator comun pentru selectoarele custom (DatePicker, TimePicker,
+   Dropdown) — arată identic cu .text-input, dar e un <button>. */
+.custom-select-trigger {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.custom-select-trigger:hover {
+  border-color: var(--color-blue);
+}
+
+.custom-select-trigger.open,
+.custom-select-trigger:focus-visible {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px var(--color-blue-soft);
+  outline: none;
+}
+
+.custom-select-placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.custom-select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-select-icon {
+  flex-shrink: 0;
+  display: flex;
+  color: var(--color-text-muted);
+}
+
+/* Listă de opțiuni comună pentru Dropdown/SearchableSelect */
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.custom-select-option {
+  width: 100%;
+  text-align: left;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.custom-select-option:hover {
+  background: var(--color-blue-soft);
+  color: var(--color-blue-strong);
+}
+
+.custom-select-option.active {
+  background: var(--color-blue-soft);
+  color: var(--color-blue-strong);
+  font-weight: 600;
 }

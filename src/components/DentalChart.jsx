@@ -10,7 +10,12 @@ import {
   rotatieMandibula,
 } from '../utils/fdi'
 import { VITA_HEX } from '../data/configDefaults'
-import { pathPentruDinte, CENTRAL_CROWN_PATH, CENTRAL_ROOT_PATH } from '../utils/toothShapes'
+import {
+  formaPentruDinte,
+  CENTER_TOOTH_CROWN_PATH,
+  CENTER_TOOTH_ROOT_PATH,
+  CENTER_TOOTH_NECK_LINE,
+} from '../utils/toothShapes'
 import SearchableSelect from './SearchableSelect.jsx'
 import './DentalChart.css'
 
@@ -20,6 +25,7 @@ const CX = 205
 const MAX = { cy: 270, rx: 112, ry: 190 }
 const MAN = { cy: 380, rx: 109, ry: 181 }
 const OUTER_DELTA = 24
+const PALATE_Y = 245
 
 function buildTeeth(order, geo, isMaxilar) {
   return order.map((numar, i) => {
@@ -52,6 +58,29 @@ function arcPath(theta1, theta2, geo, isMaxilar, rxOverride, ryOverride) {
   const largeArc = span > 180 ? 1 : 0
   const sweep = isMaxilar ? 1 : 0
   return `M ${p1.x.toFixed(1)},${p1.y.toFixed(1)} A ${rx},${ry} 0 ${largeArc} ${sweep} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`
+}
+
+// Element independent per dinte — pregătit pentru extensii viitoare ale
+// câmpului `stare` (ex. 'absent', 'tratat'), dincolo de 'normal'/'selectat'
+// folosite acum.
+function Tooth({ numar, x, y, rotate, stare, onClick }) {
+  const { path, sx, sy, groove } = formaPentruDinte(numar)
+  return (
+    <g
+      className={`dc-tooth dc-tooth-${stare}`}
+      transform={`translate(${x},${y}) rotate(${rotate})`}
+      onClick={onClick}
+      role="button"
+      aria-pressed={stare === 'selectat'}
+      aria-label={`Dinte ${numar}`}
+    >
+      <circle className="dc-tooth-hit" r="18" />
+      <g transform={`scale(${sx},${sy})`}>
+        <path className="dc-tooth-shape" d={path} />
+        {groove && <path className="dc-tooth-groove" d={groove} fill="none" />}
+      </g>
+    </g>
+  )
 }
 
 function ArcadaSvg({ order, geo, isMaxilar, selectedSet, linkPairs, onToggleTooth, onToggleLink }) {
@@ -93,22 +122,17 @@ function ArcadaSvg({ order, geo, isMaxilar, selectedSet, linkPairs, onToggleToot
         />
       ))}
 
-      {teeth.map((t) => {
-        const selectat = selectedSet.has(t.numar)
-        return (
-          <g
-            key={t.numar}
-            className={`dc-tooth ${selectat ? 'dc-tooth-selected' : ''}`}
-            transform={`translate(${t.x},${t.y}) rotate(${t.rotate})`}
-            onClick={() => onToggleTooth(t.numar)}
-            role="button"
-            aria-pressed={selectat}
-          >
-            <circle className="dc-tooth-hit" r="18" />
-            <path className="dc-tooth-shape" d={pathPentruDinte(t.numar)} />
-          </g>
-        )
-      })}
+      {teeth.map((t) => (
+        <Tooth
+          key={t.numar}
+          numar={t.numar}
+          x={t.x}
+          y={t.y}
+          rotate={t.rotate}
+          stare={selectedSet.has(t.numar) ? 'selectat' : 'normal'}
+          onClick={() => onToggleTooth(t.numar)}
+        />
+      ))}
 
       {teeth.map((t) => (
         <text key={`lbl-${t.numar}`} className="dc-label" x={t.labelX} y={t.labelY} textAnchor="middle">
@@ -125,17 +149,26 @@ function ArcadaSvg({ order, geo, isMaxilar, selectedSet, linkPairs, onToggleToot
           : pozitieMandibula(thetaMid, CX, geo.cy, geo.rx, geo.ry)
         const linked = linkSet.has(`${numar}-${numarB}`)
         return (
-          <circle
+          <g
             key={`dot-${numar}-${numarB}`}
             className={`dc-link-dot ${linked ? 'dc-link-dot-active' : ''}`}
-            cx={pos.x}
-            cy={pos.y}
-            r="6.5"
+            transform={`translate(${pos.x},${pos.y})`}
             onClick={(e) => {
               e.stopPropagation()
               onToggleLink(numar, numarB)
             }}
-          />
+            role="button"
+            aria-pressed={linked}
+            aria-label={linked ? `Desparte puntea ${numar}-${numarB}` : `Leagă puntea ${numar}-${numarB}`}
+          >
+            <circle className="dc-link-dot-hit" r="13" />
+            <circle className="dc-link-dot-ring" r="9" />
+            {linked ? (
+              <path className="dc-link-dot-glyph" d="M -3.5,0 L 3.5,0" />
+            ) : (
+              <path className="dc-link-dot-glyph" d="M -3.5,0 L 3.5,0 M 0,-3.5 L 0,3.5" />
+            )}
+          </g>
         )
       })}
     </g>
@@ -155,21 +188,15 @@ export default function DentalChart({
   const [picatorDeschis, setPicatorDeschis] = useState(false)
   const selectedSet = useMemo(() => new Set(selectateNumere), [selectateNumere])
 
-  const centerY = useMemo(() => {
-    const maxOuter = pozitieMaxilar(ANGLE_SPAN / 2, CX, MAX.cy, MAX.rx, MAX.ry).y
-    const manOuter = pozitieMandibula(ANGLE_SPAN / 2, CX, MAN.cy, MAN.rx, MAN.ry).y
-    return (maxOuter + manOuter) / 2
-  }, [])
-
   const culoareHex = VITA_HEX[culoare] || null
 
   return (
     <div className="dental-chart">
       <svg viewBox="0 0 410 620" className="dc-svg" role="img" aria-label="Schemă dentară">
-        <text x={CX} y={MAX.cy - MAX.ry * 0.25} className="dc-arch-label" textAnchor="middle">
+        <text x={CX} y={MAX.cy - MAX.ry * 0.75} className="dc-arch-label" textAnchor="middle">
           MAXILAR
         </text>
-        <text x={CX} y={MAN.cy + MAN.ry * 0.28} className="dc-arch-label" textAnchor="middle">
+        <text x={CX} y={MAN.cy + MAN.ry * 0.66} className="dc-arch-label" textAnchor="middle">
           MANDIBULA
         </text>
 
@@ -193,30 +220,26 @@ export default function DentalChart({
         />
 
         <g
-          className="dc-center-tooth"
-          transform={`translate(${CX},${centerY})`}
+          className="dc-palate"
+          transform={`translate(${CX},${PALATE_Y})`}
           onClick={() => setPicatorDeschis((v) => !v)}
           role="button"
           aria-label="Alege culoarea"
         >
-          <circle className="dc-center-hit" r="34" />
-          <path className="dc-center-root" d={CENTRAL_ROOT_PATH} />
+          <circle className="dc-palate-hit" r="48" />
+          <path className="dc-center-tooth-root" d={CENTER_TOOTH_ROOT_PATH} />
           <path
-            className="dc-center-crown"
-            d={CENTRAL_CROWN_PATH}
+            className="dc-center-tooth-crown"
+            d={CENTER_TOOTH_CROWN_PATH}
             style={culoareHex ? { fill: culoareHex } : undefined}
           />
-          {!culoare && (
-            <text className="dc-center-hint" x="0" y="-17" textAnchor="middle">
-              ?
-            </text>
-          )}
-          {culoare && (
-            <text className="dc-center-label" x="0" y="46" textAnchor="middle">
-              {culoare}
-            </text>
-          )}
+          <path className="dc-center-tooth-neck" d={CENTER_TOOTH_NECK_LINE} fill="none" />
         </g>
+        {culoare && (
+          <text className="dc-center-label" x={CX} y={PALATE_Y + 82} textAnchor="middle">
+            {culoare}
+          </text>
+        )}
       </svg>
 
       {picatorDeschis && (
@@ -239,6 +262,9 @@ export default function DentalChart({
 
       <p className="dental-chart-count">
         {selectateNumere.length} {selectateNumere.length === 1 ? 'dinte selectat' : 'dinți selectați'}
+      </p>
+      <p className="dental-chart-hint">
+        Selectează 2 dinți vecini ca să apară punctul de legare (⊕) între ei — click pe el îi unește într-o punte.
       </p>
     </div>
   )

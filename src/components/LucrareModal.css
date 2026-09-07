@@ -70,6 +70,10 @@
   gap: var(--space-4);
 }
 
+.lucrare-form-col-fields {
+  gap: var(--space-6);
+}
+
 .lucrare-form-col-chart {
   position: sticky;
   top: 0;
@@ -80,6 +84,19 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
+}
+
+.lucrare-form-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.lucrare-form-programare-preview {
+  margin-top: calc(-1 * var(--space-2));
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-blue-strong);
 }
 
 .culoare-readonly {
@@ -128,33 +145,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-.lucrare-form-edit-only {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding-top: var(--space-3);
-  border-top: 1px dashed var(--color-border);
-}
-
-.field-hint {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
-}
-
-.lucrare-form-programare {
-  background: var(--color-surface-alt);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-}
-
-.lucrare-form-programare-placeholder {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  margin-top: var(--space-2);
-}
-
 .lucrare-form-error {
   margin: 0 var(--space-5);
   padding: var(--space-3);
@@ -191,7 +181,8 @@
     height: 100vh;
     border-radius: 0;
   }
-  .lucrare-form-row {
+  .lucrare-form-row,
+  .lucrare-form-row-3 {
     grid-template-columns: 1fr;
   }
 }

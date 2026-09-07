@@ -1,0 +1,141 @@
+.salarii-detaliu-modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 600px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.salarii-detaliu-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.salarii-detaliu-header h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.salarii-detaliu-luna {
+  margin-top: var(--space-1);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-blue-strong);
+  text-transform: capitalize;
+}
+
+.salarii-detaliu-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.salarii-detaliu-total {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-blue-strong);
+}
+
+.salarii-detaliu-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+}
+
+.salarii-detaliu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.salarii-detaliu-row {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.salarii-detaliu-row:hover {
+  border-color: var(--color-blue);
+  box-shadow: var(--shadow-sm);
+}
+
+.salarii-detaliu-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.salarii-detaliu-nr {
+  font-weight: 700;
+  color: var(--color-blue-strong);
+}
+
+.salarii-detaliu-tip {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.salarii-detaliu-line {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.salarii-detaliu-row-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.salarii-detaliu-data {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.salarii-detaliu-suma {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--color-success-strong);
+}
+
+@media (max-width: 560px) {
+  .modal-overlay {
+    padding: 0;
+  }
+  .salarii-detaliu-modal {
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+}

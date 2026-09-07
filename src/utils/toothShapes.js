@@ -1,55 +1,86 @@
-// Contururi SVG schematice, pe categorie de dinte, pentru schema dentară.
-// Toate formele sunt centrate în origine, cu coroana (suprafața de mușcare)
-// spre y negativ — convenția de rotație din DentalChart.jsx presupune
-// exact această orientare implicită (vezi rotatieMaxilar/rotatieMandibula).
+// Contururi SVG anatomice pentru schema dentară, privite din unghiul ocluzal
+// (de sus) folosit deja de arcade. Fiecare categorie are o siluetă proprie —
+// nu doar o scalare a aceleiași forme — ca tipul de dinte să fie recognoscibil
+// dintr-o privire, fără să te uiți la numărul FDI.
+//
+// Toate formele sunt centrate în origine, cu marginea de mușcare/cuspizii
+// spre y negativ — convenția de rotație din DentalChart.jsx presupune exact
+// această orientare implicită (vezi rotatieMaxilar/rotatieMandibula).
 
 export const CATEGORIE = {
-  INCISIV: 'incisiv',
+  INCISIV_CENTRAL: 'incisiv-central',
+  INCISIV_LATERAL: 'incisiv-lateral',
   CANIN: 'canin',
   PREMOLAR: 'premolar',
   MOLAR: 'molar',
 }
 
-const INCISIVI = new Set([11, 12, 21, 22, 31, 32, 41, 42])
+const INCISIVI_CENTRALI = new Set([11, 21, 31, 41])
+const INCISIVI_LATERALI = new Set([12, 22, 32, 42])
 const CANINI = new Set([13, 23, 33, 43])
 const PREMOLARI = new Set([14, 15, 24, 25, 34, 35, 44, 45])
 
 export function categorieDinte(numar) {
-  if (INCISIVI.has(numar)) return CATEGORIE.INCISIV
+  if (INCISIVI_CENTRALI.has(numar)) return CATEGORIE.INCISIV_CENTRAL
+  if (INCISIVI_LATERALI.has(numar)) return CATEGORIE.INCISIV_LATERAL
   if (CANINI.has(numar)) return CATEGORIE.CANIN
   if (PREMOLARI.has(numar)) return CATEGORIE.PREMOLAR
   return CATEGORIE.MOLAR
 }
 
-// Incisiv — contur de daltă, margine de mușcare dreaptă/plată.
-const INCISIV_PATH = 'M -8,-19 L 8,-19 L 8,-5 C 8,5 7,13 5,17 L -5,17 C -7,13 -8,5 -8,-5 Z'
+// Incisiv — contur îngust și alungit, cu marginea de mușcare aproape dreaptă
+// (silueta unei „dălți" subțiri), spre deosebire de un vârf sau un oval.
+const INCISIV_PATH =
+  'M -6,-12 Q -6,-14 -3,-14 L 3,-14 Q 6,-14 6,-12 L 6,7 Q 6,13 0,14 Q -6,13 -6,7 Z'
 
-// Canin — un singur cuspid ascuțit, proeminent.
-const CANIN_PATH = 'M 0,-22 L 9,-6 C 9,4 8,12 6,17 L -6,17 C -8,12 -9,4 -9,-6 Z'
+// Canin — un singur vârf central proeminent, ușor asimetric — se distinge
+// clar de incisiv prin acel unghi ascuțit din partea de mușcare.
+const CANIN_PATH =
+  'M 0,-14 L 4.5,-7 Q 8,-2 7.5,4 Q 7,11 0,14 Q -7,11 -7.5,4 Q -8,-2 -4.5,-7 Z'
 
-// Premolar — mai scurt și mai lat decât caninul, doi cuspizi vizibili.
+// Premolar — contur oval, cu o ușoară "talie" la mijloc și doi cuspizi
+// vizibili (o mică inflexiune la mijlocul marginii de mușcare, între cele
+// două umflături laterale).
 const PREMOLAR_PATH =
-  'M -10,-9 C -11,-15 -7,-18 -4,-14 C -2,-18 2,-18 4,-14 C 7,-18 11,-15 10,-9 C 10,-1 9,9 7,15 L -7,15 C -9,9 -10,-1 -10,-9 Z'
+  'M -8,-2 C -8,-9 -4.5,-13 -2,-12.5 C -0.8,-12.2 0.8,-12.2 2,-12.5 C 4.5,-13 8,-9 8,-2 ' +
+  'C 8.6,3 7,9 3,12 C 1,13.3 -1,13.3 -3,12 C -7,9 -8.6,3 -8,-2 Z'
 
-// Molar — cel mai lat și pătrățos, suprafață ocluzală cu mai mulți cuspizi.
+// Molar — cel mai lat și "pătrățos" contur din arcadă, cu 4 cuspizi vizibili
+// (patru umflături pe colțuri). Șanțul central se desenează separat, cu un
+// stroke fin (vezi MOLAR_GROOVE_PATH), peste conturul umplut.
 const MOLAR_PATH =
-  'M -13,-8 C -14,-14 -10,-17 -7,-13 C -5,-16 -2,-16 0,-13 C 2,-16 5,-16 7,-13 C 10,-17 14,-14 13,-8 C 13,0 12,9 9,14 L -9,14 C -12,9 -13,0 -13,-8 Z'
+  'M -11,-6 C -11,-11 -7,-13.8 -3,-13.3 C -1,-13 1,-13 3,-13.3 C 7,-13.8 11,-11 11,-6 ' +
+  'C 11.6,-2 11.6,2 11,6 C 10.6,11 7,13.5 3,13 C 1,12.7 -1,12.7 -3,13 ' +
+  'C -7,13.5 -10.6,11 -11,6 C -11.6,2 -11.6,-2 -11,-6 Z'
 
-const SHAPES_BY_CATEGORIE = {
-  [CATEGORIE.INCISIV]: INCISIV_PATH,
-  [CATEGORIE.CANIN]: CANIN_PATH,
-  [CATEGORIE.PREMOLAR]: PREMOLAR_PATH,
-  [CATEGORIE.MOLAR]: MOLAR_PATH,
+// Șanțul ocluzal central al molarului — o cruce simplă, desenată doar cu
+// stroke (fără fill), sugerând suprafața reală de mestecat.
+export const MOLAR_GROOVE_PATH = 'M -5,0 L 5,0 M 0,-5.5 L 0,5.5'
+
+const SHAPE_BY_CATEGORIE = {
+  [CATEGORIE.INCISIV_CENTRAL]: { path: INCISIV_PATH, sx: 0.98, sy: 1.05, groove: null },
+  [CATEGORIE.INCISIV_LATERAL]: { path: INCISIV_PATH, sx: 0.8, sy: 0.92, groove: null },
+  [CATEGORIE.CANIN]: { path: CANIN_PATH, sx: 0.88, sy: 1.05, groove: null },
+  [CATEGORIE.PREMOLAR]: { path: PREMOLAR_PATH, sx: 0.98, sy: 0.96, groove: null },
+  [CATEGORIE.MOLAR]: { path: MOLAR_PATH, sx: 1.05, sy: 0.96, groove: MOLAR_GROOVE_PATH },
 }
 
-export function pathPentruDinte(numar) {
-  return SHAPES_BY_CATEGORIE[categorieDinte(numar)]
+// Returnează forma (path + scalare + șanț opțional) pentru un dinte, în
+// funcție de categoria lui — folosit direct de <Tooth> din DentalChart.jsx.
+export function formaPentruDinte(numar) {
+  return SHAPE_BY_CATEGORIE[categorieDinte(numar)]
 }
 
-// Dintele central (selector de culoare) — coroană + rădăcină, ca element
-// de focus vizual, desenat ca două forme separate (pot fi colorate distinct).
-export const CENTRAL_CROWN_PATH =
-  'M -15,-20 C -16,-30 -8,-36 0,-33 C 8,-36 16,-30 15,-20 C 15,-14 13,-8 10,-6 L -10,-6 C -13,-8 -15,-14 -15,-20 Z'
+// Zona centrală — ilustrație curată a unui dinte complet (coroană + rădăcină,
+// privit din față, linie simplă), folosită ca selector de culoare VITA.
+// Coroana și rădăcina sunt path-uri separate, ca doar coroana să se
+// colorereze la alegerea unei nuanțe — rădăcina rămâne mereu neutră, ca la
+// un dinte real.
+export const CENTER_TOOTH_CROWN_PATH =
+  'M -18,2 C -20,-12 -19,-27 -12,-35 C -7,-41 7,-41 12,-35 C 19,-27 20,-12 18,2 ' +
+  'C 18,9 15,14 9,14 L -9,14 C -15,14 -18,9 -18,2 Z'
 
-export const CENTRAL_ROOT_PATH =
-  'M -9,-6 C -10,4 -8,14 -5,22 C -4,26 -2,29 0,29 C 2,29 4,26 5,22 C 8,14 10,4 9,-6 Z'
+export const CENTER_TOOTH_ROOT_PATH =
+  'M -9,14 L 9,14 C 11,24 10,36 7,47 C 5,56 2,63 0,68 C -2,63 -5,56 -7,47 C -10,36 -11,24 -9,14 Z'
+
+export const CENTER_TOOTH_NECK_LINE = 'M -17,5 Q 0,11 17,5'

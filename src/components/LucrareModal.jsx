@@ -1,45 +1,43 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  addLucrare,
-  updateLucrare,
-  getConfigList,
-  addConfigValue,
-  generateNrInregistrare,
-} from '../services/dataService'
+import { addLucrare, getConfigList, addConfigValue, generateNrInregistrare } from '../services/dataService'
 import { MODEL_OPTIONS } from '../data/configDefaults'
-import { calculeazaDinti, dinDintiSalvati, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
+import { calculeazaDinti, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
+import { azi as todayISO } from '../utils/date'
 import DentalChart from './DentalChart.jsx'
 import SearchableSelect from './SearchableSelect.jsx'
+import DatePicker from './DatePicker.jsx'
+import TimePicker from './TimePicker.jsx'
 import './LucrareModal.css'
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+function formatDataOra(dataStr, oraStr) {
+  if (!dataStr) return ''
+  const [an, luna, zi] = dataStr.split('-')
+  const dataFmt = `${zi}.${luna}.${an}`
+  return oraStr ? `${dataFmt}, ${oraStr}` : dataFmt
 }
 
-export default function LucrareModal({ lucrare, onClose, onSaved }) {
-  const isEdit = !!lucrare
-  const initial = useMemo(() => dinDintiSalvati(lucrare?.dinti), [lucrare])
-
-  const [selectateNumere, setSelectateNumere] = useState(initial.selectateNumere)
-  const [linkPairs, setLinkPairs] = useState(initial.linkPairs)
-  const [nrElemente, setNrElemente] = useState(initial.selectateNumere.length)
-  const [clinica, setClinica] = useState(lucrare?.clinica || '')
-  const [medic, setMedic] = useState(lucrare?.medic || '')
-  const [pacient, setPacient] = useState(lucrare?.pacient || '')
-  const [tipLucrare, setTipLucrare] = useState(lucrare?.tip_lucrare || '')
-  const [culoare, setCuloare] = useState(lucrare?.culoare || '')
-  const [implant, setImplant] = useState(lucrare?.implant || false)
-  const [model, setModel] = useState(lucrare?.model || '')
-  const [dataIntrare, setDataIntrare] = useState(lucrare?.data_intrare || todayISO())
-  const [termenPredare, setTermenPredare] = useState(lucrare?.termen_predare || '')
-  const [nextDate, setNextDate] = useState(lucrare?.next_date || '')
-  const [nota, setNota] = useState(lucrare?.nota || '')
+export default function LucrareModal({ onClose, onSaved }) {
+  const [selectateNumere, setSelectateNumere] = useState([])
+  const [linkPairs, setLinkPairs] = useState([])
+  const [nrElemente, setNrElemente] = useState(0)
+  const [clinica, setClinica] = useState('')
+  const [medic, setMedic] = useState('')
+  const [pacient, setPacient] = useState('')
+  const [tipLucrare, setTipLucrare] = useState('')
+  const [culoare, setCuloare] = useState('')
+  const [implant, setImplant] = useState(false)
+  const [tryIn, setTryIn] = useState(false)
+  const [model, setModel] = useState('')
+  const [dataIntrare, setDataIntrare] = useState(todayISO())
+  const [termenPredare, setTermenPredare] = useState('')
+  const [oraProgramare, setOraProgramare] = useState('')
+  const [nota, setNota] = useState('')
 
   const [tipuriOptions, setTipuriOptions] = useState([])
   const [culoriOptions, setCuloriOptions] = useState([])
   const [mediciOptions, setMediciOptions] = useState([])
   const [cliniciOptions, setCliniciOptions] = useState([])
-  const [nrPreview, setNrPreview] = useState(lucrare?.nr_inregistrare || '')
+  const [nrPreview, setNrPreview] = useState('')
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -53,20 +51,20 @@ export default function LucrareModal({ lucrare, onClose, onSaved }) {
 
   useEffect(() => {
     async function load() {
-      const [tipuri, culori, medici, clinici] = await Promise.all([
+      const [tipuri, culori, medici, clinici, nr] = await Promise.all([
         getConfigList('tipuri_lucrare'),
         getConfigList('culori'),
         getConfigList('medici'),
         getConfigList('clinici'),
+        generateNrInregistrare(),
       ])
       setTipuriOptions(tipuri)
       setCuloriOptions(culori)
       setMediciOptions(medici)
       setCliniciOptions(clinici)
-      if (!isEdit) setNrPreview(await generateNrInregistrare())
+      setNrPreview(nr)
     }
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -101,7 +99,7 @@ export default function LucrareModal({ lucrare, onClose, onSaved }) {
     setError('')
     try {
       const dinti = calculeazaDinti(selectateNumere, linkPairs)
-      const payload = {
+      await addLucrare({
         clinica,
         medic,
         pacient,
@@ -110,16 +108,13 @@ export default function LucrareModal({ lucrare, onClose, onSaved }) {
         nr_elemente: nrElemente,
         culoare,
         implant,
+        try_in: tryIn,
         model,
         data_intrare: dataIntrare,
         termen_predare: termenPredare,
+        ora_programare: oraProgramare,
         nota,
-      }
-      if (isEdit) {
-        await updateLucrare(lucrare.id, { ...payload, next_date: nextDate })
-      } else {
-        await addLucrare(payload)
-      }
+      })
       await onSaved()
     } catch (err) {
       setError(err.message || 'A apărut o eroare la salvare.')
@@ -129,11 +124,11 @@ export default function LucrareModal({ lucrare, onClose, onSaved }) {
 
   return (
     <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal-panel" role="dialog" aria-modal="true" aria-label={isEdit ? 'Editare lucrare' : 'Înregistrare lucrare nouă'}>
+      <div className="modal-panel" role="dialog" aria-modal="true" aria-label="Înregistrare lucrare nouă">
         <form onSubmit={handleSubmit} className="lucrare-form">
           <header className="modal-header">
             <div>
-              <h2>{isEdit ? 'Editare lucrare' : 'Înregistrare lucrare nouă'}</h2>
+              <h2>Înregistrare lucrare nouă</h2>
               {nrPreview && <p className="modal-header-nr">Nr. înregistrare: {nrPreview}</p>}
             </div>
             <button type="button" className="btn btn-ghost modal-close" onClick={onClose} aria-label="Închide">
@@ -156,142 +151,136 @@ export default function LucrareModal({ lucrare, onClose, onSaved }) {
             </div>
 
             <div className="lucrare-form-col lucrare-form-col-fields">
-              <div className="lucrare-form-row">
+              <section className="detail-section">
+                <h3 className="detail-section-title">Client</h3>
+                <div className="lucrare-form-row">
+                  <SearchableSelect
+                    label="Clinică"
+                    value={clinica}
+                    onChange={setClinica}
+                    options={cliniciOptions}
+                    onAddOption={handleAdd('clinici', setCliniciOptions)}
+                    placeholder="Numele clinicii"
+                  />
+                  <SearchableSelect
+                    label="Medic"
+                    value={medic}
+                    onChange={setMedic}
+                    options={mediciOptions}
+                    onAddOption={handleAdd('medici', setMediciOptions)}
+                    placeholder="Numele medicului"
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label">Pacient</label>
+                  <input
+                    type="text"
+                    className="text-input"
+                    value={pacient}
+                    onChange={(e) => setPacient(e.target.value)}
+                    placeholder="Nume sau inițiale"
+                  />
+                </div>
+              </section>
+
+              <section className="detail-section">
+                <h3 className="detail-section-title">Lucrare</h3>
                 <SearchableSelect
-                  label="Clinică"
-                  value={clinica}
-                  onChange={setClinica}
-                  options={cliniciOptions}
-                  onAddOption={handleAdd('clinici', setCliniciOptions)}
-                  placeholder="Numele clinicii"
+                  label="Tip lucrare"
+                  required
+                  value={tipLucrare}
+                  onChange={setTipLucrare}
+                  options={tipuriOptions}
+                  onAddOption={handleAdd('tipuri_lucrare', setTipuriOptions)}
+                  placeholder="ex. Coroană zirconiu"
                 />
-                <SearchableSelect
-                  label="Medic"
-                  value={medic}
-                  onChange={setMedic}
-                  options={mediciOptions}
-                  onAddOption={handleAdd('medici', setMediciOptions)}
-                  placeholder="Numele medicului"
-                />
-              </div>
 
-              <div>
-                <label className="field-label">Pacient</label>
-                <input
-                  type="text"
-                  className="text-input"
-                  value={pacient}
-                  onChange={(e) => setPacient(e.target.value)}
-                  placeholder="Nume sau inițiale"
-                />
-              </div>
-
-              <SearchableSelect
-                label="Tip lucrare"
-                required
-                value={tipLucrare}
-                onChange={setTipLucrare}
-                options={tipuriOptions}
-                onAddOption={handleAdd('tipuri_lucrare', setTipuriOptions)}
-                placeholder="ex. Coroană zirconiu"
-              />
-
-              <div className="lucrare-form-row">
-                <div>
-                  <span className="field-label">Culoare (VITA)</span>
-                  <div className="culoare-readonly">
-                    {culoare || <span className="culoare-readonly-empty">Alege din dintele central</span>}
+                <div className="lucrare-form-row">
+                  <div>
+                    <span className="field-label">Culoare (VITA)</span>
+                    <div className="culoare-readonly">
+                      {culoare || <span className="culoare-readonly-empty">Alege din dintele central</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="field-label">Nr. elemente</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="text-input"
+                      value={nrElemente}
+                      onChange={(e) => setNrElemente(e.target.value === '' ? 0 : Number(e.target.value))}
+                    />
                   </div>
                 </div>
-                <div>
-                  <label className="field-label">Nr. elemente</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="text-input"
-                    value={nrElemente}
-                    onChange={(e) => setNrElemente(e.target.value === '' ? 0 : Number(e.target.value))}
-                  />
-                </div>
-              </div>
 
-              <div className="lucrare-form-row">
-                <div>
-                  <span className="field-label">Implant</span>
-                  <div className="segmented" role="group" aria-label="Implant">
-                    <button type="button" className={`segmented-option ${!implant ? 'active' : ''}`} onClick={() => setImplant(false)}>Nu</button>
-                    <button type="button" className={`segmented-option ${implant ? 'active' : ''}`} onClick={() => setImplant(true)}>Da</button>
+                <div className="lucrare-form-row-3">
+                  <div>
+                    <span className="field-label">Implant</span>
+                    <div className="segmented" role="group" aria-label="Implant">
+                      <button type="button" className={`segmented-option ${!implant ? 'active' : ''}`} onClick={() => setImplant(false)}>Nu</button>
+                      <button type="button" className={`segmented-option ${implant ? 'active' : ''}`} onClick={() => setImplant(true)}>Da</button>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="field-label">Try-in</span>
+                    <div className="segmented" role="group" aria-label="Try-in">
+                      <button type="button" className={`segmented-option ${!tryIn ? 'active' : ''}`} onClick={() => setTryIn(false)}>Nu</button>
+                      <button type="button" className={`segmented-option ${tryIn ? 'active' : ''}`} onClick={() => setTryIn(true)}>Da</button>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="field-label">Model</span>
+                    <div className="segmented" role="group" aria-label="Model">
+                      {MODEL_OPTIONS.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          className={`segmented-option ${model === opt ? 'active' : ''}`}
+                          onClick={() => setModel(opt)}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <span className="field-label">Model</span>
-                  <div className="segmented" role="group" aria-label="Model">
-                    {MODEL_OPTIONS.map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        className={`segmented-option ${model === opt ? 'active' : ''}`}
-                        onClick={() => setModel(opt)}
-                      >
-                        {opt}
-                      </button>
-                    ))}
+              </section>
+
+              <section className="detail-section">
+                <h3 className="detail-section-title">Termene</h3>
+                <div className="lucrare-form-row-3">
+                  <div>
+                    <label className="field-label">Data intrare</label>
+                    <DatePicker value={dataIntrare} onChange={setDataIntrare} />
+                  </div>
+                  <div>
+                    <label className="field-label">Termen predare</label>
+                    <DatePicker value={termenPredare} onChange={setTermenPredare} />
+                  </div>
+                  <div>
+                    <label className="field-label">Ora programare</label>
+                    <TimePicker value={oraProgramare} onChange={setOraProgramare} />
                   </div>
                 </div>
-              </div>
 
-              <div className="lucrare-form-row">
-                <div>
-                  <label className="field-label">Data intrare</label>
-                  <input
-                    type="date"
-                    className="text-input"
-                    value={dataIntrare}
-                    onChange={(e) => setDataIntrare(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="field-label">Termen predare</label>
-                  <input
-                    type="date"
-                    className="text-input"
-                    value={termenPredare}
-                    onChange={(e) => setTermenPredare(e.target.value)}
-                  />
-                </div>
-              </div>
+                {termenPredare && (
+                  <p className="lucrare-form-programare-preview">
+                    Programare: {formatDataOra(termenPredare, oraProgramare)}
+                  </p>
+                )}
+              </section>
 
-              <div>
-                <label className="field-label">Notă</label>
+              <section className="detail-section">
+                <h3 className="detail-section-title">Notă</h3>
                 <textarea
                   className="text-input"
                   value={nota}
                   onChange={(e) => setNota(e.target.value)}
                   placeholder="Observații opționale…"
                 />
-              </div>
-
-              {isEdit && (
-                <div className="lucrare-form-edit-only">
-                  <div>
-                    <label className="field-label">Next date</label>
-                    <input
-                      type="date"
-                      className="text-input"
-                      value={nextDate}
-                      onChange={(e) => setNextDate(e.target.value)}
-                    />
-                    <p className="field-hint">Următoarea dată programată (probă, control etc.)</p>
-                  </div>
-
-                  <div className="lucrare-form-programare">
-                    <span className="field-label">Programare producție</span>
-                    <p className="lucrare-form-programare-placeholder">
-                      Programarea etapei de producție și a tehnicianului responsabil va fi disponibilă aici într-o versiune viitoare.
-                    </p>
-                  </div>
-                </div>
-              )}
+              </section>
             </div>
           </div>
 
@@ -302,7 +291,7 @@ export default function LucrareModal({ lucrare, onClose, onSaved }) {
               Anulează
             </button>
             <button type="submit" className="btn btn-primary" disabled={!canSave}>
-              {saving ? 'Se salvează…' : isEdit ? 'Salvează modificările' : 'Salvează lucrarea'}
+              {saving ? 'Se salvează…' : 'Salvează lucrarea'}
             </button>
           </footer>
         </form>

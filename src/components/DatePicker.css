@@ -1,0 +1,103 @@
+.datepicker {
+  position: relative;
+}
+
+.datepicker-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  width: 280px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3);
+}
+
+.datepicker-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.datepicker-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
+
+.datepicker-nav-btn:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.datepicker-nav-label {
+  font-weight: 700;
+  font-size: 0.86rem;
+  text-transform: capitalize;
+}
+
+.datepicker-weekdays,
+.datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.datepicker-weekdays span {
+  text-align: center;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  padding-bottom: var(--space-1);
+}
+
+.datepicker-day {
+  aspect-ratio: 1;
+  min-height: 34px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.datepicker-day:hover {
+  background: var(--color-blue-soft);
+}
+
+.datepicker-day.today {
+  color: var(--color-blue-strong);
+  font-weight: 700;
+}
+
+.datepicker-day.selected {
+  background: var(--color-blue-strong);
+  color: #fff;
+  font-weight: 700;
+}
+
+.datepicker-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.datepicker-footer-btn {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  font-size: 0.8rem;
+}

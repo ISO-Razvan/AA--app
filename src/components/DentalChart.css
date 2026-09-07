@@ -1,10 +1,11 @@
 .dental-chart {
   position: relative;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-4);
   background: var(--color-surface-alt);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
@@ -12,7 +13,7 @@
 
 .dc-svg {
   width: 100%;
-  max-width: 340px;
+  max-width: 640px;
   height: auto;
 }
 
@@ -48,9 +49,33 @@
   stroke: var(--color-blue);
 }
 
-.dc-tooth-selected .dc-tooth-shape {
+.dc-tooth-selectat .dc-tooth-shape {
   fill: var(--color-blue);
   stroke: var(--color-blue-strong);
+}
+
+.dc-tooth-groove {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  pointer-events: none;
+  transition: stroke 0.12s ease;
+}
+
+.dc-tooth-selectat .dc-tooth-groove {
+  stroke: rgba(255, 255, 255, 0.55);
+}
+
+/* Stări pregătite pentru extensii viitoare (nefolosite încă în UI) */
+.dc-tooth-absent .dc-tooth-shape {
+  fill: var(--color-surface);
+  stroke: var(--color-text-muted);
+  stroke-dasharray: 2 2;
+  opacity: 0.4;
+}
+
+.dc-tooth-tratat .dc-tooth-shape {
+  fill: var(--color-success-soft);
+  stroke: var(--color-success);
 }
 
 .dc-label {
@@ -61,19 +86,40 @@
 }
 
 .dc-link-dot {
-  fill: var(--color-surface);
-  stroke: var(--color-blue);
-  stroke-width: 1.5;
   cursor: pointer;
 }
 
-.dc-link-dot:hover {
+.dc-link-dot-hit {
+  fill: transparent;
+}
+
+.dc-link-dot-ring {
+  fill: var(--color-surface);
+  stroke: var(--color-blue);
+  stroke-width: 2;
+  filter: drop-shadow(0 1px 3px rgba(30, 34, 51, 0.25));
+  transition: fill 0.12s ease, stroke 0.12s ease, r 0.12s ease;
+}
+
+.dc-link-dot-glyph {
+  stroke: var(--color-blue-strong);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.dc-link-dot:hover .dc-link-dot-ring {
+  stroke: var(--color-purple-strong);
+  r: 10.5;
+}
+
+.dc-link-dot-active .dc-link-dot-ring {
+  fill: var(--color-purple);
   stroke: var(--color-purple-strong);
 }
 
-.dc-link-dot-active {
-  fill: var(--color-purple);
-  stroke: var(--color-purple-strong);
+.dc-link-dot-active .dc-link-dot-glyph {
+  stroke: #fff;
 }
 
 .dc-connector {
@@ -83,37 +129,36 @@
   stroke-linecap: round;
 }
 
-.dc-center-tooth {
+.dc-palate {
   cursor: pointer;
 }
 
-.dc-center-hit {
+.dc-palate-hit {
   fill: transparent;
 }
 
-.dc-center-root {
+.dc-center-tooth-root {
   fill: var(--color-surface-alt);
   stroke: var(--color-border);
   stroke-width: 1.4;
 }
 
-.dc-center-crown {
+.dc-center-tooth-crown {
   fill: var(--color-surface);
   stroke: var(--color-border);
-  stroke-width: 1.8;
+  stroke-width: 1.6;
   transition: fill 0.15s ease, stroke 0.15s ease;
 }
 
-.dc-center-tooth:hover .dc-center-crown {
+.dc-palate:hover .dc-center-tooth-crown,
+.dc-palate:hover .dc-center-tooth-root {
   stroke: var(--color-blue);
 }
 
-.dc-center-hint {
-  font-size: 13px;
-  font-weight: 700;
-  fill: var(--color-text-muted);
+.dc-center-tooth-neck {
+  stroke: var(--color-border);
+  stroke-width: 1.2;
   pointer-events: none;
-  user-select: none;
 }
 
 .dc-center-label {
@@ -150,4 +195,11 @@
   font-weight: 600;
   color: var(--color-text-secondary);
   margin-top: var(--space-1);
+}
+
+.dental-chart-hint {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  max-width: 300px;
 }

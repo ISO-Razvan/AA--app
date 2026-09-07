@@ -24,6 +24,18 @@ export const DEFAULT_MEDICI = []
 
 export const DEFAULT_CLINICI = []
 
+// Etape de producție implicite — devin rândurile inițiale ale tabelului
+// editabil `etape_productie` (nume + ordine) la prima rulare.
+export const DEFAULT_ETAPE_PRODUCTIE = [
+  'Model',
+  'Design',
+  'Frezare',
+  'Sinter',
+  'Stratificare',
+  'Adaptare',
+  'Ambalare',
+]
+
 export const MODEL_OPTIONS = ['Gips', 'Print']
 
 // Aproximări vizuale (non-clinice) pentru cheia VITA, folosite doar ca

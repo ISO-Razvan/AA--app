@@ -1,0 +1,142 @@
+.salarii-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.salarii-page h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.salarii-page-hint {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin-top: calc(-1 * var(--space-4));
+}
+
+.salarii-luna-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.salarii-luna-btn {
+  min-width: 44px;
+  padding: 0;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.salarii-luna-current {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.salarii-luna-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.salarii-luna-today {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  font-size: 0.78rem;
+}
+
+.salarii-status-text {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  padding: var(--space-4) 0;
+}
+
+.salarii-total-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.salarii-total-label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.salarii-total-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-blue-strong);
+}
+
+.salarii-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.salarii-table-wrap {
+  padding: 0;
+  overflow-x: auto;
+}
+
+.salarii-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.salarii-table th {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-header);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.salarii-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.salarii-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.salarii-table-row {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.salarii-table-row:hover {
+  background: var(--color-surface-alt);
+}
+
+.salarii-table-nume {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.salarii-table-suma {
+  font-weight: 700;
+  color: var(--color-blue-strong);
+}
+
+@media (max-width: 560px) {
+  .salarii-total-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+}

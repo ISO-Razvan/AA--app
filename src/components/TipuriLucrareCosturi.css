@@ -1,0 +1,114 @@
+.costuri-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.costuri-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.costuri-header p {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+  max-width: 640px;
+}
+
+.costuri-loading,
+.costuri-empty {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.costuri-table-wrap {
+  overflow-x: auto;
+}
+
+.costuri-table {
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  min-width: 100%;
+}
+
+.costuri-table th,
+.costuri-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.costuri-table th {
+  text-align: left;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.costuri-input {
+  width: 110px;
+  min-height: 40px;
+  text-align: right;
+}
+
+.costuri-input-nume {
+  min-width: 160px;
+  min-height: 40px;
+  font-weight: 600;
+}
+
+.costuri-delete-btn {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  color: var(--color-danger);
+  white-space: nowrap;
+}
+
+.costuri-delete-btn:hover {
+  background: var(--color-danger-soft);
+}
+
+.costuri-profit {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.costuri-profit-negativ {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.costuri-add-form {
+  display: flex;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.costuri-add-form .text-input {
+  flex: 1;
+  max-width: 320px;
+}
+
+.costuri-error {
+  font-size: 0.85rem;
+  color: var(--color-danger);
+}
+
+@media (max-width: 480px) {
+  .costuri-add-form {
+    flex-direction: column;
+  }
+  .costuri-add-form .text-input {
+    max-width: none;
+  }
+}

@@ -1,0 +1,89 @@
+.taskuri-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.taskuri-page h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.taskuri-page-hint {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin-top: calc(-1 * var(--space-4));
+}
+
+.taskuri-loading {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.taskuri-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.taskuri-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+
+.taskuri-tehnician-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-height: var(--tap-min);
+  text-align: left;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.taskuri-tehnician-card:hover {
+  border-color: var(--color-blue);
+  box-shadow: var(--shadow-md);
+}
+
+.taskuri-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--color-blue), var(--color-purple));
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.taskuri-tehnician-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.taskuri-tehnician-nume {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.taskuri-tehnician-roluri {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

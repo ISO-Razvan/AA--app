@@ -1,14 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom'
 import { getLucrari } from './services/dataService'
+import Sidebar from './components/Sidebar.jsx'
+import Dashboard from './components/Dashboard.jsx'
 import LucrariList from './components/LucrariList.jsx'
 import LucrareModal from './components/LucrareModal.jsx'
+import LucrareDetailPanel from './components/LucrareDetailPanel.jsx'
+import SetupPage from './components/SetupPage.jsx'
+import TaskuriPage from './components/TaskuriPage.jsx'
+import CapacitatePage from './components/CapacitatePage.jsx'
+import SalariiPage from './components/SalariiPage.jsx'
 import './App.css'
 
-export default function App() {
+function AppContent() {
+  const { nrInregistrare } = useParams()
+  const navigate = useNavigate()
+
+  const [pagina, setPagina] = useState('dashboard')
   const [lucrari, setLucrari] = useState([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
-  const [editing, setEditing] = useState(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -21,30 +32,41 @@ export default function App() {
     refresh()
   }, [refresh])
 
+  const editing = nrInregistrare
+    ? lucrari.find((l) => l.nr_inregistrare === nrInregistrare) || null
+    : null
+
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div className="app-header-brand">
-          <span className="app-logo-dot" aria-hidden="true" />
-          <div>
-            <h1>Algorithm Aesthetics</h1>
-            <p>Registru lucrări laborator</p>
-          </div>
-        </div>
-        <nav className="app-header-actions">
-          <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
-            + Înregistrare lucrare
-          </button>
-        </nav>
-      </header>
+      <Sidebar activePage={pagina} onNavigate={setPagina} />
 
       <main className="app-main">
-        <LucrariList
-          lucrari={lucrari}
-          loading={loading}
-          onDataChanged={refresh}
-          onRowClick={(lucrare) => setEditing(lucrare)}
-        />
+        <div className="app-main-inner">
+          {pagina === 'dashboard' && (
+            <Dashboard
+              lucrari={lucrari}
+              loading={loading}
+              onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
+            />
+          )}
+          {pagina === 'lista' && (
+            <LucrariList
+              lucrari={lucrari}
+              loading={loading}
+              onDataChanged={refresh}
+              onRowClick={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
+              onNewLucrare={() => setCreating(true)}
+            />
+          )}
+          {pagina === 'setup' && <SetupPage />}
+          {pagina === 'taskuri' && <TaskuriPage />}
+          {pagina === 'capacitate' && <CapacitatePage />}
+          {pagina === 'salarii' && (
+            <SalariiPage
+              onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
+            />
+          )}
+        </div>
       </main>
 
       {creating && (
@@ -58,16 +80,22 @@ export default function App() {
       )}
 
       {editing && (
-        <LucrareModal
+        <LucrareDetailPanel
           key={editing.id}
           lucrare={editing}
-          onClose={() => setEditing(null)}
-          onSaved={async () => {
-            setEditing(null)
-            await refresh()
-          }}
+          onClose={() => navigate('/')}
+          onUpdated={refresh}
         />
       )}
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<AppContent />} />
+      <Route path="/comanda/:nrInregistrare" element={<AppContent />} />
+    </Routes>
   )
 }

@@ -10,9 +10,11 @@ export const CSV_COLUMNS = [
   'nr_elemente',
   'culoare',
   'implant',
+  'try_in',
   'model',
   'data_intrare',
   'termen_predare',
+  'ora_programare',
   'next_date',
   'nota',
 ]

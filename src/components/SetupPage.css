@@ -1,0 +1,16 @@
+.setup-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.setup-page h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.setup-page-hint {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin-top: calc(-1 * var(--space-4));
+}
