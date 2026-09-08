@@ -2,9 +2,14 @@
 // din tabelul `profiles`. Separat de `dataService` pentru că nu ține de
 // datele operaționale ale laboratorului, ci de sesiunea utilizatorului.
 
-import { supabase } from './supabaseClient'
+import { supabase, REMEMBER_ME_KEY } from './supabaseClient'
 
-export async function signIn(email, parola) {
+// `rememberMe` trebuie scris ÎNAINTE de signInWithPassword — SDK-ul salvează
+// sesiunea imediat ce primește răspunsul, iar `authStorage` din
+// `supabaseClient.js` decide localStorage/sessionStorage citind exact
+// această valoare în acel moment.
+export async function signIn(email, parola, rememberMe = true) {
+  localStorage.setItem(REMEMBER_ME_KEY, rememberMe ? 'true' : 'false')
   const { data, error } = await supabase.auth.signInWithPassword({ email, password: parola })
   if (error) throw error
   return data.session

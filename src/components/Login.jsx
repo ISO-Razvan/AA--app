@@ -5,6 +5,7 @@ import './Login.css'
 export default function Login() {
   const [email, setEmail] = useState('')
   const [parola, setParola] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -14,7 +15,7 @@ export default function Login() {
     setError('')
     setSaving(true)
     try {
-      await signIn(email.trim(), parola)
+      await signIn(email.trim(), parola, rememberMe)
       // succesul declanșează automat onAuthStateChange în App — nu mai e
       // nevoie de nicio acțiune suplimentară aici.
     } catch (err) {
@@ -61,6 +62,15 @@ export default function Login() {
             required
           />
         </div>
+
+        <label className="login-remember">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
+          <span>Rămâi conectat</span>
+        </label>
 
         {error && <p className="login-error">{error}</p>}
 
