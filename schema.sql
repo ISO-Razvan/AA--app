@@ -1,11 +1,7 @@
--- ISTORIC — păstrat doar ca document de referință de dinaintea conectării
--- reale la Supabase. Scriptul de rulat efectiv este `schema.sql` din
--- rădăcina proiectului (are, în plus, tabelul `profiles` și politicile RLS).
---
--- Algorithm Aesthetics — schema Supabase (Postgres) — v2
--- Structura este proiectată pentru a fi extinsă ulterior (ex. tabel `etape`,
--- câmpuri de programare producție/tehnician, modul financiar/stoc) fără a
--- rupe datele existente.
+-- Algorithm Aesthetics — schema Supabase (Postgres) — v3 (+ autentificare)
+-- Rulează acest fișier o singură dată, integral, în Supabase → SQL Editor
+-- (proiect: kuxcmmrxhppudbwiwmxv). Sigur de rulat de mai multe ori — toate
+-- comenzile sunt idempotente (`if not exists` / `on conflict do nothing`).
 
 create extension if not exists "pgcrypto";
 
@@ -45,8 +41,6 @@ create table if not exists clinici (
 );
 
 -- Etape de producție — listă editabilă (Setup), ordonată prin `ordine`.
--- Înlocuiește lista fixă folosită inițial (Model, Design, Frezare, Sinter,
--- Stratificare, Adaptare, Ambalare); acele valori devin rândurile inițiale.
 create table if not exists etape_productie (
   id uuid primary key default gen_random_uuid(),
   nume text not null unique,
@@ -59,9 +53,8 @@ create table if not exists etape_productie (
 );
 
 -- Tehnicieni — nume + rolurile lor (etapele de producție pe care le pot
--- executa). `roluri` e un array de id-uri din `etape_productie` — păstrat ca
--- jsonb (nu uuid[] cu foreign key), la fel ca `dinti` din `lucrari`, pentru
--- simplitate; validarea referințelor se face la nivel de aplicație.
+-- executa). `roluri` e un array de id-uri din `etape_productie`, păstrat ca
+-- jsonb pentru simplitate; validarea referințelor se face la nivel de aplicație.
 create table if not exists tehnicieni (
   id uuid primary key default gen_random_uuid(),
   nume text not null,
@@ -70,9 +63,9 @@ create table if not exists tehnicieni (
 );
 
 -- Comisioane — sumă fixă per (tip de lucrare, etapă de producție), editabilă
--- din Setup ca grilă. La fel ca la cost_laborator/incasare: modificarea unei
--- sume NU afectează lucrările deja înregistrate, doar cele noi (vezi
--- `comisioane` din `lucrari`, care păstrează instantaneul de la înregistrare).
+-- din Setup ca grilă. Modificarea unei sume NU afectează lucrările deja
+-- înregistrate, doar cele noi (vezi `comisioane` din `lucrari`, care păstrează
+-- instantaneul de la înregistrare).
 create table if not exists comisioane (
   id uuid primary key default gen_random_uuid(),
   tip_lucrare text not null,
@@ -103,9 +96,6 @@ create table if not exists lucrari (
   model text check (model in ('Gips', 'Print')),
   data_intrare date not null default current_date,
   termen_predare date,
-  -- Ora la care e programat pacientul în ziua din `termen_predare` (ex.
-  -- pentru try-in) — opțională, poate lipsi dacă nu există o programare de
-  -- pacient pentru acea zi.
   ora_programare time,
   -- NU se completează din formularul de înregistrare — doar din panoul de
   -- editare al unei lucrări existente (următoarea probă/control programat).
@@ -120,8 +110,6 @@ create table if not exists lucrari (
   profit numeric,
   -- array de { etapa_id, etapa_nume, suma }, instantaneu din `comisioane`
   comisioane jsonb not null default '[]'::jsonb,
-  -- pregătit pentru extensii viitoare (kanban pe etape), fără a fi folosit acum:
-  -- etapa text,
   created_at timestamptz not null default now()
 );
 
@@ -131,9 +119,8 @@ create index if not exists lucrari_next_date_idx on lucrari (next_date);
 create index if not exists lucrari_created_at_idx on lucrari (created_at);
 
 -- Programare producție per lucrare — un rând per (lucrare, etapă), cu
--- tehnicianul alocat și data planificată. Afișat ca tab „Producție" în
--- panoul de detaliu al lucrării, sub formă de cronologie verticală
--- (Data intrare → etape, în ordinea din `etape_productie` → Termen predare).
+-- tehnicianul alocat, data planificată și starea de finalizare. Afișat ca
+-- tab „Producție" în fișa lucrării, sub formă de cronologie verticală.
 create table if not exists productie_lucrare (
   id uuid primary key default gen_random_uuid(),
   lucrare_id uuid not null references lucrari (id) on delete cascade,
@@ -148,13 +135,9 @@ create table if not exists productie_lucrare (
 
 create index if not exists productie_lucrare_lucrare_idx on productie_lucrare (lucrare_id);
 
--- Poze asociate unei lucrări — tab „Galerie" din panoul de detaliu.
--- DEOCAMDATĂ `referinta_fisier` conține imaginea codificată base64 (data URL),
--- stocată direct în coloană/localStorage. Când proiectul Supabase real e
--- conectat, imaginile trebuie mutate în Supabase Storage (bucket dedicat, ex.
--- `poze-lucrari`), iar `referinta_fisier` va deveni un URL/path către acel
--- obiect din Storage, nu conținutul brut al imaginii — coloana rămâne text în
--- ambele cazuri, deci schema nu se schimbă la migrare, doar ce se scrie în ea.
+-- Poze asociate unei lucrări — tab „Galerie". DEOCAMDATĂ `referinta_fisier`
+-- conține imaginea codificată base64 (data URL) direct în coloană — mutarea
+-- în Supabase Storage e o îmbunătățire ulterioară, nu parte din runda asta.
 create table if not exists poze_lucrare (
   id uuid primary key default gen_random_uuid(),
   lucrare_id uuid not null references lucrari (id) on delete cascade,
@@ -166,8 +149,7 @@ create table if not exists poze_lucrare (
 create index if not exists poze_lucrare_lucrare_idx on poze_lucrare (lucrare_id);
 
 -- Link-uri externe (ex. Google Drive) asociate unei lucrări — tab „Galerie",
--- listă separată de thumbnail-urile foto. Doar referință URL, nu conținut —
--- nu necesită nicio migrare la conectarea Supabase.
+-- listă separată de thumbnail-urile foto.
 create table if not exists linkuri_lucrare (
   id uuid primary key default gen_random_uuid(),
   lucrare_id uuid not null references lucrari (id) on delete cascade,
@@ -179,8 +161,22 @@ create table if not exists linkuri_lucrare (
 create index if not exists linkuri_lucrare_lucrare_idx on linkuri_lucrare (lucrare_id);
 
 -- ---------------------------------------------------------------------------
--- Date inițiale de configurare (seed) — aceleași valori folosite acum în
--- implementarea locală (localStorage), ca cele două surse să rămână identice.
+-- Profiluri de utilizator — leagă un cont Supabase Auth (auth.users) de un
+-- rol în aplicație și, dacă e tehnician, de rândul lui din `tehnicieni`.
+-- Rândurile din acest tabel NU se creează din aplicație — administratorul le
+-- creează manual din Supabase (vezi instrucțiunile de la finalul mesajului).
+-- ---------------------------------------------------------------------------
+
+create table if not exists profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  rol text not null check (rol in ('admin', 'tehnician')),
+  tehnician_id uuid references tehnicieni (id) on delete set null,
+  nume text,
+  created_at timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------------------
+-- Date inițiale de configurare (seed)
 -- ---------------------------------------------------------------------------
 
 insert into tipuri_lucrare (nume) values
@@ -204,6 +200,47 @@ on conflict (nume) do nothing;
 -- medici și clinici nu au valori implicite — se adaugă liber din formular.
 
 -- ---------------------------------------------------------------------------
--- NOTĂ: fără RLS/politici de autentificare în această versiune —
--- ecranele de login se adaugă odată cu conectarea reală a proiectului Supabase.
+-- Securitate — Row Level Security. Doar utilizatorii autentificați (orice
+-- rol) pot citi/scrie datele operaționale în această rundă — restricțiile
+-- fine pe rol (ex. tehnicianul nu vede sumele financiare) se adaugă separat,
+-- la runda următoare. Fără RLS, cheia "anon" ar da acces public la tot.
 -- ---------------------------------------------------------------------------
+
+alter table tipuri_lucrare enable row level security;
+alter table culori enable row level security;
+alter table medici enable row level security;
+alter table clinici enable row level security;
+alter table etape_productie enable row level security;
+alter table tehnicieni enable row level security;
+alter table comisioane enable row level security;
+alter table lucrari enable row level security;
+alter table productie_lucrare enable row level security;
+alter table poze_lucrare enable row level security;
+alter table linkuri_lucrare enable row level security;
+alter table profiles enable row level security;
+
+do $$
+declare
+  t text;
+begin
+  for t in
+    select unnest(array[
+      'tipuri_lucrare', 'culori', 'medici', 'clinici', 'etape_productie',
+      'tehnicieni', 'comisioane', 'lucrari', 'productie_lucrare',
+      'poze_lucrare', 'linkuri_lucrare'
+    ])
+  loop
+    execute format(
+      'drop policy if exists "authenticated_all" on %I;
+       create policy "authenticated_all" on %I for all to authenticated using (true) with check (true);',
+      t, t
+    );
+  end loop;
+end $$;
+
+-- profiles: un utilizator își poate citi doar propriul rând (suficient ca
+-- aplicația să afle rolul la login); scrierea se face manual, din Supabase.
+drop policy if exists "select_own_profile" on profiles;
+create policy "select_own_profile" on profiles
+  for select to authenticated
+  using (auth.uid() = id);

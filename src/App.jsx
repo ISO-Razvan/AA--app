@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Routes, Route, useNavigate, useParams } from 'react-router-dom'
 import { getLucrari } from './services/dataService'
+import { getSession, getProfile, onAuthStateChange, signOut } from './services/auth'
 import Sidebar from './components/Sidebar.jsx'
+import Login from './components/Login.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import LucrariList from './components/LucrariList.jsx'
 import LucrareModal from './components/LucrareModal.jsx'
@@ -12,7 +14,7 @@ import CapacitatePage from './components/CapacitatePage.jsx'
 import SalariiPage from './components/SalariiPage.jsx'
 import './App.css'
 
-function AppContent() {
+function AppContent({ profile, onSignOut }) {
   const { nrInregistrare } = useParams()
   const navigate = useNavigate()
 
@@ -38,7 +40,7 @@ function AppContent() {
 
   return (
     <div className="app-shell">
-      <Sidebar activePage={pagina} onNavigate={setPagina} />
+      <Sidebar activePage={pagina} onNavigate={setPagina} profile={profile} onSignOut={onSignOut} />
 
       <main className="app-main">
         <div className="app-main-inner">
@@ -92,10 +94,85 @@ function AppContent() {
 }
 
 export default function App() {
+  // `undefined` = încă se verifică sesiunea; `null` = neautentificat.
+  const [session, setSession] = useState(undefined)
+  const [profile, setProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+
+  useEffect(() => {
+    let activ = true
+    getSession().then((s) => {
+      if (activ) setSession(s)
+    })
+    const unsubscribe = onAuthStateChange((s) => {
+      if (activ) setSession(s)
+    })
+    return () => {
+      activ = false
+      unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!session) {
+      setProfile(null)
+      return
+    }
+    let activ = true
+    setProfileLoading(true)
+    getProfile(session.user.id)
+      .then((p) => {
+        if (activ) setProfile(p)
+      })
+      .finally(() => {
+        if (activ) setProfileLoading(false)
+      })
+    return () => {
+      activ = false
+    }
+  }, [session])
+
+  if (session === undefined) {
+    return (
+      <div className="auth-status-screen">
+        <div className="card auth-status-card">
+          <p>Se verifică sesiunea…</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return <Login />
+  }
+
+  if (profileLoading) {
+    return (
+      <div className="auth-status-screen">
+        <div className="card auth-status-card">
+          <p>Se încarcă profilul…</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="auth-status-screen">
+        <div className="card auth-status-card">
+          <p>Contul tău e autentificat, dar nu are încă un rol asignat. Cere administratorului să-ți creeze un profil.</p>
+          <button type="button" className="btn btn-secondary" onClick={() => signOut()}>
+            Deconectare
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Routes>
-      <Route path="/" element={<AppContent />} />
-      <Route path="/comanda/:nrInregistrare" element={<AppContent />} />
+      <Route path="/" element={<AppContent profile={profile} onSignOut={signOut} />} />
+      <Route path="/comanda/:nrInregistrare" element={<AppContent profile={profile} onSignOut={signOut} />} />
     </Routes>
   )
 }

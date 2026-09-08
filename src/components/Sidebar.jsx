@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { id: 'salarii', label: 'Salarii' },
 ]
 
-export default function Sidebar({ activePage, onNavigate }) {
+export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -33,6 +33,16 @@ export default function Sidebar({ activePage, onNavigate }) {
           </button>
         ))}
       </nav>
+
+      <div className="sidebar-account">
+        <div className="sidebar-account-info">
+          <span className="sidebar-account-name">{profile?.nume || (profile?.rol === 'admin' ? 'Administrator' : 'Tehnician')}</span>
+          <span className="sidebar-account-rol">{profile?.rol === 'admin' ? 'Administrator' : 'Tehnician'}</span>
+        </div>
+        <button type="button" className="btn btn-ghost sidebar-signout-btn" onClick={onSignOut}>
+          Deconectare
+        </button>
+      </div>
     </aside>
   )
 }

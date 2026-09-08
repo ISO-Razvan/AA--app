@@ -1,14 +1,13 @@
 // Strat unic de acces la date, folosit de întreaga aplicație.
 //
-// Astăzi este susținut de `localStorageAdapter` (localStorage), cu exact
-// aceeași structură de date ca schema Supabase (`src/data/schema.sql`).
-// Când proiectul Supabase real este conectat, se scrie un `supabaseAdapter`
-// cu aceleași funcții și se schimbă DOAR linia de import de mai jos —
-// restul aplicației rămâne neschimbată.
+// Susținut de `supabaseAdapter` (Supabase/Postgres, vezi `schema.sql` din
+// rădăcina proiectului). Implementarea anterioară, pe localStorage
+// (`localStorageAdapter.js`), rămâne în cod doar ca referință istorică —
+// nu mai e folosită.
 
-import { localStorageAdapter } from './localStorageAdapter'
+import { supabaseAdapter } from './supabaseAdapter'
 
-const adapter = localStorageAdapter
+const adapter = supabaseAdapter
 
 export const getLucrari = adapter.getLucrari
 export const addLucrare = adapter.addLucrare
