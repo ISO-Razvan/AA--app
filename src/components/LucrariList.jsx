@@ -38,6 +38,15 @@ function IconStergere() {
   )
 }
 
+function IconRestaurare() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M2.5 8a5.5 5.5 0 1 1 1.7 3.98" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M2.5 4.5V8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function matchesSearch(l, query) {
   if (!query) return true
   const haystack = [l.nr_inregistrare, l.pacient, l.medic, l.clinica, l.tip_lucrare, l.nota]
@@ -57,6 +66,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   const [totalEtape, setTotalEtape] = useState(0)
   const [alocari, setAlocari] = useState([])
   const [deletingId, setDeletingId] = useState(null)
+  const [restoringId, setRestoringId] = useState(null)
   const [view, setView] = useState('lista')
   const [modFiltrare, setModFiltrare] = useState('active')
   const [tipuriLucrareNume, setTipuriLucrareNume] = useState(null) // null = încă neîncărcat
@@ -135,6 +145,19 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
       await onDataChanged()
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const handleRestore = async (l, e) => {
+    e.stopPropagation()
+    const ok = window.confirm(`Scoți lucrarea ${l.nr_inregistrare} din arhivă? Va redeveni editabilă.`)
+    if (!ok) return
+    setRestoringId(l.id)
+    try {
+      await updateLucrare(l.id, { arhivat: false, data_arhivare: null })
+      await onDataChanged()
+    } finally {
+      setRestoringId(null)
     }
   }
 
@@ -350,16 +373,29 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                       <td className="lucrari-col-optional"><span className="badge badge-neutral">{detaliiLabel(l)}</span></td>
                       <td className="lucrari-col-optional lucrari-table-nota">{l.nota || '—'}</td>
                       <td>
-                        <button
-                          type="button"
-                          className="lucrari-delete-btn"
-                          onClick={(e) => handleDelete(l, e)}
-                          disabled={deletingId === l.id || l.arhivat}
-                          aria-label={`Șterge lucrarea ${l.nr_inregistrare}`}
-                          title={l.arhivat ? 'Lucrare arhivată — needitabilă' : 'Șterge lucrarea'}
-                        >
-                          <IconStergere />
-                        </button>
+                        {l.arhivat ? (
+                          <button
+                            type="button"
+                            className="lucrari-restore-btn"
+                            onClick={(e) => handleRestore(l, e)}
+                            disabled={restoringId === l.id}
+                            aria-label={`Scoate din arhivă lucrarea ${l.nr_inregistrare}`}
+                            title="Scoate din arhivă"
+                          >
+                            <IconRestaurare />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="lucrari-delete-btn"
+                            onClick={(e) => handleDelete(l, e)}
+                            disabled={deletingId === l.id}
+                            aria-label={`Șterge lucrarea ${l.nr_inregistrare}`}
+                            title="Șterge lucrarea"
+                          >
+                            <IconStergere />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )
@@ -377,16 +413,29 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                   <span className="lucrare-card-nr">{l.nr_inregistrare}</span>
                   <div className="lucrare-card-top-right">
                     <span className="lucrare-card-livrare">Termen: {formatData(l.termen_predare)}</span>
-                    <button
-                      type="button"
-                      className="lucrari-delete-btn"
-                      onClick={(e) => handleDelete(l, e)}
-                      disabled={deletingId === l.id || l.arhivat}
-                      aria-label={`Șterge lucrarea ${l.nr_inregistrare}`}
-                      title={l.arhivat ? 'Lucrare arhivată — needitabilă' : 'Șterge lucrarea'}
-                    >
-                      <IconStergere />
-                    </button>
+                    {l.arhivat ? (
+                      <button
+                        type="button"
+                        className="lucrari-restore-btn"
+                        onClick={(e) => handleRestore(l, e)}
+                        disabled={restoringId === l.id}
+                        aria-label={`Scoate din arhivă lucrarea ${l.nr_inregistrare}`}
+                        title="Scoate din arhivă"
+                      >
+                        <IconRestaurare />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="lucrari-delete-btn"
+                        onClick={(e) => handleDelete(l, e)}
+                        disabled={deletingId === l.id}
+                        aria-label={`Șterge lucrarea ${l.nr_inregistrare}`}
+                        title="Șterge lucrarea"
+                      >
+                        <IconStergere />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <h3 className="lucrare-card-tip">{l.tip_lucrare}</h3>

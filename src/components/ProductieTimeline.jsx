@@ -78,10 +78,19 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
 
   const handleArhiveaza = async () => {
     const ok = window.confirm(
-      'Arhivezi definitiv acest caz? Lucrarea nu va mai apărea în Dashboard, Kanban, Task-uri sau Capacitate — rămâne disponibilă doar din Listă lucrări → Arhivate, needitabilă. Acțiunea nu se poate anula ușor din interfață.'
+      'Arhivezi acest caz? Lucrarea nu va mai apărea în Dashboard, Kanban, Task-uri sau Capacitate — rămâne disponibilă doar din Listă lucrări → Arhivate, needitabilă până o scoți din arhivă.'
     )
     if (!ok) return
     await updateLucrare(lucrareId, { arhivat: true, data_arhivare: new Date().toISOString() })
+    await onArhivat?.()
+  }
+
+  const handleScoateDinArhiva = async () => {
+    const ok = window.confirm(
+      'Scoți această lucrare din arhivă? Va redeveni editabilă și va reapărea în Dashboard, Kanban, Task-uri și Capacitate.'
+    )
+    if (!ok) return
+    await updateLucrare(lucrareId, { arhivat: false, data_arhivare: null })
     await onArhivat?.()
   }
 
@@ -226,9 +235,18 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
       {etape.length > 0 && (
         <div className="productie-arhivare">
           {arhivat ? (
-            <p className="productie-arhivare-status">
-              ✓ Lucrare arhivată{dataArhivare ? ` pe ${formatDataOra(dataArhivare)}` : ''}.
-            </p>
+            <>
+              <p className="productie-arhivare-status">
+                ✓ Lucrare arhivată{dataArhivare ? ` pe ${formatDataOra(dataArhivare)}` : ''}.
+              </p>
+              <button
+                type="button"
+                className="btn btn-ghost productie-dezarhiveaza-btn"
+                onClick={handleScoateDinArhiva}
+              >
+                Scoate din arhivă
+              </button>
+            </>
           ) : (
             <>
               <button

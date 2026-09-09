@@ -193,6 +193,30 @@
   cursor: not-allowed;
 }
 
+.lucrari-restore-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.lucrari-restore-btn:hover:not(:disabled) {
+  background: var(--color-blue-soft);
+  color: var(--color-blue-strong);
+}
+
+.lucrari-restore-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .lucrare-card-top-right {
   display: flex;
   align-items: center;

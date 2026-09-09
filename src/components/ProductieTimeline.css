@@ -217,6 +217,10 @@
   color: var(--color-success);
 }
 
+.productie-dezarhiveaza-btn {
+  margin-top: var(--space-3);
+}
+
 .productie-arhivare .productie-hint {
   margin-top: var(--space-2);
 }
