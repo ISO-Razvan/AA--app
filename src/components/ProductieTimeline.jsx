@@ -89,6 +89,10 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
         const finalizat = !!rand?.finalizat
         const esteUltimaIntarziata =
           depasesteTermenul && rand?.data_planificata && rand.data_planificata === ultimaDataPlanificata
+        // Etapa „Model" nu se alocă unui tehnician/dată din acest tab — se
+        // afișează doar ca marcaj de stare pe cronologie (cuplat de numele
+        // etapei, nu de un id stabil, pentru că etapele n-au un „tip" separat).
+        const esteModel = etapa.nume === 'Model'
         return (
           <div className={`productie-item ${finalizat ? 'productie-item-finalizata' : ''}`} key={etapa.id}>
             <span
@@ -109,28 +113,30 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
                   <span className="productie-depasire-badge">Depășește termenul de predare</span>
                 )}
               </span>
-              <div className="productie-fields">
-                <div>
-                  <label className="field-label">Alege tehnician</label>
-                  <Dropdown
-                    value={rand?.tehnician_id || ''}
-                    onChange={(v) => handlePatch(etapa.id, { tehnician_id: v || null })}
-                    options={tehniciniPotriviti.map((t) => ({ value: t.id, label: t.nume }))}
-                    emptyLabel="— fără —"
-                    placeholder="— fără —"
-                  />
-                  {tehniciniPotriviti.length === 0 && (
-                    <p className="productie-hint">Niciun tehnician cu acest rol (Setup → Tehnicieni).</p>
-                  )}
+              {!esteModel && (
+                <div className="productie-fields">
+                  <div>
+                    <label className="field-label">Alege tehnician</label>
+                    <Dropdown
+                      value={rand?.tehnician_id || ''}
+                      onChange={(v) => handlePatch(etapa.id, { tehnician_id: v || null })}
+                      options={tehniciniPotriviti.map((t) => ({ value: t.id, label: t.nume }))}
+                      emptyLabel="— fără —"
+                      placeholder="— fără —"
+                    />
+                    {tehniciniPotriviti.length === 0 && (
+                      <p className="productie-hint">Niciun tehnician cu acest rol (Setup → Tehnicieni).</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="field-label">Data planificată</label>
+                    <DatePicker
+                      value={rand?.data_planificata || ''}
+                      onChange={(v) => handlePatch(etapa.id, { data_planificata: v })}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="field-label">Data planificată</label>
-                  <DatePicker
-                    value={rand?.data_planificata || ''}
-                    onChange={(v) => handlePatch(etapa.id, { data_planificata: v })}
-                  />
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )

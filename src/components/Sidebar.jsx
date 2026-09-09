@@ -1,6 +1,6 @@
 import './Sidebar.css'
 
-const NAV_ITEMS = [
+const NAV_ITEMS_ADMIN = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'lista', label: 'Listă lucrări' },
   { id: 'setup', label: 'Setup' },
@@ -9,7 +9,11 @@ const NAV_ITEMS = [
   { id: 'salarii', label: 'Salarii' },
 ]
 
+const NAV_ITEMS_TEHNICIAN = [{ id: 'task-urile-mele', label: 'Task-urile mele' }]
+
 export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) {
+  const navItems = profile?.rol === 'tehnician' ? NAV_ITEMS_TEHNICIAN : NAV_ITEMS_ADMIN
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -21,7 +25,7 @@ export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) 
       </div>
 
       <nav className="sidebar-nav" aria-label="Navigare principală">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <button
             key={item.id}
             type="button"

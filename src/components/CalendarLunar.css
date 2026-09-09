@@ -1,0 +1,142 @@
+.calendar-lunar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.calendar-lunar-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.calendar-lunar-nav-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 1.2rem;
+  line-height: 1;
+  transition: border-color 0.12s ease, color 0.12s ease, background-color 0.12s ease;
+}
+
+.calendar-lunar-nav-btn:hover {
+  border-color: var(--color-blue);
+  color: var(--color-blue-strong);
+  background: var(--color-blue-soft);
+}
+
+.calendar-lunar-nav-current {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.calendar-lunar-nav-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: capitalize;
+}
+
+.calendar-lunar-today-btn {
+  min-height: 26px;
+  padding: 0 var(--space-2);
+  font-size: 0.72rem;
+}
+
+.calendar-lunar-weekdays,
+.calendar-lunar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-lunar-weekdays span {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  padding-bottom: 2px;
+}
+
+.calendar-lunar-empty {
+  min-height: 44px;
+}
+
+.calendar-lunar-day {
+  position: relative;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  font-family: var(--font-body);
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.calendar-lunar-day:hover {
+  border-color: var(--color-blue);
+}
+
+.calendar-lunar-day-num {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.calendar-lunar-day.today .calendar-lunar-day-num {
+  color: var(--color-blue-strong);
+  font-weight: 800;
+}
+
+.calendar-lunar-day.has-activity {
+  background: var(--color-purple-soft);
+}
+
+.calendar-lunar-day-count {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-purple-strong);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.calendar-lunar-day.selected {
+  background: var(--color-blue-strong);
+  border-color: var(--color-blue-strong);
+}
+
+.calendar-lunar-day.selected .calendar-lunar-day-num {
+  color: #fff;
+}
+
+.calendar-lunar-day.selected .calendar-lunar-day-count {
+  background: #fff;
+  color: var(--color-blue-strong);
+}
+
+@media (max-width: 420px) {
+  .calendar-lunar-day {
+    min-height: 38px;
+  }
+  .calendar-lunar-empty {
+    min-height: 38px;
+  }
+}

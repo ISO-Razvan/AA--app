@@ -12,13 +12,15 @@ import SetupPage from './components/SetupPage.jsx'
 import TaskuriPage from './components/TaskuriPage.jsx'
 import CapacitatePage from './components/CapacitatePage.jsx'
 import SalariiPage from './components/SalariiPage.jsx'
+import TaskurileMelePage from './components/TaskurileMelePage.jsx'
 import './App.css'
 
 function AppContent({ profile, onSignOut }) {
   const { nrInregistrare } = useParams()
   const navigate = useNavigate()
+  const esteTehnician = profile.rol === 'tehnician'
 
-  const [pagina, setPagina] = useState('dashboard')
+  const [pagina, setPagina] = useState(esteTehnician ? 'task-urile-mele' : 'dashboard')
   const [lucrari, setLucrari] = useState([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -44,34 +46,40 @@ function AppContent({ profile, onSignOut }) {
 
       <main className="app-main">
         <div className="app-main-inner">
-          {pagina === 'dashboard' && (
-            <Dashboard
-              lucrari={lucrari}
-              loading={loading}
-              onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
-            />
-          )}
-          {pagina === 'lista' && (
-            <LucrariList
-              lucrari={lucrari}
-              loading={loading}
-              onDataChanged={refresh}
-              onRowClick={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
-              onNewLucrare={() => setCreating(true)}
-            />
-          )}
-          {pagina === 'setup' && <SetupPage />}
-          {pagina === 'taskuri' && <TaskuriPage />}
-          {pagina === 'capacitate' && <CapacitatePage />}
-          {pagina === 'salarii' && (
-            <SalariiPage
-              onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
-            />
+          {esteTehnician ? (
+            <TaskurileMelePage tehnicianId={profile.tehnician_id} />
+          ) : (
+            <>
+              {pagina === 'dashboard' && (
+                <Dashboard
+                  lucrari={lucrari}
+                  loading={loading}
+                  onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
+                />
+              )}
+              {pagina === 'lista' && (
+                <LucrariList
+                  lucrari={lucrari}
+                  loading={loading}
+                  onDataChanged={refresh}
+                  onRowClick={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
+                  onNewLucrare={() => setCreating(true)}
+                />
+              )}
+              {pagina === 'setup' && <SetupPage />}
+              {pagina === 'taskuri' && <TaskuriPage />}
+              {pagina === 'capacitate' && <CapacitatePage />}
+              {pagina === 'salarii' && (
+                <SalariiPage
+                  onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
+                />
+              )}
+            </>
           )}
         </div>
       </main>
 
-      {creating && (
+      {!esteTehnician && creating && (
         <LucrareModal
           onClose={() => setCreating(false)}
           onSaved={async () => {
