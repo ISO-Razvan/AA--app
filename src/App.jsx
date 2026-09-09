@@ -113,14 +113,22 @@ export default function App() {
     }
   }, [])
 
+  // Cheia efectului e `session?.user?.id`, NU obiectul `session` întreg —
+  // Supabase reemite sesiunea (obiect nou, același utilizator) la reluarea
+  // focusului pe tab (ex. revii de pe alt tab din Chrome), ca să reîmprospăteze
+  // token-ul. Dacă am ține cont de fiecare astfel de eveniment, am reface
+  // fetch-ul de profil și am arăta din nou ecranul de „Se încarcă profilul”,
+  // ceea ce demontează <AppContent> și resetează navigarea la Dashboard.
+  const userId = session?.user?.id
+
   useEffect(() => {
-    if (!session) {
+    if (!userId) {
       setProfile(null)
       return
     }
     let activ = true
     setProfileLoading(true)
-    getProfile(session.user.id)
+    getProfile(userId)
       .then((p) => {
         if (activ) setProfile(p)
       })
@@ -130,7 +138,7 @@ export default function App() {
     return () => {
       activ = false
     }
-  }, [session])
+  }, [userId])
 
   if (session === undefined) {
     return (
@@ -146,7 +154,7 @@ export default function App() {
     return <Login />
   }
 
-  if (profileLoading) {
+  if (profileLoading && !profile) {
     return (
       <div className="auth-status-screen">
         <div className="card auth-status-card">

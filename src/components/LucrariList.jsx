@@ -259,13 +259,13 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                   <th>Nr. înreg.</th>
                   <th>Client</th>
                   <th>Pacient</th>
-                  <th>Data intrare</th>
-                  <th>Next date</th>
+                  <th className="lucrari-col-optional">Data intrare</th>
+                  <th className="lucrari-col-optional">Next date</th>
                   <th>Termen predare</th>
                   <th>Status</th>
                   <th>Tip lucrare</th>
-                  <th>Detalii</th>
-                  <th>Notă</th>
+                  <th className="lucrari-col-optional">Detalii</th>
+                  <th className="lucrari-col-optional">Notă</th>
                   <th aria-label="Acțiuni" />
                 </tr>
               </thead>
@@ -277,13 +277,13 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                       <td className="lucrari-table-nr">{l.nr_inregistrare}</td>
                       <td>{clientLabel(l)}</td>
                       <td>{l.pacient || '—'}</td>
-                      <td>{formatData(l.data_intrare)}</td>
-                      <td>{formatData(l.next_date)}</td>
+                      <td className="lucrari-col-optional">{formatData(l.data_intrare)}</td>
+                      <td className="lucrari-col-optional">{formatData(l.next_date)}</td>
                       <td className="lucrari-table-livrare">{formatData(l.termen_predare)}</td>
                       <td><span className={`badge ${status.badgeClass}`}>{status.label}</span></td>
                       <td>{l.tip_lucrare}</td>
-                      <td><span className="badge badge-neutral">{detaliiLabel(l)}</span></td>
-                      <td className="lucrari-table-nota">{l.nota || '—'}</td>
+                      <td className="lucrari-col-optional"><span className="badge badge-neutral">{detaliiLabel(l)}</span></td>
+                      <td className="lucrari-col-optional lucrari-table-nota">{l.nota || '—'}</td>
                       <td>
                         <button
                           type="button"

@@ -79,6 +79,27 @@
 .lucrari-table-wrap {
   overflow-x: auto;
   padding: 0;
+  /* Bară de scroll orizontal mereu vizibilă (nu doar la hover, ca implicit
+     pe unele sisteme) — semnal clar că mai e conținut lateral. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.lucrari-table-wrap::-webkit-scrollbar {
+  height: 9px;
+}
+
+.lucrari-table-wrap::-webkit-scrollbar-track {
+  background: var(--color-surface-alt);
+}
+
+.lucrari-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.lucrari-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
 }
 
 .lucrari-table {
@@ -86,6 +107,18 @@
   border-collapse: collapse;
   font-size: 0.9rem;
   min-width: 920px;
+}
+
+/* Sub 1300px, coloanele secundare (Data intrare, Next date, Detalii, Notă)
+   dispar — restul tabelului încape fără scroll orizontal pe majoritatea
+   ecranelor de laptop. Rămân disponibile oricând în fișa lucrării. */
+@media (max-width: 1300px) {
+  .lucrari-table {
+    min-width: 680px;
+  }
+  .lucrari-col-optional {
+    display: none;
+  }
 }
 
 .lucrari-table th {
