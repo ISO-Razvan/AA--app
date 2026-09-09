@@ -20,6 +20,13 @@ function formatDataOra(dataStr, oraStr) {
   return oraStr ? `${dataFmt}, ${oraStr}` : dataFmt
 }
 
+function formatDataArhivare(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
 const TABS = [
   { id: 'detalii', label: 'Detalii comandă' },
   { id: 'productie', label: 'Producție' },
@@ -28,6 +35,7 @@ const TABS = [
 ]
 
 export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated }) {
+  const readOnly = !!lucrare.arhivat
   const [tab, setTab] = useState('detalii')
   const initial = dinDintiSalvati(lucrare.dinti)
 
@@ -88,12 +96,14 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
   }, [])
 
   const persist = async (patch) => {
+    if (readOnly) return
     await updateLucrare(lucrare.id, patch)
     setSavedAt(Date.now())
     await onUpdated?.()
   }
 
   const handleDelete = async () => {
+    if (readOnly) return
     const ok = window.confirm(
       `Ștergi definitiv lucrarea ${lucrare.nr_inregistrare}${lucrare.pacient ? ` (${lucrare.pacient})` : ''}? Acțiunea nu poate fi anulată.`
     )
@@ -138,8 +148,14 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
               {statusLucrare && (
                 <span className={`badge ${statusLucrare.badgeClass}`}>{statusLucrare.label}</span>
               )}
+              {readOnly && <span className="badge badge-neutral">Arhivată</span>}
             </div>
             <p>{lucrare.nr_inregistrare}</p>
+            {readOnly && (
+              <p className="detail-panel-arhivat-hint">
+                Arhivată{lucrare.data_arhivare ? ` pe ${formatDataArhivare(lucrare.data_arhivare)}` : ''} — needitabilă, doar de consultat.
+              </p>
+            )}
           </div>
 
           <div className="detail-panel-qr">
@@ -148,7 +164,13 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
           </div>
 
           <div className="detail-panel-header-actions">
-            <button type="button" className="btn btn-ghost detail-panel-delete" onClick={handleDelete}>
+            <button
+              type="button"
+              className="btn btn-ghost detail-panel-delete"
+              onClick={handleDelete}
+              disabled={readOnly}
+              title={readOnly ? 'Lucrare arhivată — needitabilă' : undefined}
+            >
               Șterge lucrarea
             </button>
             <button type="button" className="btn btn-ghost modal-close" onClick={onClose} aria-label="Închide">
@@ -187,6 +209,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                     await persist({ culoare: v })
                   }}
                   onAddCuloare={handleAdd('culori', setCuloriOptions)}
+                  readOnly={readOnly}
                 />
                 {savedAt && <p className="detail-saved-hint">Salvat automat</p>}
               </div>
@@ -205,6 +228,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                       options={cliniciOptions}
                       onAddOption={handleAdd('clinici', setCliniciOptions)}
                       placeholder="Numele clinicii"
+                      disabled={readOnly}
                     />
                     <SearchableSelect
                       label="Medic"
@@ -216,6 +240,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                       options={mediciOptions}
                       onAddOption={handleAdd('medici', setMediciOptions)}
                       placeholder="Numele medicului"
+                      disabled={readOnly}
                     />
                     <div>
                       <label className="field-label">Pacient</label>
@@ -226,6 +251,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                         onChange={(e) => setPacient(e.target.value)}
                         onBlur={(e) => persist({ pacient: e.target.value })}
                         placeholder="Nume sau inițiale"
+                        disabled={readOnly}
                       />
                     </div>
                   </div>
@@ -244,6 +270,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                     options={tipuriOptions}
                     onAddOption={handleAdd('tipuri_lucrare', setTipuriOptions)}
                     placeholder="ex. Coroană zirconiu"
+                    disabled={readOnly}
                   />
                   <div className="detail-field-row">
                     <div>
@@ -261,6 +288,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                         value={nrElemente}
                         onChange={(e) => setNrElemente(e.target.value === '' ? 0 : Number(e.target.value))}
                         onBlur={(e) => persist({ nr_elemente: e.target.value === '' ? 0 : Number(e.target.value) })}
+                        disabled={readOnly}
                       />
                     </div>
                   </div>
@@ -275,6 +303,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                             setImplant(false)
                             await persist({ implant: false })
                           }}
+                          disabled={readOnly}
                         >
                           Nu
                         </button>
@@ -285,6 +314,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                             setImplant(true)
                             await persist({ implant: true })
                           }}
+                          disabled={readOnly}
                         >
                           Da
                         </button>
@@ -300,6 +330,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                             setTryIn(false)
                             await persist({ try_in: false })
                           }}
+                          disabled={readOnly}
                         >
                           Nu
                         </button>
@@ -310,6 +341,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                             setTryIn(true)
                             await persist({ try_in: true })
                           }}
+                          disabled={readOnly}
                         >
                           Da
                         </button>
@@ -327,6 +359,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                               setModel(opt)
                               await persist({ model: opt })
                             }}
+                            disabled={readOnly}
                           >
                             {opt}
                           </button>
@@ -347,6 +380,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                           setDataIntrare(v)
                           persist({ data_intrare: v })
                         }}
+                        disabled={readOnly}
                       />
                     </div>
                     <div>
@@ -357,6 +391,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                           setTermenPredare(v)
                           persist({ termen_predare: v })
                         }}
+                        disabled={readOnly}
                       />
                     </div>
                     <div>
@@ -367,6 +402,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                           setOraProgramare(v)
                           persist({ ora_programare: v })
                         }}
+                        disabled={readOnly}
                       />
                     </div>
                   </div>
@@ -383,6 +419,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                         setNextDate(v)
                         persist({ next_date: v })
                       }}
+                      disabled={readOnly}
                     />
                     <p className="detail-field-hint">Următoarea dată programată (probă, control etc.)</p>
                   </div>
@@ -396,6 +433,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                     onChange={(e) => setNota(e.target.value)}
                     onBlur={(e) => persist({ nota: e.target.value })}
                     placeholder="Observații opționale…"
+                    disabled={readOnly}
                   />
                 </section>
 
@@ -427,10 +465,17 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
           )}
 
           {tab === 'productie' && (
-            <ProductieTimeline lucrareId={lucrare.id} dataIntrare={dataIntrare} termenPredare={termenPredare} />
+            <ProductieTimeline
+              lucrareId={lucrare.id}
+              dataIntrare={dataIntrare}
+              termenPredare={termenPredare}
+              arhivat={lucrare.arhivat}
+              dataArhivare={lucrare.data_arhivare}
+              onArhivat={onUpdated}
+            />
           )}
 
-          {tab === 'galerie' && <GaleriePoze lucrareId={lucrare.id} />}
+          {tab === 'galerie' && <GaleriePoze lucrareId={lucrare.id} readOnly={readOnly} />}
 
           {tab === 'chat' && (
             <div className="detail-tab-placeholder">

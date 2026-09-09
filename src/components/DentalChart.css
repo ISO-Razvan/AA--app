@@ -34,6 +34,13 @@
   cursor: pointer;
 }
 
+.dental-chart-readonly .dc-tooth,
+.dental-chart-readonly .dc-link-dot,
+.dental-chart-readonly .dc-palate {
+  cursor: default;
+  pointer-events: none;
+}
+
 .dc-tooth-hit {
   fill: transparent;
 }

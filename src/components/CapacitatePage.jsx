@@ -52,7 +52,9 @@ export default function CapacitatePage() {
       setTehnicieni(t)
       setEtape(e)
       setAlocari(a)
-      setLucrari(l)
+      // O lucrare arhivată dispare din Capacitate — `lucrare` nu se mai
+      // găsește pentru alocările ei, deci `statPentru` le sare automat.
+      setLucrari(l.filter((x) => !x.arhivat))
       setLoading(false)
     }
     load()

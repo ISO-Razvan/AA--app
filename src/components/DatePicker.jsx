@@ -3,7 +3,7 @@ import { azi } from '../utils/date'
 import { LUNI, ZILE_SAPTAMANA, parseISO, toISO, formatAfisare, zileInLuna, ziuaSaptamaniiPrimaZi } from '../utils/calendarUtils'
 import './DatePicker.css'
 
-export default function DatePicker({ value, onChange, placeholder = 'zz.ll.aaaa', id }) {
+export default function DatePicker({ value, onChange, placeholder = 'zz.ll.aaaa', id, disabled = false }) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef(null)
   const selected = parseISO(value)
@@ -48,6 +48,7 @@ export default function DatePicker({ value, onChange, placeholder = 'zz.ll.aaaa'
         id={id}
         className={`custom-select-trigger ${open ? 'open' : ''}`}
         onClick={deschide}
+        disabled={disabled}
       >
         <span className={`custom-select-value ${value ? '' : 'custom-select-placeholder'}`}>
           {value ? formatAfisare(value) : placeholder}

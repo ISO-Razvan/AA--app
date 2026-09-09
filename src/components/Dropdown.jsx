@@ -12,6 +12,7 @@ export default function Dropdown({
   emptyLabel,
   required = false,
   id,
+  disabled = false,
 }) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef(null)
@@ -41,6 +42,7 @@ export default function Dropdown({
         id={id}
         className={`custom-select-trigger ${open ? 'open' : ''}`}
         onClick={() => setOpen((v) => !v)}
+        disabled={disabled}
       >
         <span className={`custom-select-value ${current ? '' : 'custom-select-placeholder'}`}>
           {current ? current.label : placeholder}

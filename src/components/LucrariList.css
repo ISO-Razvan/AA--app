@@ -53,7 +53,8 @@
   max-width: 520px;
 }
 
-.lucrari-search-row .lucrari-view-toggle {
+.lucrari-search-row .lucrari-view-toggle,
+.lucrari-search-row .lucrari-filtru-toggle {
   width: auto;
   flex-shrink: 0;
 }

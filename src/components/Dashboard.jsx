@@ -33,7 +33,10 @@ function StatRow({ label, count, max, accent }) {
   )
 }
 
-export default function Dashboard({ lucrari, loading, onOpenLucrare }) {
+export default function Dashboard({ lucrari: toateLucrarile, loading, onOpenLucrare }) {
+  // O lucrare arhivată dispare din Dashboard (KPI-uri, listă, grafice) — vezi
+  // modul „Arhivate" din Listă lucrări pentru consultare ulterioară.
+  const lucrari = useMemo(() => toateLucrarile.filter((l) => !l.arhivat), [toateLucrarile])
   const [etape, setEtape] = useState([])
   const [alocari, setAlocari] = useState([])
 

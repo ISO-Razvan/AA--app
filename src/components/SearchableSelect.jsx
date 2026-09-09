@@ -10,6 +10,7 @@ export default function SearchableSelect({
   onAddOption,
   placeholder = 'Selectează sau scrie...',
   required = false,
+  disabled = false,
 }) {
   const [open, setOpen] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -69,8 +70,9 @@ export default function SearchableSelect({
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onKeyDown={handleKeyDown}
           autoComplete="off"
+          disabled={disabled}
         />
-        {open && (
+        {!disabled && open && (
           <ul className="searchable-select-dropdown" role="listbox">
             {filtered.length === 0 && !trimmed && (
               <li className="searchable-select-empty">Nicio opțiune încă</li>

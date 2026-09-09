@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getEtapeProductie, getTehnicieni, getProductieLucrare, setProductieAlocare } from '../services/dataService'
+import { getEtapeProductie, getTehnicieni, getProductieLucrare, setProductieAlocare, updateLucrare } from '../services/dataService'
 import { subscribeToTable } from '../services/realtime'
 import { statusDinRanduri } from '../utils/statusLucrare'
 import { azi } from '../utils/date'
@@ -14,7 +14,14 @@ function formatData(dataStr) {
   return `${zi}.${luna}.${an}`
 }
 
-export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredare }) {
+function formatDataOra(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredare, arhivat, dataArhivare, onArhivat }) {
   const [etape, setEtape] = useState([])
   const [tehnicieni, setTehnicieni] = useState([])
   const [randuri, setRanduri] = useState([])
@@ -56,6 +63,7 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
   const depasesteTermenul = !!(ultimaDataPlanificata && termenPredare && ultimaDataPlanificata > termenPredare)
 
   const handlePatch = async (etapaId, patch) => {
+    if (arhivat) return
     const updated = await setProductieAlocare(lucrareId, etapaId, patch)
     setRanduri((prev) => {
       const idx = prev.findIndex((r) => r.etapa_id === etapaId)
@@ -64,6 +72,17 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
       next[idx] = updated
       return next
     })
+  }
+
+  const toateFinalizate = etape.length > 0 && etape.every((e) => !!randPentru(e.id)?.finalizat)
+
+  const handleArhiveaza = async () => {
+    const ok = window.confirm(
+      'Arhivezi definitiv acest caz? Lucrarea nu va mai apărea în Dashboard, Kanban, Task-uri sau Capacitate — rămâne disponibilă doar din Listă lucrări → Arhivate, needitabilă. Acțiunea nu se poate anula ușor din interfață.'
+    )
+    if (!ok) return
+    await updateLucrare(lucrareId, { arhivat: true, data_arhivare: new Date().toISOString() })
+    await onArhivat?.()
   }
 
   if (loading) {
@@ -127,10 +146,11 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
                 )}
               </span>
               {esteModel ? (
-                <label className="productie-model-checkbox">
+                <label className={`productie-checkbox ${arhivat ? 'disabled' : ''}`}>
                   <input
                     type="checkbox"
                     checked={finalizat}
+                    disabled={arhivat}
                     onChange={() =>
                       handlePatch(etapa.id, {
                         finalizat: !finalizat,
@@ -141,28 +161,49 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
                   <span>Model finalizat</span>
                 </label>
               ) : (
-                <div className="productie-fields">
-                  <div>
-                    <label className="field-label">Alege tehnician</label>
-                    <Dropdown
-                      value={rand?.tehnician_id || ''}
-                      onChange={(v) => handlePatch(etapa.id, { tehnician_id: v || null })}
-                      options={tehniciniPotriviti.map((t) => ({ value: t.id, label: t.nume }))}
-                      emptyLabel="— fără —"
-                      placeholder="— fără —"
-                    />
-                    {tehniciniPotriviti.length === 0 && (
-                      <p className="productie-hint">Niciun tehnician cu acest rol (Setup → Tehnicieni).</p>
-                    )}
+                <>
+                  <div className="productie-fields">
+                    <div>
+                      <label className="field-label">Alege tehnician</label>
+                      <Dropdown
+                        value={rand?.tehnician_id || ''}
+                        onChange={(v) => handlePatch(etapa.id, { tehnician_id: v || null })}
+                        options={tehniciniPotriviti.map((t) => ({ value: t.id, label: t.nume }))}
+                        emptyLabel="— fără —"
+                        placeholder="— fără —"
+                        disabled={arhivat}
+                      />
+                      {tehniciniPotriviti.length === 0 && (
+                        <p className="productie-hint">Niciun tehnician cu acest rol (Setup → Tehnicieni).</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="field-label">Data planificată</label>
+                      <DatePicker
+                        value={rand?.data_planificata || ''}
+                        onChange={(v) => handlePatch(etapa.id, { data_planificata: v })}
+                        disabled={arhivat}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="field-label">Data planificată</label>
-                    <DatePicker
-                      value={rand?.data_planificata || ''}
-                      onChange={(v) => handlePatch(etapa.id, { data_planificata: v })}
+                  <label className={`productie-checkbox productie-checkbox-etapa ${arhivat ? 'disabled' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={finalizat}
+                      disabled={arhivat}
+                      onChange={() =>
+                        handlePatch(etapa.id, {
+                          finalizat: !finalizat,
+                          data_finalizare: !finalizat ? azi() : null,
+                        })
+                      }
                     />
-                  </div>
-                </div>
+                    <span>Finalizat</span>
+                  </label>
+                  {finalizat && !rand?.tehnician_id && (
+                    <p className="productie-checkbox-warning">Bifat fără tehnician ales.</p>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -181,6 +222,30 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
           )}
         </div>
       </div>
+
+      {etape.length > 0 && (
+        <div className="productie-arhivare">
+          {arhivat ? (
+            <p className="productie-arhivare-status">
+              ✓ Lucrare arhivată{dataArhivare ? ` pe ${formatDataOra(dataArhivare)}` : ''}.
+            </p>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary productie-arhivare-btn"
+                onClick={handleArhiveaza}
+                disabled={!toateFinalizate}
+              >
+                Finalizează și arhivează cazul
+              </button>
+              {!toateFinalizate && (
+                <p className="productie-hint">Toate etapele trebuie finalizate înainte de arhivare.</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

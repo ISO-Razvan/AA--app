@@ -62,6 +62,13 @@
   color: var(--color-blue-strong);
 }
 
+.detail-panel-arhivat-hint {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
 .detail-panel-qr {
   display: flex;
   flex-direction: column;
@@ -269,6 +276,11 @@
   background: var(--color-surface);
   color: var(--color-blue-strong);
   box-shadow: var(--shadow-sm);
+}
+
+.segmented-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .detail-tab-placeholder {

@@ -110,6 +110,12 @@ create table if not exists lucrari (
   profit numeric,
   -- array de { etapa_id, etapa_nume, suma }, instantaneu din `comisioane`
   comisioane jsonb not null default '[]'::jsonb,
+  -- Arhivare — o lucrare cu toate etapele finalizate poate fi arhivată manual
+  -- din tabul Producție; dispare din ecranele operaționale curente (Dashboard,
+  -- Kanban, Listă implicită, Task-uri, Capacitate) dar rămâne vizibilă în
+  -- modul „Arhivate" din Listă lucrări și inclusă normal în Salarii.
+  arhivat boolean not null default false,
+  data_arhivare timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -117,6 +123,15 @@ create index if not exists lucrari_data_intrare_idx on lucrari (data_intrare);
 create index if not exists lucrari_termen_predare_idx on lucrari (termen_predare);
 create index if not exists lucrari_next_date_idx on lucrari (next_date);
 create index if not exists lucrari_created_at_idx on lucrari (created_at);
+create index if not exists lucrari_arhivat_idx on lucrari (arhivat);
+
+-- ---------------------------------------------------------------------------
+-- Arhivare — adăugat ulterior, pe un tabel deja existent cu date reale.
+-- ALTER TABLE (nu recreare), idempotent — sigur de rulat chiar dacă tabelul
+-- `lucrari` există deja și are rânduri. Nu atinge nicio valoare existentă.
+-- ---------------------------------------------------------------------------
+alter table lucrari add column if not exists arhivat boolean not null default false;
+alter table lucrari add column if not exists data_arhivare timestamptz;
 
 -- Programare producție per lucrare — un rând per (lucrare, etapă), cu
 -- tehnicianul alocat, data planificată și starea de finalizare. Afișat ca

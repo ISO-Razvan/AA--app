@@ -58,6 +58,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   const [alocari, setAlocari] = useState([])
   const [deletingId, setDeletingId] = useState(null)
   const [view, setView] = useState('lista')
+  const [modFiltrare, setModFiltrare] = useState('active')
   const [tipuriLucrareNume, setTipuriLucrareNume] = useState(null) // null = încă neîncărcat
 
   useEffect(() => {
@@ -88,7 +89,17 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   const statusPentru = (lucrareId) =>
     statusDinRanduri(totalEtape, alocari.filter((a) => a.lucrare_id === lucrareId))
 
-  const filtered = useMemo(() => lucrari.filter((l) => matchesSearch(l, search)), [lucrari, search])
+  const sourceLucrari = useMemo(
+    () => lucrari.filter((l) => (modFiltrare === 'arhivate' ? !!l.arhivat : !l.arhivat)),
+    [lucrari, modFiltrare]
+  )
+
+  const filtered = useMemo(() => sourceLucrari.filter((l) => matchesSearch(l, search)), [sourceLucrari, search])
+
+  const schimbaModFiltrare = (mod) => {
+    setModFiltrare(mod)
+    if (mod === 'arhivate') setView('lista')
+  }
 
   const handleExport = () => {
     const csv = lucrariToCSV(lucrari)
@@ -156,8 +167,10 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
             {loading
               ? 'Se încarcă…'
               : search
-                ? `${filtered.length} din ${lucrari.length} lucrări`
-                : `${lucrari.length} lucrări înregistrate`}
+                ? `${filtered.length} din ${sourceLucrari.length} lucrări`
+                : modFiltrare === 'arhivate'
+                  ? `${sourceLucrari.length} lucrări arhivate`
+                  : `${sourceLucrari.length} lucrări active`}
           </p>
         </div>
         <div className="lucrari-list-toolbar-actions">
@@ -199,6 +212,22 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <div className="lucrari-filtru-toggle segmented" role="group" aria-label="Active sau arhivate">
+          <button
+            type="button"
+            className={`segmented-option ${modFiltrare === 'active' ? 'active' : ''}`}
+            onClick={() => schimbaModFiltrare('active')}
+          >
+            Active
+          </button>
+          <button
+            type="button"
+            className={`segmented-option ${modFiltrare === 'arhivate' ? 'active' : ''}`}
+            onClick={() => schimbaModFiltrare('arhivate')}
+          >
+            Arhivate
+          </button>
+        </div>
         <div className="lucrari-view-toggle segmented" role="group" aria-label="Mod de afișare">
           <button
             type="button"
@@ -211,6 +240,8 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
             type="button"
             className={`segmented-option ${view === 'kanban' ? 'active' : ''}`}
             onClick={() => setView('kanban')}
+            disabled={modFiltrare === 'arhivate'}
+            title={modFiltrare === 'arhivate' ? 'Kanban nu e disponibil pentru lucrările arhivate' : undefined}
           >
             Kanban
           </button>
@@ -264,13 +295,17 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
         </div>
       )}
 
-      {!loading && lucrari.length === 0 && (
+      {!loading && sourceLucrari.length === 0 && (
         <div className="card lucrari-empty">
-          <p>Nu există încă lucrări înregistrate.</p>
+          <p>
+            {modFiltrare === 'arhivate'
+              ? 'Nicio lucrare arhivată încă.'
+              : 'Nu există încă lucrări înregistrate.'}
+          </p>
         </div>
       )}
 
-      {!loading && lucrari.length > 0 && filtered.length === 0 && (
+      {!loading && sourceLucrari.length > 0 && filtered.length === 0 && (
         <div className="card lucrari-empty">
           <p>Nicio lucrare nu corespunde căutării „{search}”.</p>
         </div>
@@ -319,9 +354,9 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                           type="button"
                           className="lucrari-delete-btn"
                           onClick={(e) => handleDelete(l, e)}
-                          disabled={deletingId === l.id}
+                          disabled={deletingId === l.id || l.arhivat}
                           aria-label={`Șterge lucrarea ${l.nr_inregistrare}`}
-                          title="Șterge lucrarea"
+                          title={l.arhivat ? 'Lucrare arhivată — needitabilă' : 'Șterge lucrarea'}
                         >
                           <IconStergere />
                         </button>
@@ -346,9 +381,9 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                       type="button"
                       className="lucrari-delete-btn"
                       onClick={(e) => handleDelete(l, e)}
-                      disabled={deletingId === l.id}
+                      disabled={deletingId === l.id || l.arhivat}
                       aria-label={`Șterge lucrarea ${l.nr_inregistrare}`}
-                      title="Șterge lucrarea"
+                      title={l.arhivat ? 'Lucrare arhivată — needitabilă' : 'Șterge lucrarea'}
                     >
                       <IconStergere />
                     </button>

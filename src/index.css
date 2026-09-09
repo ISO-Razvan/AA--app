@@ -191,6 +191,15 @@ button {
   outline: none;
 }
 
+.text-input:disabled,
+.select-input:disabled,
+.custom-select-trigger:disabled {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
 textarea.text-input {
   min-height: 80px;
   padding: var(--space-3);

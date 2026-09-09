@@ -45,7 +45,7 @@ function IconDrive() {
   )
 }
 
-export default function GaleriePoze({ lucrareId }) {
+export default function GaleriePoze({ lucrareId, readOnly = false }) {
   const [poze, setPoze] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -131,37 +131,43 @@ export default function GaleriePoze({ lucrareId }) {
 
   return (
     <div className="galerie">
-      <div
-        className={`galerie-dropzone ${dragOver ? 'galerie-dropzone-active' : ''}`}
-        onDragOver={(e) => {
-          e.preventDefault()
-          setDragOver(true)
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-      >
-        <p className="galerie-dropzone-title">Trage poze aici</p>
-        <p className="galerie-dropzone-sub">sau</p>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-        >
-          {uploading ? 'Se încarcă…' : 'Alege fișiere'}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          hidden
-          onChange={(e) => {
-            handleFiles(e.target.files)
-            e.target.value = ''
+      {readOnly && (
+        <p className="galerie-readonly-hint">Lucrare arhivată — galeria e needitabilă, doar de consultat.</p>
+      )}
+
+      {!readOnly && (
+        <div
+          className={`galerie-dropzone ${dragOver ? 'galerie-dropzone-active' : ''}`}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragOver(true)
           }}
-        />
-      </div>
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+        >
+          <p className="galerie-dropzone-title">Trage poze aici</p>
+          <p className="galerie-dropzone-sub">sau</p>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? 'Se încarcă…' : 'Alege fișiere'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              handleFiles(e.target.files)
+              e.target.value = ''
+            }}
+          />
+        </div>
+      )}
 
       {error && <p className="galerie-error">{error}</p>}
 
@@ -181,14 +187,16 @@ export default function GaleriePoze({ lucrareId }) {
               >
                 <img src={poza.referinta_fisier} alt={poza.nume_fisier || 'Poză lucrare'} loading="lazy" />
               </button>
-              <button
-                type="button"
-                className="galerie-thumb-delete"
-                onClick={() => handleDelete(poza.id)}
-                aria-label={`Șterge poza ${poza.nume_fisier || ''}`}
-              >
-                ✕
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  className="galerie-thumb-delete"
+                  onClick={() => handleDelete(poza.id)}
+                  aria-label={`Șterge poza ${poza.nume_fisier || ''}`}
+                >
+                  ✕
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -197,38 +205,40 @@ export default function GaleriePoze({ lucrareId }) {
       <div className="galerie-links-section">
         <h3 className="galerie-links-title">Link-uri Drive</h3>
 
-        <form className="galerie-link-form" onSubmit={handleAddLink}>
-          <div className="galerie-link-form-row">
-            <div className="galerie-link-form-field">
-              <label className="field-label">Link Drive</label>
-              <input
-                type="text"
-                className="text-input"
-                placeholder="https://drive.google.com/…"
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-              />
+        {!readOnly && (
+          <form className="galerie-link-form" onSubmit={handleAddLink}>
+            <div className="galerie-link-form-row">
+              <div className="galerie-link-form-field">
+                <label className="field-label">Link Drive</label>
+                <input
+                  type="text"
+                  className="text-input"
+                  placeholder="https://drive.google.com/…"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                />
+              </div>
+              <div className="galerie-link-form-field galerie-link-form-field-eticheta">
+                <label className="field-label">Etichetă (opțional)</label>
+                <input
+                  type="text"
+                  className="text-input"
+                  placeholder="ex. Poze intraorale"
+                  value={linkEticheta}
+                  onChange={(e) => setLinkEticheta(e.target.value)}
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn-secondary galerie-link-add-btn"
+                disabled={addingLink || !linkUrl.trim()}
+              >
+                {addingLink ? 'Se adaugă…' : '+ Adaugă'}
+              </button>
             </div>
-            <div className="galerie-link-form-field galerie-link-form-field-eticheta">
-              <label className="field-label">Etichetă (opțional)</label>
-              <input
-                type="text"
-                className="text-input"
-                placeholder="ex. Poze intraorale"
-                value={linkEticheta}
-                onChange={(e) => setLinkEticheta(e.target.value)}
-              />
-            </div>
-            <button
-              type="submit"
-              className="btn btn-secondary galerie-link-add-btn"
-              disabled={addingLink || !linkUrl.trim()}
-            >
-              {addingLink ? 'Se adaugă…' : '+ Adaugă'}
-            </button>
-          </div>
-          {linkError && <p className="galerie-error">{linkError}</p>}
-        </form>
+            {linkError && <p className="galerie-error">{linkError}</p>}
+          </form>
+        )}
 
         {linkuri.length === 0 ? (
           <p className="galerie-empty">Niciun link adăugat încă.</p>
@@ -245,15 +255,17 @@ export default function GaleriePoze({ lucrareId }) {
                   <IconDrive />
                   <span className="galerie-link-label">{link.eticheta || trunchiazaUrl(link.url)}</span>
                 </a>
-                <button
-                  type="button"
-                  className="galerie-link-delete"
-                  onClick={() => handleDeleteLink(link.id)}
-                  aria-label={`Șterge link-ul ${link.eticheta || link.url}`}
-                  title="Șterge link-ul"
-                >
-                  ✕
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="galerie-link-delete"
+                    onClick={() => handleDeleteLink(link.id)}
+                    aria-label={`Șterge link-ul ${link.eticheta || link.url}`}
+                    title="Șterge link-ul"
+                  >
+                    ✕
+                  </button>
+                )}
               </li>
             ))}
           </ul>

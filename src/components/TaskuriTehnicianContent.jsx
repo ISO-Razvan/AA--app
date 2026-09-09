@@ -38,8 +38,12 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
         getLucrari(),
         getEtapeProductie(),
       ])
-      setAlocari(a)
-      setLucrari(l)
+      // O lucrare arhivată nu mai apare în calendar/listă și nu mai poate
+      // primi etape noi — filtrăm atât lucrările, cât și alocările lor.
+      const lucrariActive = l.filter((x) => !x.arhivat)
+      const idActive = new Set(lucrariActive.map((x) => x.id))
+      setAlocari(a.filter((al) => idActive.has(al.lucrare_id)))
+      setLucrari(lucrariActive)
       setEtape(e)
       setLoading(false)
     }

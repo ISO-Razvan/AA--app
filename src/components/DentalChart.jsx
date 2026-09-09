@@ -184,6 +184,7 @@ export default function DentalChart({
   culoriOptions,
   onCuloareChange,
   onAddCuloare,
+  readOnly = false,
 }) {
   const [picatorDeschis, setPicatorDeschis] = useState(false)
   const selectedSet = useMemo(() => new Set(selectateNumere), [selectateNumere])
@@ -191,7 +192,7 @@ export default function DentalChart({
   const culoareHex = VITA_HEX[culoare] || null
 
   return (
-    <div className="dental-chart">
+    <div className={`dental-chart ${readOnly ? 'dental-chart-readonly' : ''}`}>
       <svg viewBox="0 0 410 620" className="dc-svg" role="img" aria-label="Schemă dentară">
         <text x={CX} y={MAX.cy - MAX.ry * 0.75} className="dc-arch-label" textAnchor="middle">
           MAXILAR
@@ -206,8 +207,8 @@ export default function DentalChart({
           isMaxilar
           selectedSet={selectedSet}
           linkPairs={linkPairs}
-          onToggleTooth={onToggleTooth}
-          onToggleLink={onToggleLink}
+          onToggleTooth={readOnly ? () => {} : onToggleTooth}
+          onToggleLink={readOnly ? () => {} : onToggleLink}
         />
         <ArcadaSvg
           order={ORDINE_MANDIBULA}
@@ -215,16 +216,17 @@ export default function DentalChart({
           isMaxilar={false}
           selectedSet={selectedSet}
           linkPairs={linkPairs}
-          onToggleTooth={onToggleTooth}
-          onToggleLink={onToggleLink}
+          onToggleTooth={readOnly ? () => {} : onToggleTooth}
+          onToggleLink={readOnly ? () => {} : onToggleLink}
         />
 
         <g
           className="dc-palate"
           transform={`translate(${CX},${PALATE_Y})`}
-          onClick={() => setPicatorDeschis((v) => !v)}
+          onClick={() => !readOnly && setPicatorDeschis((v) => !v)}
           role="button"
           aria-label="Alege culoarea"
+          aria-disabled={readOnly}
         >
           <circle className="dc-palate-hit" r="48" />
           <path className="dc-center-tooth-root" d={CENTER_TOOTH_ROOT_PATH} />
