@@ -5,10 +5,14 @@
 // `supabase_realtime` din Supabase (vezi blocul de la finalul schema.sql).
 import { supabase } from './supabaseClient'
 
-export function subscribeToTable(table, onChange) {
+// `filter` (opțional) e un filtru Postgres pe server, ex. `lucrare_id=eq.<id>`
+// — util ca un canal să primească doar evenimentele relevante pentru o
+// singură lucrare (fișa deschisă), nu tot tabelul.
+export function subscribeToTable(table, onChange, filter) {
+  const config = filter ? { event: '*', schema: 'public', table, filter } : { event: '*', schema: 'public', table }
   const channel = supabase
     .channel(`realtime-${table}-${Math.random().toString(36).slice(2, 8)}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table }, onChange)
+    .on('postgres_changes', config, onChange)
     .subscribe()
 
   return () => {

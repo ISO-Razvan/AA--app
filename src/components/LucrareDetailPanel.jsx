@@ -10,6 +10,7 @@ import DatePicker from './DatePicker.jsx'
 import TimePicker from './TimePicker.jsx'
 import ProductieTimeline from './ProductieTimeline.jsx'
 import GaleriePoze from './GaleriePoze.jsx'
+import { formatSuma } from './SalariiPage.jsx'
 import './LucrareDetailPanel.css'
 
 function formatDataOra(dataStr, oraStr) {
@@ -26,7 +27,7 @@ const TABS = [
   { id: 'chat', label: 'Chat' },
 ]
 
-export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
+export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated }) {
   const [tab, setTab] = useState('detalii')
   const initial = dinDintiSalvati(lucrare.dinti)
 
@@ -397,6 +398,30 @@ export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
                     placeholder="Observații opționale…"
                   />
                 </section>
+
+                {profile?.rol === 'admin' && (
+                  <section className="detail-section">
+                    <h3 className="detail-section-title">Financiar</h3>
+                    <p className="detail-field-hint">
+                      Instantaneu calculat la înregistrarea lucrării — nu se actualizează dacă modifici ulterior
+                      valorile din Setup.
+                    </p>
+                    <div className="detail-financiar-grid">
+                      <div>
+                        <span className="field-label">Cost laborator</span>
+                        <div className="detail-financiar-value">{formatSuma(lucrare.cost_laborator)}</div>
+                      </div>
+                      <div>
+                        <span className="field-label">Încasare</span>
+                        <div className="detail-financiar-value">{formatSuma(lucrare.incasare)}</div>
+                      </div>
+                      <div>
+                        <span className="field-label">Profit</span>
+                        <div className="detail-financiar-value">{formatSuma(lucrare.profit)}</div>
+                      </div>
+                    </div>
+                  </section>
+                )}
               </div>
             </div>
           )}

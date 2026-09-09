@@ -203,6 +203,19 @@
   margin-top: var(--space-1);
 }
 
+.detail-financiar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4) var(--space-5);
+  margin-top: var(--space-3);
+}
+
+.detail-financiar-value {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: var(--space-1);
+}
+
 .detail-programare-preview {
   font-weight: 600;
   color: var(--color-blue-strong);
@@ -278,7 +291,8 @@
   }
   .detail-section-grid,
   .detail-field-row,
-  .detail-field-row-3 {
+  .detail-field-row-3,
+  .detail-financiar-grid {
     grid-template-columns: 1fr;
   }
 }

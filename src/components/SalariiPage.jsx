@@ -100,6 +100,7 @@ export default function SalariiPage({ onOpenLucrare }) {
   }, [tehnicianDeschis, alocariLuna, lucrari, etape])
 
   const lunaLabel = `${NUME_LUNI[luna.luna - 1]} ${luna.an}`
+  const niciunComisionConfigurat = totalGeneral === 0 && alocariLuna.length > 0
 
   return (
     <div className="salarii-page">
@@ -143,6 +144,14 @@ export default function SalariiPage({ onOpenLucrare }) {
       ) : tehnicieni.length === 0 ? (
         <div className="card salarii-empty">
           <p>Niciun tehnician înregistrat încă. Adaugă tehnicieni din Setup → Tehnicieni.</p>
+        </div>
+      ) : niciunComisionConfigurat ? (
+        <div className="card salarii-empty salarii-empty-notice">
+          <p>
+            Există {alocariLuna.length} etape finalizate în {lunaLabel}, dar comisionul total e 0 lei — nu e o
+            eroare, doar nicio sumă de comision nu era configurată în Setup → Comisioane la momentul înregistrării
+            acestor lucrări.
+          </p>
         </div>
       ) : (
         <div className="card salarii-table-wrap">

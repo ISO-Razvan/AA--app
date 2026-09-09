@@ -42,6 +42,8 @@ export default function ComisioaneGrid({ etapeRefreshSignal, tipuriRefreshSignal
     await setComisiune(tipNume, etapaId, valoare === '' ? 0 : Number(valoare))
   }
 
+  const areSumeConfigurate = tipuri.some((tip) => etape.some((etapa) => sumaFor(tip.nume, etapa.id) > 0))
+
   return (
     <div className="card comisioane-card">
       <div className="comisioane-header">
@@ -58,7 +60,13 @@ export default function ComisioaneGrid({ etapeRefreshSignal, tipuriRefreshSignal
             : 'Niciun tip de lucrare definit încă (se adaugă din formularul de înregistrare).'}
         </p>
       ) : (
-        <div className="comisioane-table-wrap">
+        <>
+          {!areSumeConfigurate && (
+            <p className="comisioane-warning">
+              Nicio sumă de comision configurată — Salariile vor arăta 0 lei până completezi acest tabel.
+            </p>
+          )}
+          <div className="comisioane-table-wrap">
           <table className="comisioane-table">
             <thead>
               <tr>
@@ -89,7 +97,8 @@ export default function ComisioaneGrid({ etapeRefreshSignal, tipuriRefreshSignal
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </div>
   )

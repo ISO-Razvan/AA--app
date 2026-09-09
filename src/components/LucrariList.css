@@ -324,6 +324,12 @@
   color: #8a2f42;
 }
 
+.import-summary-notice {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-strong);
+  padding-right: var(--space-4);
+}
+
 .import-summary ul {
   margin: var(--space-2) 0 0;
   padding-left: var(--space-4);

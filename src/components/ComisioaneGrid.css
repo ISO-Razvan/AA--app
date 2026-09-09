@@ -23,6 +23,14 @@
   color: var(--color-text-secondary);
 }
 
+.comisioane-warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.85rem;
+}
+
 .comisioane-table-wrap {
   overflow-x: auto;
 }

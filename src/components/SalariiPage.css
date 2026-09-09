@@ -82,6 +82,11 @@
   color: var(--color-text-secondary);
 }
 
+.salarii-empty-notice {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-strong);
+}
+
 .salarii-table-wrap {
   padding: 0;
   overflow-x: auto;

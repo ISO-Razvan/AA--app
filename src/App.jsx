@@ -106,6 +106,7 @@ function AppContent({ profile, onSignOut }) {
         <LucrareDetailPanel
           key={editing.id}
           lucrare={editing}
+          profile={profile}
           onClose={() => navigate('/')}
           onUpdated={refresh}
         />

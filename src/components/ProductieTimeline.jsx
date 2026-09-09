@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getEtapeProductie, getTehnicieni, getProductieLucrare, setProductieAlocare } from '../services/dataService'
+import { subscribeToTable } from '../services/realtime'
 import { statusDinRanduri } from '../utils/statusLucrare'
 import { azi } from '../utils/date'
 import Dropdown from './Dropdown.jsx'
@@ -30,6 +31,17 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
     }
     load()
   }, [lucrareId])
+
+  const reincarcaRanduri = useCallback(async () => {
+    setRanduri(await getProductieLucrare(lucrareId))
+  }, [lucrareId])
+
+  // Realtime: dacă aceeași lucrare e deschisă în altă parte (Task-uri, altă
+  // fereastră) și e bifată acolo, tabul Producție reflectă automat modificarea.
+  useEffect(() => {
+    const unsubscribe = subscribeToTable('productie_lucrare', () => reincarcaRanduri(), `lucrare_id=eq.${lucrareId}`)
+    return unsubscribe
+  }, [lucrareId, reincarcaRanduri])
 
   const randPentru = (etapaId) => randuri.find((r) => r.etapa_id === etapaId)
 

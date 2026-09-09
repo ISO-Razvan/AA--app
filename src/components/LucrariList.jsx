@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { importLucrari, addLucrare, updateLucrare, deleteLucrare, getEtapeProductie, getToateAlocarile } from '../services/dataService'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { importLucrari, addLucrare, updateLucrare, deleteLucrare, getEtapeProductie, getToateAlocarile, getConfigList } from '../services/dataService'
 import { lucrariToCSV, parseCSV, downloadCSV, CSV_COLUMNS } from '../utils/csv'
 import { lucrariDemo } from '../utils/demoData'
 import { azi } from '../utils/date'
 import { statusDinRanduri } from '../utils/statusLucrare'
+import { subscribeToTable } from '../services/realtime'
 import LucrariKanban from './LucrariKanban.jsx'
 import './LucrariList.css'
 
@@ -57,15 +58,32 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   const [alocari, setAlocari] = useState([])
   const [deletingId, setDeletingId] = useState(null)
   const [view, setView] = useState('lista')
+  const [tipuriLucrareNume, setTipuriLucrareNume] = useState(null) // null = încă neîncărcat
 
   useEffect(() => {
     async function load() {
-      const [etape, toateAlocarile] = await Promise.all([getEtapeProductie(), getToateAlocarile()])
+      const [etape, toateAlocarile, tipuri] = await Promise.all([
+        getEtapeProductie(),
+        getToateAlocarile(),
+        getConfigList('tipuri_lucrare'),
+      ])
       setTotalEtape(etape.length)
       setAlocari(toateAlocarile)
+      setTipuriLucrareNume(tipuri)
     }
     load()
   }, [])
+
+  const reincarcaAlocarile = useCallback(async () => {
+    setAlocari(await getToateAlocarile())
+  }, [])
+
+  // Realtime: coloana „Status" reflectă automat o bifare venită din altă
+  // parte (Task-uri, Producție), la fel ca la Kanban/Dashboard.
+  useEffect(() => {
+    const unsubscribe = subscribeToTable('productie_lucrare', () => reincarcaAlocarile())
+    return unsubscribe
+  }, [reincarcaAlocarile])
 
   const statusPentru = (lucrareId) =>
     statusDinRanduri(totalEtape, alocari.filter((a) => a.lucrare_id === lucrareId))
@@ -82,7 +100,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
     setSeeding(true)
     setDemoMessage('')
     try {
-      const demo = lucrariDemo()
+      const demo = lucrariDemo(tipuriLucrareNume)
       for (const { _nextDate, ...payload } of demo) {
         const lucrare = await addLucrare(payload)
         if (_nextDate) await updateLucrare(lucrare.id, { next_date: _nextDate })
@@ -146,7 +164,13 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
           <button type="button" className="btn btn-primary" onClick={onNewLucrare}>
             + Înregistrare lucrare
           </button>
-          <button type="button" className="btn btn-ghost lucrari-demo-btn" onClick={handleSeedDemo} disabled={seeding}>
+          <button
+            type="button"
+            className="btn btn-ghost lucrari-demo-btn"
+            onClick={handleSeedDemo}
+            disabled={seeding || tipuriLucrareNume?.length === 0}
+            title={tipuriLucrareNume?.length === 0 ? 'Configurează cel puțin un tip de lucrare în Setup înainte de a genera date demo.' : undefined}
+          >
             {seeding ? 'Se adaugă…' : '+ 10 lucrări demo'}
           </button>
           <button type="button" className="btn btn-secondary" onClick={handleExport} disabled={loading}>
@@ -192,6 +216,12 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
           </button>
         </div>
       </div>
+
+      {tipuriLucrareNume?.length === 0 && (
+        <div className="import-summary import-summary-notice">
+          <p>Configurează cel puțin un tip de lucrare în Setup înainte de a genera date demo.</p>
+        </div>
+      )}
 
       {demoMessage && (
         <div className={`import-summary ${demoMessage.startsWith('Eroare') ? 'import-summary-warn' : 'import-summary-ok'}`}>
