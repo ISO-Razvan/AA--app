@@ -68,7 +68,7 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
     const nextFinalizat = !alocare.finalizat
     const updated = await setProductieAlocare(alocare.lucrare_id, alocare.etapa_id, {
       finalizat: nextFinalizat,
-      data_finalizare: nextFinalizat ? azi() : '',
+      data_finalizare: nextFinalizat ? azi() : null,
     })
     setAlocari((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
   }

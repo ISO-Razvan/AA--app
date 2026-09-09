@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Routes, Route, useNavigate, useParams } from 'react-router-dom'
 import { getLucrari } from './services/dataService'
 import { getSession, getProfile, onAuthStateChange, signOut } from './services/auth'
+import { subscribeToTable } from './services/realtime'
 import Sidebar from './components/Sidebar.jsx'
 import Login from './components/Login.jsx'
 import Dashboard from './components/Dashboard.jsx'
@@ -32,9 +33,21 @@ function AppContent({ profile, onSignOut }) {
     setLoading(false)
   }, [])
 
+  // Reîmprospătare „tăcută" (fără ecranul de loading) — folosită de
+  // Realtime, ca o lucrare adăugată/ștearsă/modificată de altcineva să
+  // apară singură, fără să clipească interfața la fiecare eveniment.
+  const refreshSilent = useCallback(async () => {
+    setLucrari(await getLucrari())
+  }, [])
+
   useEffect(() => {
     refresh()
   }, [refresh])
+
+  useEffect(() => {
+    const unsubscribe = subscribeToTable('lucrari', () => refreshSilent())
+    return unsubscribe
+  }, [refreshSilent])
 
   const editing = nrInregistrare
     ? lucrari.find((l) => l.nr_inregistrare === nrInregistrare) || null

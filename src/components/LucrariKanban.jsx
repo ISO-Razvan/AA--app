@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getEtapeProductie, getToateAlocarile, getTehnicieni } from '../services/dataService'
 import { azi, adaugaZile } from '../utils/date'
 import { etapaCurentaPentru } from '../utils/etapaProductie'
+import { subscribeToTable } from '../services/realtime'
 import './LucrariKanban.css'
 
 function formatData(dataStr) {
@@ -41,6 +42,17 @@ export default function LucrariKanban({ lucrari, onRowClick }) {
     }
     load()
   }, [])
+
+  const reincarcaAlocarile = useCallback(async () => {
+    setAlocari(await getToateAlocarile())
+  }, [])
+
+  // Realtime: o etapă bifată/debifată (inclusiv „Model" din Producție)
+  // mută automat cardul lucrării în coloana următoare, fără reîncărcare.
+  useEffect(() => {
+    const unsubscribe = subscribeToTable('productie_lucrare', () => reincarcaAlocarile())
+    return unsubscribe
+  }, [reincarcaAlocarile])
 
   if (loading) {
     return <p className="kanban-loading">Se încarcă…</p>

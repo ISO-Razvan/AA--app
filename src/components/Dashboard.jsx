@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getEtapeProductie, getToateAlocarile } from '../services/dataService'
 import { azi, adaugaZile } from '../utils/date'
 import { statusDinRanduri } from '../utils/statusLucrare'
 import { etapaCurentaPentru } from '../utils/etapaProductie'
+import { subscribeToTable } from '../services/realtime'
 import './Dashboard.css'
 
 function clientLabel(l) {
@@ -36,14 +37,22 @@ export default function Dashboard({ lucrari, loading, onOpenLucrare }) {
   const [etape, setEtape] = useState([])
   const [alocari, setAlocari] = useState([])
 
-  useEffect(() => {
-    async function load() {
-      const [etapeData, toateAlocarile] = await Promise.all([getEtapeProductie(), getToateAlocarile()])
-      setEtape(etapeData)
-      setAlocari(toateAlocarile)
-    }
-    load()
+  const load = useCallback(async () => {
+    const [etapeData, toateAlocarile] = await Promise.all([getEtapeProductie(), getToateAlocarile()])
+    setEtape(etapeData)
+    setAlocari(toateAlocarile)
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  // Realtime: o etapă bifată/debifată de altcineva (Task-uri, Producție)
+  // actualizează KPI-urile și graficele fără refresh manual.
+  useEffect(() => {
+    const unsubscribe = subscribeToTable('productie_lucrare', () => load())
+    return unsubscribe
+  }, [load])
 
   const statusPentru = (lucrareId) =>
     statusDinRanduri(etape.length, alocari.filter((a) => a.lucrare_id === lucrareId))

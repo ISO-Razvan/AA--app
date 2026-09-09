@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEtapeProductie, getTehnicieni, getProductieLucrare, setProductieAlocare } from '../services/dataService'
 import { statusDinRanduri } from '../utils/statusLucrare'
+import { azi } from '../utils/date'
 import Dropdown from './Dropdown.jsx'
 import DatePicker from './DatePicker.jsx'
 import './ProductieTimeline.css'
@@ -113,7 +114,21 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
                   <span className="productie-depasire-badge">Depășește termenul de predare</span>
                 )}
               </span>
-              {!esteModel && (
+              {esteModel ? (
+                <label className="productie-model-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={finalizat}
+                    onChange={() =>
+                      handlePatch(etapa.id, {
+                        finalizat: !finalizat,
+                        data_finalizare: !finalizat ? azi() : null,
+                      })
+                    }
+                  />
+                  <span>Model finalizat</span>
+                </label>
+              ) : (
                 <div className="productie-fields">
                   <div>
                     <label className="field-label">Alege tehnician</label>

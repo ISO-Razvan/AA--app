@@ -244,3 +244,28 @@ drop policy if exists "select_own_profile" on profiles;
 create policy "select_own_profile" on profiles
   for select to authenticated
   using (auth.uid() = id);
+
+-- ---------------------------------------------------------------------------
+-- Realtime — publică modificările (INSERT/UPDATE/DELETE) pe `lucrari` și
+-- `productie_lucrare`, ca aplicația să reflecte automat bifarea unei etape
+-- sau adăugarea/ștergerea unei lucrări, fără refresh manual (Kanban,
+-- Dashboard). Blocul e sigur de rulat de mai multe ori — sare peste un tabel
+-- deja adăugat la publicație, în loc să dea eroare.
+-- ---------------------------------------------------------------------------
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'lucrari'
+  ) then
+    alter publication supabase_realtime add table lucrari;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'productie_lucrare'
+  ) then
+    alter publication supabase_realtime add table productie_lucrare;
+  end if;
+end $$;

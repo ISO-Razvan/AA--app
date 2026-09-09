@@ -11,6 +11,18 @@ function fail(error, mesaj) {
   if (error) throw new Error(mesaj ? `${mesaj}: ${error.message}` : error.message)
 }
 
+// Postgres refuză un șir gol ('') pentru coloane `date`/`time` (eroare de
+// tip, nu doar o valoare "goală" acceptată ca la localStorage) — golește-le
+// în `null` înainte de trimitere, ca butonul „Șterge" din DatePicker/
+// TimePicker să poată curăța o dată fără să pice cererea.
+function golAsNull(payload, campuri) {
+  const curatat = { ...payload }
+  for (const camp of campuri) {
+    if (curatat[camp] === '') curatat[camp] = null
+  }
+  return curatat
+}
+
 function normalizeDinti(dinti) {
   if (!Array.isArray(dinti)) return []
   return dinti
@@ -111,8 +123,8 @@ async function addLucrare(input) {
 }
 
 async function updateLucrare(id, patch) {
-  const payload = { ...patch }
-  if (payload.dinti !== undefined) payload.dinti = normalizeDinti(payload.dinti)
+  let payload = golAsNull(patch, ['data_intrare', 'termen_predare', 'ora_programare', 'next_date'])
+  if (payload.dinti !== undefined) payload = { ...payload, dinti: normalizeDinti(payload.dinti) }
   const { data, error } = await supabase.from('lucrari').update(payload).eq('id', id).select().single()
   fail(error, `Nu s-a putut actualiza lucrarea ${id}`)
   return data
@@ -391,7 +403,7 @@ async function getToateAlocarile() {
 }
 
 async function setProductieAlocare(lucrareId, etapaId, patch) {
-  const row = { lucrare_id: lucrareId, etapa_id: etapaId, ...patch }
+  const row = { lucrare_id: lucrareId, etapa_id: etapaId, ...golAsNull(patch, ['data_planificata', 'data_finalizare']) }
   const { data, error } = await supabase
     .from('productie_lucrare')
     .upsert(row, { onConflict: 'lucrare_id,etapa_id' })
