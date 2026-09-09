@@ -1,18 +1,47 @@
+import { useState } from 'react'
 import './Sidebar.css'
 
-const NAV_ITEMS_ADMIN = [
+const NAV_GROUPS_ADMIN = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'lista', label: 'Listă lucrări' },
+  {
+    id: 'comenzi',
+    label: 'Comenzi',
+    children: [
+      { id: 'lista', label: 'Listă lucrări' },
+      { id: 'taskuri', label: 'Task-uri' },
+      { id: 'capacitate', label: 'Capacitate' },
+    ],
+  },
+  {
+    id: 'financiar',
+    label: 'Financiar',
+    children: [{ id: 'salarii', label: 'Salarii' }],
+  },
   { id: 'setup', label: 'Setup' },
-  { id: 'taskuri', label: 'Task-uri' },
-  { id: 'capacitate', label: 'Capacitate' },
-  { id: 'salarii', label: 'Salarii' },
 ]
 
-const NAV_ITEMS_TEHNICIAN = [{ id: 'task-urile-mele', label: 'Task-urile mele' }]
+function grupulPentru(pagina) {
+  return NAV_GROUPS_ADMIN.find((g) => g.children?.some((c) => c.id === pagina))?.id || null
+}
 
 export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) {
-  const navItems = profile?.rol === 'tehnician' ? NAV_ITEMS_TEHNICIAN : NAV_ITEMS_ADMIN
+  const esteTehnician = profile?.rol === 'tehnician'
+
+  // Grupul care conține pagina curentă e expandat implicit la încărcare;
+  // ulterior fiecare grup se extinde/restrânge independent (accordion).
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    const initial = grupulPentru(activePage)
+    return initial ? new Set([initial]) : new Set()
+  })
+
+  const toggleGroup = (id) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   return (
     <aside className="sidebar">
@@ -25,17 +54,62 @@ export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) 
       </div>
 
       <nav className="sidebar-nav" aria-label="Navigare principală">
-        {navItems.map((item) => (
+        {esteTehnician ? (
           <button
-            key={item.id}
             type="button"
-            className={`sidebar-nav-item ${activePage === item.id ? 'active' : ''}`}
-            onClick={() => onNavigate(item.id)}
-            aria-current={activePage === item.id ? 'page' : undefined}
+            className={`sidebar-nav-item ${activePage === 'task-urile-mele' ? 'active' : ''}`}
+            onClick={() => onNavigate('task-urile-mele')}
+            aria-current={activePage === 'task-urile-mele' ? 'page' : undefined}
           >
-            {item.label}
+            Task-urile mele
           </button>
-        ))}
+        ) : (
+          NAV_GROUPS_ADMIN.map((item) =>
+            item.children ? (
+              <div className="sidebar-nav-group" key={item.id}>
+                <button
+                  type="button"
+                  className="sidebar-nav-item sidebar-nav-group-toggle"
+                  onClick={() => toggleGroup(item.id)}
+                  aria-expanded={expandedGroups.has(item.id)}
+                >
+                  <span>{item.label}</span>
+                  <span
+                    className={`sidebar-nav-group-arrow ${expandedGroups.has(item.id) ? 'expanded' : ''}`}
+                    aria-hidden="true"
+                  >
+                    ›
+                  </span>
+                </button>
+                {expandedGroups.has(item.id) && (
+                  <div className="sidebar-nav-subgroup">
+                    {item.children.map((child) => (
+                      <button
+                        key={child.id}
+                        type="button"
+                        className={`sidebar-nav-item sidebar-nav-subitem ${activePage === child.id ? 'active' : ''}`}
+                        onClick={() => onNavigate(child.id)}
+                        aria-current={activePage === child.id ? 'page' : undefined}
+                      >
+                        {child.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                key={item.id}
+                type="button"
+                className={`sidebar-nav-item ${activePage === item.id ? 'active' : ''}`}
+                onClick={() => onNavigate(item.id)}
+                aria-current={activePage === item.id ? 'page' : undefined}
+              >
+                {item.label}
+              </button>
+            )
+          )
+        )}
       </nav>
 
       <div className="sidebar-account">
