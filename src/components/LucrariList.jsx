@@ -3,7 +3,7 @@ import { importLucrari, addLucrare, updateLucrare, deleteLucrare, getEtapeProduc
 import { lucrariToCSV, parseCSV, downloadCSV, CSV_COLUMNS } from '../utils/csv'
 import { lucrariDemo } from '../utils/demoData'
 import { azi } from '../utils/date'
-import { statusDinRanduri } from '../utils/statusLucrare'
+import { statusDinRanduri, STATUS_LUCRARE } from '../utils/statusLucrare'
 import { subscribeToTable } from '../services/realtime'
 import LucrariKanban from './LucrariKanban.jsx'
 import './LucrariList.css'
@@ -47,6 +47,12 @@ function IconRestaurare() {
   )
 }
 
+const STATUS_ORDER = {
+  [STATUS_LUCRARE.neinceput.id]: 0,
+  [STATUS_LUCRARE.in_lucru.id]: 1,
+  [STATUS_LUCRARE.finalizat.id]: 2,
+}
+
 function matchesSearch(l, query) {
   if (!query) return true
   const haystack = [l.nr_inregistrare, l.pacient, l.medic, l.clinica, l.tip_lucrare, l.nota]
@@ -69,6 +75,9 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   const [restoringId, setRestoringId] = useState(null)
   const [view, setView] = useState('lista')
   const [modFiltrare, setModFiltrare] = useState('active')
+  // Presetat: cele mai recente lucrări (după data intrare) primele.
+  const [sortField, setSortField] = useState('data_intrare')
+  const [sortDir, setSortDir] = useState('desc')
   const [tipuriLucrareNume, setTipuriLucrareNume] = useState(null) // null = încă neîncărcat
 
   useEffect(() => {
@@ -105,6 +114,67 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   )
 
   const filtered = useMemo(() => sourceLucrari.filter((l) => matchesSearch(l, search)), [sourceLucrari, search])
+
+  const valoarePentruSortare = (l, field) => {
+    switch (field) {
+      case 'nr_inregistrare':
+        return l.nr_inregistrare || ''
+      case 'client':
+        return clientLabel(l)
+      case 'pacient':
+        return l.pacient || ''
+      case 'data_intrare':
+        return l.data_intrare || ''
+      case 'next_date':
+        return l.next_date || ''
+      case 'termen_predare':
+        return l.termen_predare || ''
+      case 'status':
+        return STATUS_ORDER[statusPentru(l.id).id] ?? 0
+      case 'tip_lucrare':
+        return l.tip_lucrare || ''
+      default:
+        return ''
+    }
+  }
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered]
+    arr.sort((a, b) => {
+      const va = valoarePentruSortare(a, sortField)
+      const vb = valoarePentruSortare(b, sortField)
+      // Valorile goale (ex. fără next_date) rămân mereu la final, indiferent de direcție.
+      const aGoala = va === '' || va == null
+      const bGoala = vb === '' || vb == null
+      if (aGoala && bGoala) return 0
+      if (aGoala) return 1
+      if (bGoala) return -1
+      const cmp = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb), 'ro')
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return arr
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortField, sortDir, alocari, totalEtape])
+
+  const handleSort = (field) => {
+    if (field === sortField) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }
+
+  const renderTh = (field, label, className) => (
+    <th className={className}>
+      <button type="button" className={`lucrari-th-sort ${sortField === field ? 'active' : ''}`} onClick={() => handleSort(field)}>
+        {label}
+        <span className="lucrari-th-sort-arrow" aria-hidden="true">
+          {sortField === field ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+        </span>
+      </button>
+    </th>
+  )
 
   const schimbaModFiltrare = (mod) => {
     setModFiltrare(mod)
@@ -334,31 +404,31 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
         </div>
       )}
 
-      {filtered.length > 0 && view === 'kanban' && (
-        <LucrariKanban lucrari={filtered} onRowClick={onRowClick} />
+      {sorted.length > 0 && view === 'kanban' && (
+        <LucrariKanban lucrari={sorted} onRowClick={onRowClick} />
       )}
 
-      {filtered.length > 0 && view === 'lista' && (
+      {sorted.length > 0 && view === 'lista' && (
         <>
           <div className="card lucrari-table-wrap">
             <table className="lucrari-table">
               <thead>
                 <tr>
-                  <th>Nr. înreg.</th>
-                  <th>Client</th>
-                  <th>Pacient</th>
-                  <th className="lucrari-col-optional">Data intrare</th>
-                  <th className="lucrari-col-optional">Next date</th>
-                  <th>Termen predare</th>
-                  <th>Status</th>
-                  <th>Tip lucrare</th>
-                  <th className="lucrari-col-optional">Detalii</th>
-                  <th className="lucrari-col-optional">Notă</th>
-                  <th aria-label="Acțiuni" />
+                  {renderTh('nr_inregistrare', 'Nr. înreg.')}
+                  {renderTh('client', 'Client')}
+                  {renderTh('pacient', 'Pacient')}
+                  {renderTh('data_intrare', 'Data intrare', 'lucrari-col-optional')}
+                  {renderTh('next_date', 'Next date', 'lucrari-col-optional')}
+                  {renderTh('termen_predare', 'Termen predare')}
+                  {renderTh('status', 'Status')}
+                  {renderTh('tip_lucrare', 'Tip lucrare')}
+                  <th className="lucrari-col-optional lucrari-th-plain">Detalii</th>
+                  <th className="lucrari-col-optional lucrari-th-plain">Notă</th>
+                  <th className="lucrari-th-plain" aria-label="Acțiuni" />
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((l) => {
+                {sorted.map((l) => {
                   const status = statusPentru(l.id)
                   return (
                     <tr key={l.id} className="lucrari-table-row" onClick={() => onRowClick(l)} tabIndex={0}>
@@ -405,7 +475,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
           </div>
 
           <ul className="lucrari-cards">
-            {filtered.map((l) => {
+            {sorted.map((l) => {
               const status = statusPentru(l.id)
               return (
               <li key={l.id} className="card lucrare-card" onClick={() => onRowClick(l)}>

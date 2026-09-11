@@ -124,7 +124,7 @@
 
 .lucrari-table th {
   text-align: left;
-  padding: var(--space-3) var(--space-4);
+  padding: 0;
   background: var(--color-surface-header);
   color: var(--color-text-secondary);
   font-weight: 700;
@@ -133,6 +133,34 @@
   letter-spacing: 0.04em;
   border-bottom: 2px solid var(--color-border);
   white-space: nowrap;
+}
+
+.lucrari-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.lucrari-th-sort:hover,
+.lucrari-th-sort.active {
+  color: var(--color-blue-strong);
+}
+
+.lucrari-th-sort-arrow {
+  font-size: 0.6rem;
+}
+
+.lucrari-th-plain {
+  padding: var(--space-3) var(--space-4);
 }
 
 .lucrari-table td {
