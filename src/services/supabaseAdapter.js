@@ -227,6 +227,40 @@ async function importLucrari(rows) {
   return { importate: deInserat.length, sarite: erori.length, erori }
 }
 
+// Recalculează instantaneul financiar (cost_laborator/incasare/comisioane)
+// pentru TOATE lucrările existente, cu prețurile curente din Setup — doar la
+// cerere explicită (butonul din Setup → Tipuri de lucrare). Comportamentul
+// implicit al aplicației (instantaneu la înregistrare) nu se schimbă.
+async function recalculeazaValoriFinanciare() {
+  const { data: toateLucrarile, error: e0 } = await supabase.from('lucrari').select('id, nr_inregistrare, tip_lucrare')
+  fail(e0, 'Nu s-au putut citi lucrările')
+
+  const { data: tipuriExistente, error: e1 } = await supabase.from('tipuri_lucrare').select('nume')
+  fail(e1, 'Nu s-au putut citi tipurile de lucrare')
+  const tipuriSet = new Set((tipuriExistente || []).map((t) => t.nume))
+
+  const snapshotCache = new Map()
+  async function snapshotPentru(tip) {
+    if (!snapshotCache.has(tip)) snapshotCache.set(tip, await getSnapshotFinanciar(tip))
+    return snapshotCache.get(tip)
+  }
+
+  let actualizate = 0
+  const sarite = []
+  for (const l of toateLucrarile || []) {
+    if (!tipuriSet.has(l.tip_lucrare)) {
+      sarite.push(l.nr_inregistrare)
+      continue
+    }
+    const snapshot = await snapshotPentru(l.tip_lucrare)
+    const { error } = await supabase.from('lucrari').update(snapshot).eq('id', l.id)
+    fail(error, `Nu s-a putut actualiza lucrarea ${l.nr_inregistrare}`)
+    actualizate++
+  }
+
+  return { actualizate, sarite }
+}
+
 // ---------------------------------------------------------------------------
 // Liste de configurare simple (culori, medici, clinici) — tabele cu un
 // singur câmp relevant (`nume`); interfața existentă lucrează cu string-uri
@@ -660,6 +694,7 @@ export const supabaseAdapter = {
   addConfigValue,
   generateNrInregistrare,
   importLucrari,
+  recalculeazaValoriFinanciare,
   getEtapeProductie,
   addEtapaProductie,
   deleteEtapaProductie,

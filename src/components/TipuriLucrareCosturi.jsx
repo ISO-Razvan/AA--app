@@ -5,7 +5,9 @@ import {
   addTipLucrare,
   renameTipLucrare,
   deleteTipLucrare,
+  recalculeazaValoriFinanciare,
 } from '../services/dataService'
+import { useConfirm } from '../hooks/useConfirm.jsx'
 import './TipuriLucrareCosturi.css'
 
 function formatRON(valoare) {
@@ -14,11 +16,14 @@ function formatRON(valoare) {
 }
 
 export default function TipuriLucrareCosturi({ onChange }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const [tipuri, setTipuri] = useState([])
   const [loading, setLoading] = useState(true)
   const [numeNou, setNumeNou] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
+  const [recalculand, setRecalculand] = useState(false)
+  const [rezultatRecalculare, setRezultatRecalculare] = useState(null)
 
   const load = async () => {
     setLoading(true)
@@ -75,6 +80,24 @@ export default function TipuriLucrareCosturi({ onChange }) {
     await load()
   }
 
+  const handleRecalculeaza = async () => {
+    const ok = await confirm(
+      'Această acțiune va actualiza valorile financiare (cost, încasare, comisioane) pentru TOATE lucrările existente, cu prețurile curente din Setup. Lucrările nemodificate manual după aceasta vor păstra valorile noi. Continui?',
+      { title: 'Recalculezi valorile financiare?', confirmLabel: 'Recalculează' }
+    )
+    if (!ok) return
+    setRecalculand(true)
+    setRezultatRecalculare(null)
+    try {
+      const rezultat = await recalculeazaValoriFinanciare()
+      setRezultatRecalculare(rezultat)
+    } catch (err) {
+      setRezultatRecalculare({ eroare: err.message })
+    } finally {
+      setRecalculand(false)
+    }
+  }
+
   return (
     <div className="card costuri-card">
       <div className="costuri-header">
@@ -86,6 +109,35 @@ export default function TipuriLucrareCosturi({ onChange }) {
           momentul înregistrării. Ștergerea unui tip nu afectează lucrările deja înregistrate cu acel tip — doar nu
           mai apare ca opțiune pentru unele noi.
         </p>
+        <button
+          type="button"
+          className="btn btn-secondary costuri-recalculeaza-btn"
+          onClick={handleRecalculeaza}
+          disabled={recalculand}
+        >
+          {recalculand ? 'Se recalculează…' : 'Recalculează valorile financiare pentru toate lucrările'}
+        </button>
+        {rezultatRecalculare && (
+          <div className={`costuri-recalculare-rezultat ${rezultatRecalculare.eroare ? 'eroare' : ''}`}>
+            {rezultatRecalculare.eroare ? (
+              <p>Eroare la recalculare: {rezultatRecalculare.eroare}</p>
+            ) : (
+              <>
+                <p>
+                  {rezultatRecalculare.actualizate} {rezultatRecalculare.actualizate === 1 ? 'lucrare actualizată' : 'lucrări actualizate'}
+                  {rezultatRecalculare.sarite.length > 0 &&
+                    `, ${rezultatRecalculare.sarite.length} ${rezultatRecalculare.sarite.length === 1 ? 'lucrare sărită' : 'lucrări sărite'} — tip de lucrare inexistent.`}
+                </p>
+                {rezultatRecalculare.sarite.length > 0 && (
+                  <p className="costuri-recalculare-sarite">{rezultatRecalculare.sarite.join(', ')}</p>
+                )}
+              </>
+            )}
+            <button type="button" className="btn btn-ghost costuri-recalculare-inchide" onClick={() => setRezultatRecalculare(null)}>
+              Închide
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -176,6 +228,8 @@ export default function TipuriLucrareCosturi({ onChange }) {
         </button>
       </form>
       {error && <p className="costuri-error">{error}</p>}
+
+      {confirmDialog}
     </div>
   )
 }

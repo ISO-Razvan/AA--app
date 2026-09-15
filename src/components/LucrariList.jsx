@@ -101,10 +101,10 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   const statusPentru = (lucrareId) =>
     statusDinRanduri(totalEtape, alocari.filter((a) => a.lucrare_id === lucrareId))
 
-  const sourceLucrari = useMemo(
-    () => lucrari.filter((l) => (modFiltrare === 'arhivate' ? !!l.arhivat : !l.arhivat)),
-    [lucrari, modFiltrare]
-  )
+  const sourceLucrari = useMemo(() => {
+    if (modFiltrare === 'toate') return lucrari
+    return lucrari.filter((l) => (modFiltrare === 'arhivate' ? !!l.arhivat : !l.arhivat))
+  }, [lucrari, modFiltrare])
 
   const filtered = useMemo(() => sourceLucrari.filter((l) => matchesSearch(l, search)), [sourceLucrari, search])
 
@@ -171,7 +171,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
 
   const schimbaModFiltrare = (mod) => {
     setModFiltrare(mod)
-    if (mod === 'arhivate') setView('lista')
+    if (mod !== 'active') setView('lista')
   }
 
   const handleExport = () => {
@@ -244,7 +244,9 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                 ? `${filtered.length} din ${sourceLucrari.length} lucrări`
                 : modFiltrare === 'arhivate'
                   ? `${sourceLucrari.length} lucrări arhivate`
-                  : `${sourceLucrari.length} lucrări active`}
+                  : modFiltrare === 'toate'
+                    ? `${sourceLucrari.length} lucrări (active + arhivate)`
+                    : `${sourceLucrari.length} lucrări active`}
           </p>
         </div>
         <div className="lucrari-list-toolbar-actions">
@@ -277,7 +279,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="lucrari-filtru-toggle segmented" role="group" aria-label="Active sau arhivate">
+        <div className="lucrari-filtru-toggle segmented" role="group" aria-label="Active, arhivate sau toate">
           <button
             type="button"
             className={`segmented-option ${modFiltrare === 'active' ? 'active' : ''}`}
@@ -292,6 +294,13 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
           >
             Arhivate
           </button>
+          <button
+            type="button"
+            className={`segmented-option ${modFiltrare === 'toate' ? 'active' : ''}`}
+            onClick={() => schimbaModFiltrare('toate')}
+          >
+            Toate
+          </button>
         </div>
         <div className="lucrari-view-toggle segmented" role="group" aria-label="Mod de afișare">
           <button
@@ -305,8 +314,8 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
             type="button"
             className={`segmented-option ${view === 'kanban' ? 'active' : ''}`}
             onClick={() => setView('kanban')}
-            disabled={modFiltrare === 'arhivate'}
-            title={modFiltrare === 'arhivate' ? 'Kanban nu e disponibil pentru lucrările arhivate' : undefined}
+            disabled={modFiltrare !== 'active'}
+            title={modFiltrare !== 'active' ? 'Kanban e disponibil doar pentru lucrările active' : undefined}
           >
             Kanban
           </button>

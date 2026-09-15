@@ -28,6 +28,12 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-3);
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.kanban-column-over {
+  border-color: var(--color-blue);
+  background: var(--color-blue-soft);
 }
 
 .kanban-column-header {
@@ -77,17 +83,15 @@
 }
 
 .kanban-card {
-  width: 100%;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  position: relative;
   padding: var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.05s ease;
+  cursor: grab;
+  touch-action: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .kanban-card:hover {
@@ -95,8 +99,23 @@
   box-shadow: var(--shadow-md);
 }
 
-.kanban-card:active {
-  transform: scale(0.99);
+.kanban-card-dragging {
+  cursor: grabbing;
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-blue);
+  z-index: 10;
+}
+
+.kanban-card-open {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: inherit;
 }
 
 .kanban-card-top {

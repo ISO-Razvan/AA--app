@@ -17,6 +17,7 @@ export const getConfigList = adapter.getConfigList
 export const addConfigValue = adapter.addConfigValue
 export const generateNrInregistrare = adapter.generateNrInregistrare
 export const importLucrari = adapter.importLucrari
+export const recalculeazaValoriFinanciare = adapter.recalculeazaValoriFinanciare
 export const getEtapeProductie = adapter.getEtapeProductie
 export const addEtapaProductie = adapter.addEtapaProductie
 export const deleteEtapaProductie = adapter.deleteEtapaProductie
