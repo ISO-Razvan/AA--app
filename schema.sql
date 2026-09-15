@@ -176,6 +176,36 @@ create table if not exists linkuri_lucrare (
 create index if not exists linkuri_lucrare_lucrare_idx on linkuri_lucrare (lucrare_id);
 
 -- ---------------------------------------------------------------------------
+-- Devize — grupează lucrări finalizate ale unui medic, needeja facturate
+-- (verificat prin `deviz_lucrari`), într-un document printabil. `suma` de pe
+-- `deviz_lucrari` e un instantaneu al `lucrari.incasare` de la momentul
+-- generării devizului — nu se actualizează dacă `lucrari.incasare` s-ar
+-- schimba ulterior (nu se schimbă în practică, dar păstrăm principiul
+-- instantaneului deja folosit pentru cost_laborator/incasare/profit).
+-- ---------------------------------------------------------------------------
+
+create table if not exists devize (
+  id uuid primary key default gen_random_uuid(),
+  numar_deviz text not null unique, -- generat secvențial, format DZ-001
+  medic text not null,
+  clinica text,
+  data_generare date not null default current_date,
+  total numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists deviz_lucrari (
+  id uuid primary key default gen_random_uuid(),
+  deviz_id uuid not null references devize (id) on delete cascade,
+  lucrare_id uuid not null references lucrari (id) on delete cascade,
+  suma numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists deviz_lucrari_deviz_idx on deviz_lucrari (deviz_id);
+create index if not exists deviz_lucrari_lucrare_idx on deviz_lucrari (lucrare_id);
+
+-- ---------------------------------------------------------------------------
 -- Profiluri de utilizator — leagă un cont Supabase Auth (auth.users) de un
 -- rol în aplicație și, dacă e tehnician, de rândul lui din `tehnicieni`.
 -- Rândurile din acest tabel NU se creează din aplicație — administratorul le
@@ -232,6 +262,8 @@ alter table lucrari enable row level security;
 alter table productie_lucrare enable row level security;
 alter table poze_lucrare enable row level security;
 alter table linkuri_lucrare enable row level security;
+alter table devize enable row level security;
+alter table deviz_lucrari enable row level security;
 alter table profiles enable row level security;
 
 do $$
@@ -242,7 +274,7 @@ begin
     select unnest(array[
       'tipuri_lucrare', 'culori', 'medici', 'clinici', 'etape_productie',
       'tehnicieni', 'comisioane', 'lucrari', 'productie_lucrare',
-      'poze_lucrare', 'linkuri_lucrare'
+      'poze_lucrare', 'linkuri_lucrare', 'devize', 'deviz_lucrari'
     ])
   loop
     execute format(

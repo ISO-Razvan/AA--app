@@ -1,0 +1,40 @@
+.date-test-card {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+}
+
+.date-test-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.date-test-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+  max-width: 480px;
+}
+
+.date-test-notice {
+  font-size: 0.78rem;
+  color: var(--color-warning-strong);
+  margin-top: var(--space-2);
+}
+
+.date-test-btn {
+  margin-top: var(--space-3);
+  font-size: 0.85rem;
+}
+
+.date-test-message {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--color-success);
+}
+
+.date-test-message.warn {
+  color: var(--color-danger);
+}

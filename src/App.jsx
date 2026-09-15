@@ -13,6 +13,7 @@ import SetupPage from './components/SetupPage.jsx'
 import TaskuriPage from './components/TaskuriPage.jsx'
 import CapacitatePage from './components/CapacitatePage.jsx'
 import SalariiPage from './components/SalariiPage.jsx'
+import FinanciarPage from './components/FinanciarPage.jsx'
 import TaskurileMelePage from './components/TaskurileMelePage.jsx'
 import './App.css'
 
@@ -84,6 +85,11 @@ function AppContent({ profile, onSignOut }) {
               {pagina === 'capacitate' && <CapacitatePage />}
               {pagina === 'salarii' && (
                 <SalariiPage
+                  onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
+                />
+              )}
+              {pagina === 'financiar-rapoarte' && (
+                <FinanciarPage
                   onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
                 />
               )}

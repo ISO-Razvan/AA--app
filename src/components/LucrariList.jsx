@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { importLucrari, addLucrare, updateLucrare, deleteLucrare, getEtapeProductie, getToateAlocarile, getConfigList } from '../services/dataService'
+import { importLucrari, updateLucrare, deleteLucrare, getEtapeProductie, getToateAlocarile } from '../services/dataService'
 import { lucrariToCSV, parseCSV, downloadCSV, CSV_COLUMNS } from '../utils/csv'
-import { lucrariDemo } from '../utils/demoData'
 import { azi } from '../utils/date'
 import { statusDinRanduri, STATUS_LUCRARE } from '../utils/statusLucrare'
 import { subscribeToTable } from '../services/realtime'
+import { useConfirm } from '../hooks/useConfirm.jsx'
 import LucrariKanban from './LucrariKanban.jsx'
 import './LucrariList.css'
 
@@ -63,12 +63,11 @@ function matchesSearch(l, query) {
 }
 
 export default function LucrariList({ lucrari, loading, onDataChanged, onRowClick, onNewLucrare }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const fileInputRef = useRef(null)
   const [importSummary, setImportSummary] = useState(null)
   const [importing, setImporting] = useState(false)
   const [search, setSearch] = useState('')
-  const [seeding, setSeeding] = useState(false)
-  const [demoMessage, setDemoMessage] = useState('')
   const [totalEtape, setTotalEtape] = useState(0)
   const [alocari, setAlocari] = useState([])
   const [deletingId, setDeletingId] = useState(null)
@@ -78,18 +77,12 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   // Presetat: cele mai recente lucrări (după data intrare) primele.
   const [sortField, setSortField] = useState('data_intrare')
   const [sortDir, setSortDir] = useState('desc')
-  const [tipuriLucrareNume, setTipuriLucrareNume] = useState(null) // null = încă neîncărcat
 
   useEffect(() => {
     async function load() {
-      const [etape, toateAlocarile, tipuri] = await Promise.all([
-        getEtapeProductie(),
-        getToateAlocarile(),
-        getConfigList('tipuri_lucrare'),
-      ])
+      const [etape, toateAlocarile] = await Promise.all([getEtapeProductie(), getToateAlocarile()])
       setTotalEtape(etape.length)
       setAlocari(toateAlocarile)
-      setTipuriLucrareNume(tipuri)
     }
     load()
   }, [])
@@ -187,27 +180,12 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
     downloadCSV(`lucrari-${stamp}.csv`, csv)
   }
 
-  const handleSeedDemo = async () => {
-    setSeeding(true)
-    setDemoMessage('')
-    try {
-      const demo = lucrariDemo(tipuriLucrareNume)
-      for (const { _nextDate, ...payload } of demo) {
-        const lucrare = await addLucrare(payload)
-        if (_nextDate) await updateLucrare(lucrare.id, { next_date: _nextDate })
-      }
-      setDemoMessage(`${demo.length} lucrări demo adăugate.`)
-      await onDataChanged()
-    } catch (err) {
-      setDemoMessage(`Eroare la adăugarea datelor demo: ${err.message}`)
-    } finally {
-      setSeeding(false)
-    }
-  }
-
   const handleDelete = async (l, e) => {
     e.stopPropagation()
-    const ok = window.confirm(`Ștergi definitiv lucrarea ${l.nr_inregistrare}${l.pacient ? ` (${l.pacient})` : ''}? Acțiunea nu poate fi anulată.`)
+    const ok = await confirm(
+      `Ștergi definitiv lucrarea ${l.nr_inregistrare}${l.pacient ? ` (${l.pacient})` : ''}? Acțiunea nu poate fi anulată.`,
+      { title: 'Ștergi lucrarea?', confirmLabel: 'Șterge', danger: true }
+    )
     if (!ok) return
     setDeletingId(l.id)
     try {
@@ -220,7 +198,10 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
 
   const handleRestore = async (l, e) => {
     e.stopPropagation()
-    const ok = window.confirm(`Scoți lucrarea ${l.nr_inregistrare} din arhivă? Va redeveni editabilă.`)
+    const ok = await confirm(`Lucrarea ${l.nr_inregistrare} va redeveni editabilă.`, {
+      title: 'Scoți lucrarea din arhivă?',
+      confirmLabel: 'Scoate din arhivă',
+    })
     if (!ok) return
     setRestoringId(l.id)
     try {
@@ -269,15 +250,6 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
         <div className="lucrari-list-toolbar-actions">
           <button type="button" className="btn btn-primary" onClick={onNewLucrare}>
             + Înregistrare lucrare
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost lucrari-demo-btn"
-            onClick={handleSeedDemo}
-            disabled={seeding || tipuriLucrareNume?.length === 0}
-            title={tipuriLucrareNume?.length === 0 ? 'Configurează cel puțin un tip de lucrare în Setup înainte de a genera date demo.' : undefined}
-          >
-            {seeding ? 'Se adaugă…' : '+ 10 lucrări demo'}
           </button>
           <button type="button" className="btn btn-secondary" onClick={handleExport} disabled={loading}>
             Export CSV
@@ -340,21 +312,6 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
           </button>
         </div>
       </div>
-
-      {tipuriLucrareNume?.length === 0 && (
-        <div className="import-summary import-summary-notice">
-          <p>Configurează cel puțin un tip de lucrare în Setup înainte de a genera date demo.</p>
-        </div>
-      )}
-
-      {demoMessage && (
-        <div className={`import-summary ${demoMessage.startsWith('Eroare') ? 'import-summary-warn' : 'import-summary-ok'}`}>
-          <p>{demoMessage}</p>
-          <button type="button" className="btn btn-ghost import-summary-dismiss" onClick={() => setDemoMessage('')}>
-            Închide
-          </button>
-        </div>
-      )}
 
       {importSummary && (
         <div
@@ -541,6 +498,8 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
       <p className="lucrari-csv-hint">
         Coloanele CSV: {CSV_COLUMNS.join(', ')}
       </p>
+
+      {confirmDialog}
     </div>
   )
 }

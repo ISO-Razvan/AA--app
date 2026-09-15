@@ -28,15 +28,6 @@
   gap: var(--space-2);
 }
 
-.lucrari-demo-btn {
-  border: 1px dashed var(--color-purple);
-  color: var(--color-purple-strong);
-}
-
-.lucrari-demo-btn:hover {
-  background: var(--color-purple-soft);
-}
-
 .lucrari-search-row {
   display: flex;
   align-items: center;
@@ -375,12 +366,6 @@
 .import-summary-warn {
   background: var(--color-danger-soft);
   color: #8a2f42;
-}
-
-.import-summary-notice {
-  background: var(--color-warning-soft);
-  color: var(--color-warning-strong);
-  padding-right: var(--space-4);
 }
 
 .import-summary ul {

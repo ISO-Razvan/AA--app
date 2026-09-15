@@ -5,6 +5,7 @@ import { statusDinRanduri } from '../utils/statusLucrare'
 import { azi } from '../utils/date'
 import Dropdown from './Dropdown.jsx'
 import DatePicker from './DatePicker.jsx'
+import { useConfirm } from '../hooks/useConfirm.jsx'
 import './ProductieTimeline.css'
 
 function formatData(dataStr) {
@@ -22,6 +23,7 @@ function formatDataOra(iso) {
 }
 
 export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredare, arhivat, dataArhivare, onArhivat }) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const [etape, setEtape] = useState([])
   const [tehnicieni, setTehnicieni] = useState([])
   const [randuri, setRanduri] = useState([])
@@ -77,8 +79,9 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
   const toateFinalizate = etape.length > 0 && etape.every((e) => !!randPentru(e.id)?.finalizat)
 
   const handleArhiveaza = async () => {
-    const ok = window.confirm(
-      'Arhivezi acest caz? Lucrarea nu va mai apărea în Dashboard, Kanban, Task-uri sau Capacitate — rămâne disponibilă doar din Listă lucrări → Arhivate, needitabilă până o scoți din arhivă.'
+    const ok = await confirm(
+      'Lucrarea nu va mai apărea în Dashboard, Kanban, Task-uri sau Capacitate — rămâne disponibilă doar din Listă lucrări → Arhivate, needitabilă până o scoți din arhivă.',
+      { title: 'Arhivezi acest caz?', confirmLabel: 'Arhivează' }
     )
     if (!ok) return
     await updateLucrare(lucrareId, { arhivat: true, data_arhivare: new Date().toISOString() })
@@ -86,8 +89,9 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
   }
 
   const handleScoateDinArhiva = async () => {
-    const ok = window.confirm(
-      'Scoți această lucrare din arhivă? Va redeveni editabilă și va reapărea în Dashboard, Kanban, Task-uri și Capacitate.'
+    const ok = await confirm(
+      'Va redeveni editabilă și va reapărea în Dashboard, Kanban, Task-uri și Capacitate.',
+      { title: 'Scoți lucrarea din arhivă?', confirmLabel: 'Scoate din arhivă' }
     )
     if (!ok) return
     await updateLucrare(lucrareId, { arhivat: false, data_arhivare: null })
@@ -95,7 +99,12 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
   }
 
   if (loading) {
-    return <p className="productie-loading">Se încarcă…</p>
+    return (
+      <>
+        <p className="productie-loading">Se încarcă…</p>
+        {confirmDialog}
+      </>
+    )
   }
 
   const status = statusDinRanduri(etape.length, randuri)
@@ -167,7 +176,7 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
                       })
                     }
                   />
-                  <span>Model finalizat</span>
+                  <span>Finalizat</span>
                 </label>
               ) : (
                 <>
@@ -264,6 +273,8 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
           )}
         </div>
       )}
+
+      {confirmDialog}
     </div>
   )
 }

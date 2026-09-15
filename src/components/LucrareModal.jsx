@@ -123,7 +123,7 @@ export default function LucrareModal({ onClose, onSaved }) {
   }
 
   return (
-    <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+    <div className="modal-overlay">
       <div className="modal-panel" role="dialog" aria-modal="true" aria-label="Înregistrare lucrare nouă">
         <form onSubmit={handleSubmit} className="lucrare-form">
           <header className="modal-header">

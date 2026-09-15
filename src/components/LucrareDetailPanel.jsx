@@ -10,7 +10,7 @@ import DatePicker from './DatePicker.jsx'
 import TimePicker from './TimePicker.jsx'
 import ProductieTimeline from './ProductieTimeline.jsx'
 import GaleriePoze from './GaleriePoze.jsx'
-import { formatSuma } from './SalariiPage.jsx'
+import { useConfirm } from '../hooks/useConfirm.jsx'
 import './LucrareDetailPanel.css'
 
 function formatDataOra(dataStr, oraStr) {
@@ -34,8 +34,9 @@ const TABS = [
   { id: 'chat', label: 'Chat' },
 ]
 
-export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated }) {
+export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
   const readOnly = !!lucrare.arhivat
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const [tab, setTab] = useState('detalii')
   const initial = dinDintiSalvati(lucrare.dinti)
 
@@ -104,8 +105,9 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
 
   const handleDelete = async () => {
     if (readOnly) return
-    const ok = window.confirm(
-      `Ștergi definitiv lucrarea ${lucrare.nr_inregistrare}${lucrare.pacient ? ` (${lucrare.pacient})` : ''}? Acțiunea nu poate fi anulată.`
+    const ok = await confirm(
+      `Ștergi definitiv lucrarea ${lucrare.nr_inregistrare}${lucrare.pacient ? ` (${lucrare.pacient})` : ''}? Acțiunea nu poate fi anulată.`,
+      { title: 'Ștergi lucrarea?', confirmLabel: 'Șterge', danger: true }
     )
     if (!ok) return
     await deleteLucrare(lucrare.id)
@@ -436,30 +438,6 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                     disabled={readOnly}
                   />
                 </section>
-
-                {profile?.rol === 'admin' && (
-                  <section className="detail-section">
-                    <h3 className="detail-section-title">Financiar</h3>
-                    <p className="detail-field-hint">
-                      Instantaneu calculat la înregistrarea lucrării — nu se actualizează dacă modifici ulterior
-                      valorile din Setup.
-                    </p>
-                    <div className="detail-financiar-grid">
-                      <div>
-                        <span className="field-label">Cost laborator</span>
-                        <div className="detail-financiar-value">{formatSuma(lucrare.cost_laborator)}</div>
-                      </div>
-                      <div>
-                        <span className="field-label">Încasare</span>
-                        <div className="detail-financiar-value">{formatSuma(lucrare.incasare)}</div>
-                      </div>
-                      <div>
-                        <span className="field-label">Profit</span>
-                        <div className="detail-financiar-value">{formatSuma(lucrare.profit)}</div>
-                      </div>
-                    </div>
-                  </section>
-                )}
               </div>
             </div>
           )}
@@ -484,6 +462,8 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
           )}
         </div>
       </div>
+
+      {confirmDialog}
     </div>
   )
 }

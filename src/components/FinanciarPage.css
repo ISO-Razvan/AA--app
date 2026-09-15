@@ -1,0 +1,29 @@
+.financiar-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.financiar-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.financiar-page-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.financiar-page-hint {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+.financiar-view-toggle {
+  width: auto;
+  flex-shrink: 0;
+}

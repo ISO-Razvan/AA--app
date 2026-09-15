@@ -15,7 +15,10 @@ const NAV_GROUPS_ADMIN = [
   {
     id: 'financiar',
     label: 'Financiar',
-    children: [{ id: 'salarii', label: 'Salarii' }],
+    children: [
+      { id: 'financiar-rapoarte', label: 'Financiar' },
+      { id: 'salarii', label: 'Salarii' },
+    ],
   },
   { id: 'setup', label: 'Setup' },
 ]

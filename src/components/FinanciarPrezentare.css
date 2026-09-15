@@ -1,0 +1,170 @@
+.financiar-prezentare {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.financiar-luna-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.financiar-luna-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 1.1rem;
+}
+
+.financiar-luna-current {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 180px;
+}
+
+.financiar-luna-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.financiar-luna-today {
+  font-size: 0.78rem;
+}
+
+.financiar-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.financiar-kpi-card {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.financiar-kpi-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.financiar-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.financiar-kpi-profit.pozitiv .financiar-kpi-value {
+  color: var(--color-success);
+}
+
+.financiar-kpi-profit.negativ .financiar-kpi-value {
+  color: var(--color-danger-strong);
+}
+
+.financiar-status-text {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.financiar-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.financiar-section-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.financiar-perioada-toggle,
+.financiar-grupare-toggle {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.financiar-stat-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.financiar-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.financiar-stat-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.financiar-table-wrap {
+  overflow-x: auto;
+}
+
+.financiar-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.88rem;
+}
+
+.financiar-table th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.financiar-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.financiar-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.financiar-table-row {
+  cursor: pointer;
+}
+
+.financiar-table-row:hover {
+  background: var(--color-surface-alt);
+}
+
+.financiar-table-nr {
+  font-weight: 700;
+  color: var(--color-blue-strong);
+  white-space: nowrap;
+}
+
+.financiar-table-suma {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .financiar-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

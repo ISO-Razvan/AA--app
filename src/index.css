@@ -157,6 +157,14 @@ button {
   color: var(--color-text);
 }
 
+.btn-danger {
+  background: var(--color-danger-strong);
+  color: #fff;
+}
+.btn-danger:hover {
+  background: #a8324a;
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

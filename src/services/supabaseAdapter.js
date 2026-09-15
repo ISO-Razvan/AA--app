@@ -583,6 +583,74 @@ async function deleteTehnician(id) {
   fail(error, 'Nu s-a putut șterge tehnicianul')
 }
 
+// ---------------------------------------------------------------------------
+// Devize
+// ---------------------------------------------------------------------------
+
+async function generateNumarDeviz() {
+  const { data, error } = await supabase.from('devize').select('numar_deviz')
+  fail(error, 'Nu s-au putut citi numerele de deviz existente')
+  let max = 0
+  for (const d of data || []) {
+    const m = /^DZ-(\d+)$/.exec(d.numar_deviz || '')
+    if (m) max = Math.max(max, parseInt(m[1], 10))
+  }
+  return `DZ-${String(max + 1).padStart(3, '0')}`
+}
+
+async function getDevize() {
+  const { data, error } = await supabase.from('devize').select('*').order('created_at', { ascending: false })
+  fail(error, 'Nu s-au putut încărca devizele')
+  return data || []
+}
+
+// Rândurile devizului, cu lucrarea asociată încorporată (join pe FK-ul
+// lucrare_id) — suficient pentru previzualizare, fără un fetch separat.
+async function getDevizLucrari(devizId) {
+  const { data, error } = await supabase
+    .from('deviz_lucrari')
+    .select('*, lucrare:lucrari(*)')
+    .eq('deviz_id', devizId)
+  fail(error, 'Nu s-au putut încărca lucrările devizului')
+  return data || []
+}
+
+// Doar lucrare_id-urile deja incluse în orice deviz — folosit ca să
+// ascundem implicit, la generarea unui deviz nou, lucrările deja facturate.
+async function getLucrareIdsFacturate() {
+  const { data, error } = await supabase.from('deviz_lucrari').select('lucrare_id')
+  fail(error, 'Nu s-a putut verifica ce lucrări sunt deja facturate')
+  return (data || []).map((r) => r.lucrare_id)
+}
+
+async function creeazaDeviz({ medic, clinica, lucrari }) {
+  if (!medic) throw new Error('Medicul este obligatoriu')
+  if (!Array.isArray(lucrari) || lucrari.length === 0) throw new Error('Selectează cel puțin o lucrare')
+
+  const numar_deviz = await generateNumarDeviz()
+  const total = lucrari.reduce((sum, l) => sum + (Number(l.suma) || 0), 0)
+
+  const { data: deviz, error: e1 } = await supabase
+    .from('devize')
+    .insert({ numar_deviz, medic, clinica: clinica || null, total })
+    .select()
+    .single()
+  fail(e1, 'Nu s-a putut crea devizul')
+
+  const rows = lucrari.map((l) => ({ deviz_id: deviz.id, lucrare_id: l.id, suma: Number(l.suma) || 0 }))
+  const { error: e2 } = await supabase.from('deviz_lucrari').insert(rows)
+  fail(e2, 'Devizul a fost creat, dar lucrările nu s-au putut asocia')
+
+  return deviz
+}
+
+// `on delete cascade` pe deviz_lucrari.deviz_id curăță automat rândurile
+// asociate — lucrările incluse redevin disponibile pentru un deviz nou.
+async function deleteDeviz(id) {
+  const { error } = await supabase.from('devize').delete().eq('id', id)
+  fail(error, 'Nu s-a putut șterge devizul')
+}
+
 export const supabaseAdapter = {
   getLucrari,
   addLucrare,
@@ -618,4 +686,9 @@ export const supabaseAdapter = {
   getLinkuriLucrare,
   addLinkLucrare,
   deleteLinkLucrare,
+  getDevize,
+  getDevizLucrari,
+  getLucrareIdsFacturate,
+  creeazaDeviz,
+  deleteDeviz,
 }
