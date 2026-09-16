@@ -3,8 +3,6 @@ import { getEtapeProductie, getTehnicieni, getProductieLucrare, setProductieAloc
 import { subscribeToTable } from '../services/realtime'
 import { statusDinRanduri } from '../utils/statusLucrare'
 import { azi } from '../utils/date'
-import Dropdown from './Dropdown.jsx'
-import DatePicker from './DatePicker.jsx'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import './ProductieTimeline.css'
 
@@ -134,7 +132,7 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
 
       {etape.map((etapa) => {
         const rand = randPentru(etapa.id)
-        const tehniciniPotriviti = tehnicieni.filter((t) => (t.roluri || []).includes(etapa.id))
+        const tehnicianAlocat = tehnicieni.find((t) => t.id === rand?.tehnician_id)
         const asignat = !!(rand?.tehnician_id && rand?.data_planificata)
         const finalizat = !!rand?.finalizat
         const esteUltimaIntarziata =
@@ -182,26 +180,12 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
                 <>
                   <div className="productie-fields">
                     <div>
-                      <label className="field-label">Alege tehnician</label>
-                      <Dropdown
-                        value={rand?.tehnician_id || ''}
-                        onChange={(v) => handlePatch(etapa.id, { tehnician_id: v || null })}
-                        options={tehniciniPotriviti.map((t) => ({ value: t.id, label: t.nume }))}
-                        emptyLabel="— fără —"
-                        placeholder="— fără —"
-                        disabled={arhivat}
-                      />
-                      {tehniciniPotriviti.length === 0 && (
-                        <p className="productie-hint">Niciun tehnician cu acest rol (Setup → Tehnicieni).</p>
-                      )}
+                      <span className="field-label">Tehnician alocat</span>
+                      <p className="productie-value">{tehnicianAlocat?.nume || '— neplanificat —'}</p>
                     </div>
                     <div>
-                      <label className="field-label">Data planificată</label>
-                      <DatePicker
-                        value={rand?.data_planificata || ''}
-                        onChange={(v) => handlePatch(etapa.id, { data_planificata: v })}
-                        disabled={arhivat}
-                      />
+                      <span className="field-label">Data planificată</span>
+                      <p className="productie-value">{formatData(rand?.data_planificata)}</p>
                     </div>
                   </div>
                   <label className={`productie-checkbox productie-checkbox-etapa ${arhivat ? 'disabled' : ''}`}>

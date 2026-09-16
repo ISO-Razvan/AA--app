@@ -82,10 +82,11 @@ function buildLucrareInput(input, nr_inregistrare) {
   }
 }
 
-// Instantaneu financiar copiat pe o lucrare la momentul înregistrării —
-// modificările ulterioare din Setup (cost/încasare/comisioane) nu mai ating
-// lucrările deja create.
-async function getSnapshotFinanciar(tipLucrareNume) {
+// Preț PER ELEMENT pentru un tip de lucrare — cost_laborator/încasare din
+// `tipuri_lucrare` și fiecare sumă din grila de comisioane sunt definite per
+// element, nu per lucrare. Rezultatul final de pus pe o lucrare se obține
+// mereu prin `aplicaNrElemente` de mai jos — niciodată folosit brut.
+async function getSnapshotPerElement(tipLucrareNume) {
   const [
     { data: tipuri, error: e1 },
     { data: etape, error: e2 },
@@ -103,16 +104,29 @@ async function getSnapshotFinanciar(tipLucrareNume) {
   const comisioane = (comisioaneRaw || []).map((c) => ({
     etapa_id: c.etapa_id,
     etapa_nume: etapeById.get(c.etapa_id)?.nume || '',
-    suma: c.suma,
+    suma: Number(c.suma) || 0,
   }))
 
+  return { cost_laborator, incasare, comisioane }
+}
+
+// Instantaneu financiar final de pe o lucrare — prețul per element (Setup)
+// × nr_elemente ale lucrării, aplicat identic la cost_laborator, incasare
+// ȘI la fiecare sumă de comision. `nr_elemente` e normalizat la număr aici
+// ca să nu se strecoare vreodată un string (ar da concatenare, nu înmulțire).
+function aplicaNrElemente(snapshotPerElement, nrElemente) {
+  const n = Number(nrElemente) || 0
+  const cost_laborator = snapshotPerElement.cost_laborator * n
+  const incasare = snapshotPerElement.incasare * n
+  const comisioane = snapshotPerElement.comisioane.map((c) => ({ ...c, suma: c.suma * n }))
   return { cost_laborator, incasare, profit: incasare - cost_laborator, comisioane }
 }
 
 async function addLucrare(input) {
   const nr_inregistrare = input.nr_inregistrare || (await generateNrInregistrare())
   const built = buildLucrareInput(input, nr_inregistrare)
-  const snapshot = await getSnapshotFinanciar(built.tip_lucrare)
+  const perElement = await getSnapshotPerElement(built.tip_lucrare)
+  const snapshot = aplicaNrElemente(perElement, built.nr_elemente)
   const { data, error } = await supabase
     .from('lucrari')
     .insert({ ...built, ...snapshot })
@@ -142,10 +156,14 @@ async function importLucrari(rows) {
   fail(e0, 'Nu s-au putut citi lucrările existente')
   const existingNr = new Set((existente || []).map((l) => l.nr_inregistrare))
 
-  const snapshotCache = new Map()
-  async function snapshotPentru(tip) {
-    if (!snapshotCache.has(tip)) snapshotCache.set(tip, await getSnapshotFinanciar(tip))
-    return snapshotCache.get(tip)
+  // Prețul per element se poate cache-ui pe tip (nu depinde de lucrare), dar
+  // înmulțirea cu nr_elemente trebuie făcută separat, per rând — de-aici bug-ul
+  // anterior: se aplica direct prețul per element, fără să se țină cont că
+  // fiecare rând poate avea un nr_elemente diferit.
+  const perElementCache = new Map()
+  async function perElementPentru(tip) {
+    if (!perElementCache.has(tip)) perElementCache.set(tip, await getSnapshotPerElement(tip))
+    return perElementCache.get(tip)
   }
 
   const deInserat = []
@@ -210,7 +228,8 @@ async function importLucrari(rows) {
         },
         nr_inregistrare
       )
-      const snapshot = await snapshotPentru(built.tip_lucrare)
+      const perElement = await perElementPentru(built.tip_lucrare)
+      const snapshot = aplicaNrElemente(perElement, built.nr_elemente)
 
       deInserat.push({ ...built, ...snapshot })
       existingNr.add(nr_inregistrare)
@@ -232,17 +251,19 @@ async function importLucrari(rows) {
 // cerere explicită (butonul din Setup → Tipuri de lucrare). Comportamentul
 // implicit al aplicației (instantaneu la înregistrare) nu se schimbă.
 async function recalculeazaValoriFinanciare() {
-  const { data: toateLucrarile, error: e0 } = await supabase.from('lucrari').select('id, nr_inregistrare, tip_lucrare')
+  const { data: toateLucrarile, error: e0 } = await supabase
+    .from('lucrari')
+    .select('id, nr_inregistrare, tip_lucrare, nr_elemente')
   fail(e0, 'Nu s-au putut citi lucrările')
 
   const { data: tipuriExistente, error: e1 } = await supabase.from('tipuri_lucrare').select('nume')
   fail(e1, 'Nu s-au putut citi tipurile de lucrare')
   const tipuriSet = new Set((tipuriExistente || []).map((t) => t.nume))
 
-  const snapshotCache = new Map()
-  async function snapshotPentru(tip) {
-    if (!snapshotCache.has(tip)) snapshotCache.set(tip, await getSnapshotFinanciar(tip))
-    return snapshotCache.get(tip)
+  const perElementCache = new Map()
+  async function perElementPentru(tip) {
+    if (!perElementCache.has(tip)) perElementCache.set(tip, await getSnapshotPerElement(tip))
+    return perElementCache.get(tip)
   }
 
   let actualizate = 0
@@ -252,7 +273,8 @@ async function recalculeazaValoriFinanciare() {
       sarite.push(l.nr_inregistrare)
       continue
     }
-    const snapshot = await snapshotPentru(l.tip_lucrare)
+    const perElement = await perElementPentru(l.tip_lucrare)
+    const snapshot = aplicaNrElemente(perElement, l.nr_elemente)
     const { error } = await supabase.from('lucrari').update(snapshot).eq('id', l.id)
     fail(error, `Nu s-a putut actualiza lucrarea ${l.nr_inregistrare}`)
     actualizate++

@@ -1,0 +1,194 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 34, 51, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: 100;
+}
+
+.modal-close {
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  font-size: 1rem;
+}
+
+.taskuri-zi-modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 760px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.taskuri-zi-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.taskuri-zi-modal-header h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.taskuri-zi-modal-data {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.taskuri-zi-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+}
+
+.taskuri-zi-modal-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+}
+
+.taskuri-zi-sarcini-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.taskuri-zi-sarcina-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.taskuri-zi-sarcina-item:hover {
+  border-color: var(--color-blue);
+  box-shadow: var(--shadow-sm);
+}
+
+.taskuri-zi-sarcina-row {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  display: block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.taskuri-zi-sarcina-nr {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-blue-strong);
+}
+
+.taskuri-zi-finalizat-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* Un singur rând orizontal, cu wrap — nu un card stivuit; nr. înregistrare +
+   Pacient/Medic/Tip lucrare/Nr. elemente/Termen curg unul după altul pe
+   aceeași linie, trecând pe rândul următor doar dacă nu mai încap. */
+.taskuri-zi-sarcina-info {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  font-size: 0.88rem;
+  color: var(--color-text);
+}
+
+.taskuri-zi-info-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  margin-right: var(--space-2);
+}
+
+.taskuri-zi-termen-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-purple-soft);
+  color: var(--color-purple-dark);
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Bifa „Finalizat" — aceeași convenție ca oricare checkbox de formular din
+   aplicație (vezi .productie-checkbox): pătrat normal, aliniat pe centru
+   față de etichetă, cu spațiu clar între ele. Clasă distinctă de orice alt
+   „.taskuri-checkbox" din aplicație (ex. butonul ✓ din vederea de tehnician),
+   ca să nu mai apară coliziuni de stil între ecrane diferite. */
+.taskuri-zi-checkbox {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  user-select: none;
+}
+
+.taskuri-zi-checkbox input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-blue-strong);
+  cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  .modal-overlay {
+    padding: 0;
+  }
+  .taskuri-zi-modal {
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+  .taskuri-zi-sarcina-item {
+    flex-wrap: wrap;
+  }
+  .taskuri-zi-checkbox {
+    margin-left: auto;
+  }
+}

@@ -26,13 +26,27 @@
   color: var(--color-text-secondary);
 }
 
-.taskuri-grid {
+.taskuri-page-body {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.taskuri-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.taskuri-tehnicieni-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .taskuri-tehnician-card {
@@ -40,7 +54,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-3);
   min-height: var(--tap-min);
   text-align: left;
   border: 1px solid var(--color-border);
@@ -50,6 +64,12 @@
 
 .taskuri-tehnician-card:hover {
   border-color: var(--color-blue);
+  box-shadow: var(--shadow-md);
+}
+
+.taskuri-tehnician-card.active {
+  border-color: var(--color-blue);
+  background: var(--color-blue-soft);
   box-shadow: var(--shadow-md);
 }
 
@@ -86,4 +106,249 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.taskuri-panel-title {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.taskuri-panel-hint {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.taskuri-neplanificate-card {
+  padding: var(--space-4);
+}
+
+.taskuri-neplanificate-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 80px;
+  max-height: 480px;
+  overflow-y: auto;
+  border-radius: var(--radius-md);
+  transition: background-color 0.12s ease, outline-color 0.12s ease;
+}
+
+.taskuri-drop-over {
+  background: var(--color-blue-soft);
+  outline: 2px dashed var(--color-blue);
+  outline-offset: 2px;
+}
+
+.taskuri-task-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  touch-action: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.taskuri-task-card:hover {
+  border-color: var(--color-blue);
+  box-shadow: var(--shadow-md);
+}
+
+.taskuri-task-card-dragging {
+  cursor: grabbing;
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-blue);
+  z-index: 10;
+}
+
+.taskuri-task-open {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  cursor: inherit;
+}
+
+.taskuri-task-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.taskuri-neplanificat-item .taskuri-task-nr {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--color-blue-strong);
+}
+
+.taskuri-task-etapa-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-purple-soft);
+  color: var(--color-purple-dark);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.taskuri-neplanificat-item .taskuri-task-pacient {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.taskuri-neplanificat-item .taskuri-task-tip {
+  font-size: 0.76rem;
+  color: var(--color-text-secondary);
+}
+
+.taskuri-calendar {
+  padding: var(--space-4);
+  min-width: 0;
+}
+
+.taskuri-week-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.taskuri-week-btn {
+  min-width: 44px;
+  padding: 0;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.taskuri-week-current {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.taskuri-week-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.taskuri-week-today {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  font-size: 0.78rem;
+}
+
+.taskuri-calendar-hint {
+  padding: var(--space-6) 0;
+  text-align: center;
+}
+
+.taskuri-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-2);
+  overflow-x: auto;
+}
+
+.taskuri-day-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 130px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.taskuri-day-azi {
+  border-color: var(--color-blue);
+}
+
+.taskuri-day-azi .taskuri-day-data {
+  color: var(--color-blue-strong);
+}
+
+.taskuri-day-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 var(--space-2);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+
+.taskuri-day-header:hover .taskuri-day-nume,
+.taskuri-day-header:hover .taskuri-day-data {
+  color: var(--color-blue-strong);
+}
+
+.taskuri-day-nume {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-secondary);
+}
+
+.taskuri-day-data {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.taskuri-day-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 60px;
+}
+
+.taskuri-day-empty {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  text-align: center;
+  padding: var(--space-2) 0;
+}
+
+.taskuri-day-card .taskuri-task-open {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+@media (max-width: 900px) {
+  .taskuri-page-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .taskuri-day-column {
+    min-width: 110px;
+  }
 }
