@@ -103,15 +103,15 @@ export default function FinanciarPrezentare({ onOpenLucrare }) {
       <div className="financiar-kpi-grid">
         <div className="card financiar-kpi-card">
           <span className="financiar-kpi-label">Total produs</span>
-          <span className="financiar-kpi-value">{loading ? '—' : formatSuma(totalProdus)}</span>
+          <span className="financiar-kpi-value stat-value-lg">{loading ? '—' : formatSuma(totalProdus)}</span>
         </div>
         <div className="card financiar-kpi-card">
           <span className="financiar-kpi-label">Total cheltuit</span>
-          <span className="financiar-kpi-value">{loading ? '—' : formatSuma(totalCheltuit)}</span>
+          <span className="financiar-kpi-value stat-value-lg">{loading ? '—' : formatSuma(totalCheltuit)}</span>
         </div>
         <div className={`card financiar-kpi-card financiar-kpi-profit ${profit >= 0 ? 'pozitiv' : 'negativ'}`}>
           <span className="financiar-kpi-label">Profit</span>
-          <span className="financiar-kpi-value">{loading ? '—' : formatSuma(profit)}</span>
+          <span className="financiar-kpi-value stat-value-lg">{loading ? '—' : formatSuma(profit)}</span>
         </div>
       </div>
 

@@ -384,8 +384,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                   {renderTh('client', 'Client')}
                   {renderTh('pacient', 'Pacient')}
                   {renderTh('data_intrare', 'Data intrare', 'lucrari-col-optional')}
-                  {renderTh('next_date', 'Next date', 'lucrari-col-optional')}
-                  {renderTh('termen_predare', 'Termen predare')}
+                  {renderTh('termen_predare', 'Termene')}
                   {renderTh('status', 'Status')}
                   {renderTh('tip_lucrare', 'Tip lucrare')}
                   <th className="lucrari-col-optional lucrari-th-plain">Detalii</th>
@@ -402,8 +401,16 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                       <td>{clientLabel(l)}</td>
                       <td>{l.pacient || '—'}</td>
                       <td className="lucrari-col-optional">{formatData(l.data_intrare)}</td>
-                      <td className="lucrari-col-optional">{formatData(l.next_date)}</td>
-                      <td className="lucrari-table-livrare">{formatData(l.termen_predare)}</td>
+                      <td className="lucrari-table-livrare">
+                        <span className="lucrari-termene-row">
+                          <span className="lucrari-termene-label">Termen predare</span>
+                          <span className="lucrari-termene-data">{formatData(l.termen_predare)}</span>
+                        </span>
+                        <span className="lucrari-termene-row">
+                          <span className="lucrari-termene-label">Next date</span>
+                          <span className="lucrari-termene-data">{formatData(l.next_date)}</span>
+                        </span>
+                      </td>
                       <td><span className={`badge ${status.badgeClass}`}>{status.label}</span></td>
                       <td>{l.tip_lucrare}</td>
                       <td className="lucrari-col-optional"><span className="badge badge-neutral">{detaliiLabel(l)}</span></td>

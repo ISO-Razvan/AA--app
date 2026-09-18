@@ -136,7 +136,7 @@ export default function SalariiPage({ onOpenLucrare }) {
 
       <div className="card salarii-total-card">
         <span className="salarii-total-label">Total plătit tehnicienilor în {lunaLabel}</span>
-        <span className="salarii-total-value">{loading ? '—' : formatSuma(totalGeneral)}</span>
+        <span className="salarii-total-value stat-value-lg">{loading ? '—' : formatSuma(totalGeneral)}</span>
       </div>
 
       {loading ? (

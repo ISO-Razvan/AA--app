@@ -179,6 +179,15 @@ button {
   margin-bottom: var(--space-2);
 }
 
+/* Cifra mare dintr-un card de statistică — token unic, reutilizat de
+   Dashboard, Financiar și Salarii, ca să nu mai difere mărimea între ele. */
+.stat-value-lg {
+  font-family: var(--font-display);
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
 .text-input,
 .select-input {
   width: 100%;

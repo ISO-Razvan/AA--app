@@ -14,7 +14,7 @@ function clientLabel(l) {
 function KpiCard({ label, value, tone }) {
   return (
     <div className={`card kpi-card kpi-card-${tone}`}>
-      <span className="kpi-value">{value}</span>
+      <span className="kpi-value stat-value-lg">{value}</span>
       <span className="kpi-label">{label}</span>
     </div>
   )

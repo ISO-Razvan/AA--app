@@ -70,9 +70,6 @@
 }
 
 .salarii-total-value {
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 800;
   color: var(--color-blue-strong);
 }
 

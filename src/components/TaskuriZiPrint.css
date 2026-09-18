@@ -72,11 +72,11 @@
   display: inline-flex;
   align-items: center;
   margin-left: var(--space-2);
-  padding: 1px var(--space-2);
+  padding: 3px var(--space-3);
   border-radius: var(--radius-pill);
   background: var(--color-purple-soft);
   color: var(--color-purple-dark);
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;

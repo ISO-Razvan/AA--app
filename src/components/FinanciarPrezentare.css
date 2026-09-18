@@ -56,11 +56,6 @@
   letter-spacing: 0.03em;
 }
 
-.financiar-kpi-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
 .financiar-kpi-profit.pozitiv .financiar-kpi-value {
   color: var(--color-success);
 }
