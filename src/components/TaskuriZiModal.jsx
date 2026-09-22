@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import Dropdown from './Dropdown.jsx'
 import TaskuriZiPrint from './TaskuriZiPrint.jsx'
+import './modal-base.css'
 import './TaskuriZiModal.css'
 
 function formatZiLunga(dataStr) {
@@ -36,10 +38,48 @@ export function termenPentru(lucrare) {
 }
 
 // Modal de detaliu al zilei — deschis din antetul unei zile din calendarul
-// săptămânal al Task-urilor (Partea 37/41), listă completă cu bifă
-// „Finalizat" proprie fiecărui task și descărcare PDF (Partea 42).
-export default function TaskuriZiModal({ zi, tehnician, sarcini, onClose, onToggleFinalizat, onOpenLucrare }) {
+// săptămânal al Task-urilor, listă completă cu bifă „Finalizat" proprie
+// fiecărui task și descărcare PDF. Pe mobil (isMobil), unde drag & drop-ul
+// din calendar e dezactivat, adaugă și „editare directă": asignarea unei
+// lucrări neplanificate în ziua curentă, mutarea unui task în altă zi și
+// scoaterea lui din planificare — toate prin selecturi, nu prin tragere.
+export default function TaskuriZiModal({
+  zi,
+  zileSaptamana,
+  numeZile,
+  tehnician,
+  sarcini,
+  lucrariNeplanificate,
+  isMobil,
+  onClose,
+  onToggleFinalizat,
+  onOpenLucrare,
+  onAsigneaza,
+  onMuta,
+  onElimina,
+}) {
   const [showPrint, setShowPrint] = useState(false)
+  const [selectieNoua, setSelectieNoua] = useState('')
+  const [asignand, setAsignand] = useState(false)
+
+  const optiuniNeplanificate = (lucrariNeplanificate || []).map(({ lucrare, etape }) => ({
+    value: `${lucrare.id}|${etape.map((e) => e.id).join(',')}`,
+    label: `${lucrare.nr_inregistrare} — ${lucrare.pacient || '—'} (${etape.map((e) => e.nume).join(' + ')})`,
+  }))
+
+  const optiuniZile = (zileSaptamana || []).map((z, i) => ({ value: z, label: numeZile?.[i] || z }))
+
+  const handleAsigneaza = async () => {
+    if (!selectieNoua) return
+    const [lucrareId, etapaIdsStr] = selectieNoua.split('|')
+    setAsignand(true)
+    try {
+      await onAsigneaza(lucrareId, etapaIdsStr.split(','))
+      setSelectieNoua('')
+    } finally {
+      setAsignand(false)
+    }
+  }
 
   return (
     <>
@@ -66,6 +106,27 @@ export default function TaskuriZiModal({ zi, tehnician, sarcini, onClose, onTogg
                 Descarcă PDF
               </button>
             </div>
+
+            {isMobil && (
+              <div className="taskuri-zi-adaugare">
+                <Dropdown
+                  label="Adaugă o lucrare neplanificată în această zi"
+                  value={selectieNoua}
+                  onChange={setSelectieNoua}
+                  options={optiuniNeplanificate}
+                  placeholder={optiuniNeplanificate.length === 0 ? 'Nicio lucrare neplanificată' : 'Alege o lucrare…'}
+                  disabled={optiuniNeplanificate.length === 0 || asignand}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary taskuri-zi-adaugare-btn"
+                  onClick={handleAsigneaza}
+                  disabled={!selectieNoua || asignand}
+                >
+                  {asignand ? 'Se adaugă…' : '+ Adaugă în această zi'}
+                </button>
+              </div>
+            )}
 
             {sarcini.length === 0 ? (
               <p className="taskuri-panel-hint">Nicio sarcină programată pentru această zi.</p>
@@ -102,14 +163,36 @@ export default function TaskuriZiModal({ zi, tehnician, sarcini, onClose, onTogg
                           </span>
                         </div>
                       </button>
-                      <label className="taskuri-zi-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={!!alocare.finalizat}
-                          onChange={() => onToggleFinalizat({ lucrare, alocare })}
-                        />
-                        <span>Finalizat</span>
-                      </label>
+
+                      <div className="taskuri-zi-sarcina-actions">
+                        <label className="taskuri-zi-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={!!alocare.finalizat}
+                            onChange={() => onToggleFinalizat({ lucrare, alocare })}
+                          />
+                          <span>Finalizat</span>
+                        </label>
+
+                        {isMobil && (
+                          <div className="taskuri-zi-muta">
+                            <Dropdown
+                              value={zi}
+                              onChange={(v) => {
+                                if (v && v !== zi) onMuta(lucrare.id, alocare.etapa_id, v)
+                              }}
+                              options={optiuniZile}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-ghost taskuri-zi-elimina-btn"
+                              onClick={() => onElimina(lucrare.id, alocare.etapa_id)}
+                            >
+                              Scoate din planificare
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </li>
                   )
                 })}

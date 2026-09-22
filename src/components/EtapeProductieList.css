@@ -130,6 +130,18 @@
   padding: var(--space-3);
 }
 
+.etape-columns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.etape-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .etape-add-form {
   display: flex;
   gap: var(--space-3);
@@ -149,5 +161,38 @@
 @media (max-width: 480px) {
   .etape-add-form {
     flex-direction: column;
+  }
+}
+
+/* Peste ~900px, cardul se lățește și trece pe 2 coloane — lista etapelor
+   existente la stânga, formularul de adăugare la dreapta — ca să folosească
+   spațiul orizontal disponibil în loc să rămână îngust în mijlocul paginii. */
+@media (min-width: 900px) {
+  .etape-card {
+    max-width: 880px;
+  }
+
+  .etape-columns {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .etape-list-col {
+    flex: 1.3;
+    min-width: 0;
+  }
+
+  .etape-form-col {
+    flex: 1;
+    min-width: 0;
+    position: sticky;
+    top: var(--space-5);
+  }
+
+  .etape-add-form {
+    flex-direction: column;
+    align-items: stretch;
+    padding-top: 0;
+    border-top: none;
   }
 }

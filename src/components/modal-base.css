@@ -1,0 +1,31 @@
+/* Bază CSS comună pentru toate modalele de tip „overlay centrat" (fișa
+   lucrării, panoul de detaliu, modalul de tehnician din Task-uri, modalul de
+   zi, Salarii, Devize). O singură sursă pentru .modal-overlay/.modal-close —
+   înainte erau 5 definiții identice copiate în fișiere separate, plus 2
+   fișiere care presupuneau tacit că vin de altundeva. Fiecare componentă de
+   tip modal importă explicit acest fișier. */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 34, 51, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: 100;
+}
+
+.modal-close {
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  font-size: 1rem;
+}
+
+@media (max-width: 560px) {
+  .modal-overlay {
+    padding: 0;
+  }
+}

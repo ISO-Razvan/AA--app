@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TaskuriTehnicianContent from './TaskuriTehnicianContent.jsx'
+import './modal-base.css'
 import './TaskuriTehnicianModal.css'
 
 export default function TaskuriTehnicianModal({ tehnician, onClose, initialDate }) {

@@ -76,81 +76,89 @@ export default function EtapeProductieList({ onChange }) {
         </p>
       </div>
 
-      {loading ? (
-        <p className="etape-loading">Se încarcă…</p>
-      ) : (
-        <ul className="etape-list">
-          {etape.map((etapa, i) => (
-            <li key={etapa.id} className="etape-row">
-              <div className="etape-row-top">
-                <span className="etape-order">{i + 1}</span>
-                <span className="etape-nume">{etapa.nume}</span>
-                <div className="etape-actions">
-                  <button
-                    type="button"
-                    className="btn btn-ghost etape-move-btn"
-                    onClick={() => handleMove(i, -1)}
-                    disabled={i === 0}
-                    aria-label={`Mută „${etapa.nume}” mai sus`}
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost etape-move-btn"
-                    onClick={() => handleMove(i, 1)}
-                    disabled={i === etape.length - 1}
-                    aria-label={`Mută „${etapa.nume}” mai jos`}
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost etape-delete-btn"
-                    onClick={() => handleDelete(etapa.id)}
-                    aria-label={`Șterge „${etapa.nume}”`}
-                  >
-                    Șterge
-                  </button>
-                </div>
-              </div>
-              <div className="etape-durata">
-                <label className="etape-durata-label" htmlFor={`durata-${etapa.id}`}>
-                  Durată estimată per element
-                </label>
-                <div className="etape-durata-input-wrap">
-                  <input
-                    id={`durata-${etapa.id}`}
-                    type="number"
-                    min="0"
-                    step="1"
-                    className="text-input etape-durata-input"
-                    value={etapa.durata_minute}
-                    onChange={(e) => handleDurataChange(etapa.id, e.target.value)}
-                    onBlur={() => handleDurataBlur(etapa)}
-                  />
-                  <span className="etape-durata-unit">min</span>
-                </div>
-              </div>
-            </li>
-          ))}
-          {etape.length === 0 && <li className="etape-empty">Nicio etapă definită încă.</li>}
-        </ul>
-      )}
+      <div className="etape-columns">
+        <div className="etape-list-col">
+          {loading ? (
+            <p className="etape-loading">Se încarcă…</p>
+          ) : (
+            <ul className="etape-list">
+              {etape.map((etapa, i) => (
+                <li key={etapa.id} className="etape-row">
+                  <div className="etape-row-top">
+                    <span className="etape-order">{i + 1}</span>
+                    <span className="etape-nume">{etapa.nume}</span>
+                    <div className="etape-actions">
+                      <button
+                        type="button"
+                        className="btn btn-ghost etape-move-btn"
+                        onClick={() => handleMove(i, -1)}
+                        disabled={i === 0}
+                        aria-label={`Mută „${etapa.nume}” mai sus`}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost etape-move-btn"
+                        onClick={() => handleMove(i, 1)}
+                        disabled={i === etape.length - 1}
+                        aria-label={`Mută „${etapa.nume}” mai jos`}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost etape-delete-btn"
+                        onClick={() => handleDelete(etapa.id)}
+                        aria-label={`Șterge „${etapa.nume}”`}
+                      >
+                        Șterge
+                      </button>
+                    </div>
+                  </div>
+                  <div className="etape-durata">
+                    <label className="etape-durata-label" htmlFor={`durata-${etapa.id}`}>
+                      Durată estimată per element
+                    </label>
+                    <div className="etape-durata-input-wrap">
+                      <input
+                        id={`durata-${etapa.id}`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        className="text-input etape-durata-input"
+                        value={etapa.durata_minute}
+                        onChange={(e) => handleDurataChange(etapa.id, e.target.value)}
+                        onBlur={() => handleDurataBlur(etapa)}
+                      />
+                      <span className="etape-durata-unit">min</span>
+                    </div>
+                  </div>
+                </li>
+              ))}
+              {etape.length === 0 && <li className="etape-empty">Nicio etapă definită încă.</li>}
+            </ul>
+          )}
+        </div>
 
-      <form className="etape-add-form" onSubmit={handleAdd}>
-        <input
-          type="text"
-          className="text-input"
-          placeholder="Nume etapă nouă…"
-          value={nume}
-          onChange={(e) => setNume(e.target.value)}
-        />
-        <button type="submit" className="btn btn-primary" disabled={!nume.trim() || saving}>
-          {saving ? 'Se adaugă…' : '+ Adaugă etapă'}
-        </button>
-      </form>
-      {error && <p className="etape-error">{error}</p>}
+        <div className="etape-form-col">
+          <form className="etape-add-form" onSubmit={handleAdd}>
+            <label className="field-label" htmlFor="etapa-nume-noua">Etapă nouă</label>
+            <input
+              id="etapa-nume-noua"
+              type="text"
+              className="text-input"
+              placeholder="Nume etapă nouă…"
+              value={nume}
+              onChange={(e) => setNume(e.target.value)}
+            />
+            <button type="submit" className="btn btn-primary" disabled={!nume.trim() || saving}>
+              {saving ? 'Se adaugă…' : '+ Adaugă etapă'}
+            </button>
+          </form>
+          {error && <p className="etape-error">{error}</p>}
+        </div>
+      </div>
     </div>
   )
 }

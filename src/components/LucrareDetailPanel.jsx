@@ -11,6 +11,7 @@ import TimePicker from './TimePicker.jsx'
 import ProductieTimeline from './ProductieTimeline.jsx'
 import GaleriePoze from './GaleriePoze.jsx'
 import { useConfirm } from '../hooks/useConfirm.jsx'
+import './modal-base.css'
 import './LucrareDetailPanel.css'
 
 function formatDataOra(dataStr, oraStr) {

@@ -4,6 +4,7 @@ import { statusDinRanduri } from '../utils/statusLucrare'
 import { formatSuma } from './SalariiPage.jsx'
 import SearchableSelect from './SearchableSelect.jsx'
 import { useConfirm } from '../hooks/useConfirm.jsx'
+import './modal-base.css'
 import './DevizNouModal.css'
 
 function formatData(dataStr) {

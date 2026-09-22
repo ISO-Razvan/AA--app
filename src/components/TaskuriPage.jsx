@@ -63,11 +63,14 @@ function DropZone({ id, className, children }) {
 // Card tras — folosit atât pentru „Lucrări neplanificate", cât și pentru
 // task-urile deja planificate din calendar. Click simplu (fără deplasare
 // peste pragul de activare al senzorului) tot deschide fișa lucrării.
-function DraggableTaskCard({ dragId, data, disabled, onOpen, className, children }) {
+// `disabled` blochează și tragerea, și click-ul (folosit cât timp scrierea
+// e în curs); `dragDisabled` blochează DOAR tragerea (pe mobil, unde
+// reprogramarea se face din modalul de zi) — cardul rămâne apăsabil.
+function DraggableTaskCard({ dragId, data, disabled, dragDisabled, onOpen, className, children }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: dragId,
     data,
-    disabled,
+    disabled: disabled || dragDisabled,
   })
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
 
@@ -97,6 +100,23 @@ export default function TaskuriPage() {
   const [saptamanaOffset, setSaptamanaOffset] = useState(0)
   const [mutandKey, setMutandKey] = useState(null)
   const [ziModalDeschisa, setZiModalDeschisa] = useState(null)
+  // Sub acest prag, calendarul arată o singură zi odată (fără drag & drop —
+  // reprogramarea se face din modalul de zi, prin editare directă).
+  const [isMobil, setIsMobil] = useState(() => window.matchMedia('(max-width: 640px)').matches)
+  // Index în săptămână (0=Luni..6=Duminică) al zilei arătate pe mobil —
+  // implicit ziua de azi, indiferent de săptămâna vizibilă (rămâne aceeași
+  // „poziție" în săptămână când navighezi înainte/înapoi cu săptămâna).
+  const [ziAfisataMobil, setZiAfisataMobil] = useState(() => {
+    const ziSapt = new Date().getDay()
+    return ziSapt === 0 ? 6 : ziSapt - 1
+  })
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const handler = (e) => setIsMobil(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -300,6 +320,7 @@ export default function TaskuriPage() {
                             dragId={`neplanificat-${lucrare.id}`}
                             data={{ lucrareId: lucrare.id, etapaIds, source: 'neplanificate' }}
                             disabled={mutandKey === cheieGrup}
+                            dragDisabled={isMobil}
                             onOpen={() => deschideLucrarea(lucrare)}
                             className="taskuri-task-card taskuri-neplanificat-item"
                           >
@@ -351,36 +372,78 @@ export default function TaskuriPage() {
               {!tehnicianSelectat ? (
                 <p className="taskuri-panel-hint taskuri-calendar-hint">Alege un tehnician ca să vezi calendarul lui.</p>
               ) : (
-                <div className="taskuri-week-grid">
-                  {zileSaptamana.map((zi, i) => (
-                    <DropZone key={zi} id={zi} className={`taskuri-day-column ${zi === astazi ? 'taskuri-day-azi' : ''}`}>
+                <>
+                  {isMobil && (
+                    <div className="taskuri-day-nav">
                       <button
                         type="button"
-                        className="taskuri-day-header"
-                        onClick={() => setZiModalDeschisa(zi)}
-                        aria-label={`Vezi detaliile zilei de ${NUME_ZILE[i]}`}
+                        className="btn btn-secondary taskuri-day-nav-btn"
+                        onClick={() => setZiAfisataMobil((v) => Math.max(0, v - 1))}
+                        disabled={ziAfisataMobil === 0}
+                        aria-label="Ziua precedentă"
                       >
-                        <span className="taskuri-day-nume">{NUME_ZILE[i]}</span>
-                        <span className="taskuri-day-data">{formatZiScurt(zi)}</span>
+                        ‹
                       </button>
-                      <div className="taskuri-day-body">
-                        {(taskuriPeZi[zi] || []).length === 0 && <p className="taskuri-day-empty">—</p>}
-                        {(taskuriPeZi[zi] || []).map(({ alocare, lucrare }) => (
-                          <DraggableTaskCard
-                            key={alocare.id}
-                            dragId={`planificat-${alocare.id}`}
-                            data={{ lucrareId: lucrare.id, etapaId: alocare.etapa_id, source: 'calendar', day: zi }}
-                            disabled={mutandKey === `${lucrare.id}-${alocare.etapa_id}`}
-                            onOpen={() => deschideLucrarea(lucrare)}
-                            className="taskuri-task-card taskuri-day-card"
+                      <div className="taskuri-day-pills">
+                        {NUME_ZILE.map((nume, i) => (
+                          <button
+                            key={nume}
+                            type="button"
+                            className={`taskuri-day-pill ${i === ziAfisataMobil ? 'active' : ''} ${zileSaptamana[i] === astazi ? 'taskuri-day-pill-azi' : ''}`}
+                            onClick={() => setZiAfisataMobil(i)}
                           >
-                            {lucrare.pacient || '—'}
-                          </DraggableTaskCard>
+                            <span className="taskuri-day-pill-nume">{nume.slice(0, 2)}</span>
+                            <span className="taskuri-day-pill-data">{formatZiScurt(zileSaptamana[i])}</span>
+                          </button>
                         ))}
                       </div>
-                    </DropZone>
-                  ))}
-                </div>
+                      <button
+                        type="button"
+                        className="btn btn-secondary taskuri-day-nav-btn"
+                        onClick={() => setZiAfisataMobil((v) => Math.min(6, v + 1))}
+                        disabled={ziAfisataMobil === 6}
+                        aria-label="Ziua următoare"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
+
+                  <div className={`taskuri-week-grid ${isMobil ? 'taskuri-week-grid-mobil' : ''}`}>
+                    {zileSaptamana.map((zi, i) => {
+                      if (isMobil && i !== ziAfisataMobil) return null
+                      return (
+                        <DropZone key={zi} id={zi} className={`taskuri-day-column ${zi === astazi ? 'taskuri-day-azi' : ''}`}>
+                          <button
+                            type="button"
+                            className="taskuri-day-header"
+                            onClick={() => setZiModalDeschisa(zi)}
+                            aria-label={`Vezi detaliile zilei de ${NUME_ZILE[i]}`}
+                          >
+                            <span className="taskuri-day-nume">{NUME_ZILE[i]}</span>
+                            <span className="taskuri-day-data">{formatZiScurt(zi)}</span>
+                          </button>
+                          <div className="taskuri-day-body">
+                            {(taskuriPeZi[zi] || []).length === 0 && <p className="taskuri-day-empty">—</p>}
+                            {(taskuriPeZi[zi] || []).map(({ alocare, lucrare }) => (
+                              <DraggableTaskCard
+                                key={alocare.id}
+                                dragId={`planificat-${alocare.id}`}
+                                data={{ lucrareId: lucrare.id, etapaId: alocare.etapa_id, source: 'calendar', day: zi }}
+                                disabled={mutandKey === `${lucrare.id}-${alocare.etapa_id}`}
+                                dragDisabled={isMobil}
+                                onOpen={() => deschideLucrarea(lucrare)}
+                                className="taskuri-task-card taskuri-day-card"
+                              >
+                                {lucrare.pacient || '—'}
+                              </DraggableTaskCard>
+                            ))}
+                          </div>
+                        </DropZone>
+                      )
+                    })}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -390,11 +453,24 @@ export default function TaskuriPage() {
       {ziModalDeschisa && tehnicianSelectat && (
         <TaskuriZiModal
           zi={ziModalDeschisa}
+          zileSaptamana={zileSaptamana}
+          numeZile={NUME_ZILE}
           tehnician={tehnicianSelectat}
           sarcini={taskuriPeZi[ziModalDeschisa] || []}
+          lucrariNeplanificate={lucrariNeplanificate}
+          isMobil={isMobil}
           onClose={() => setZiModalDeschisa(null)}
           onToggleFinalizat={({ lucrare, alocare }) => handleFinalizare(lucrare.id, alocare.etapa_id, !alocare.finalizat)}
           onOpenLucrare={deschideLucrarea}
+          onAsigneaza={(lucrareId, etapaIds) =>
+            handleAlocareMultipla(lucrareId, etapaIds, { tehnician_id: tehnicianSelectat.id, data_planificata: ziModalDeschisa })
+          }
+          onMuta={(lucrareId, etapaId, ziNoua) =>
+            handleAlocareMultipla(lucrareId, [etapaId], { tehnician_id: tehnicianSelectat.id, data_planificata: ziNoua })
+          }
+          onElimina={(lucrareId, etapaId) =>
+            handleAlocareMultipla(lucrareId, [etapaId], { tehnician_id: null, data_planificata: null })
+          }
         />
       )}
     </div>

@@ -98,18 +98,14 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
           <ul className="taskuri-sarcini-list">
             {sarciniZi.map(({ alocare, lucrare, etapa }) => (
               <li key={alocare.id} className={`taskuri-sarcina-item ${alocare.finalizat ? 'taskuri-sarcina-finalizata' : ''}`}>
-                <button
-                  type="button"
-                  className={`taskuri-checkbox ${alocare.finalizat ? 'checked' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleToggleFinalizat(alocare)
-                  }}
-                  aria-pressed={!!alocare.finalizat}
-                  aria-label={alocare.finalizat ? 'Marchează etapa ca nefinalizată' : 'Marchează etapa ca finalizată'}
-                >
-                  {alocare.finalizat && '✓'}
-                </button>
+                <label className="taskuri-checkbox" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={!!alocare.finalizat}
+                    onChange={() => handleToggleFinalizat(alocare)}
+                    aria-label={alocare.finalizat ? 'Marchează etapa ca nefinalizată' : 'Marchează etapa ca finalizată'}
+                  />
+                </label>
                 <button type="button" className="taskuri-sarcina-row" onClick={() => onOpenLucrare(lucrare)}>
                   <div className="taskuri-sarcina-top">
                     <span className="taskuri-sarcina-nr">{lucrare.nr_inregistrare}</span>

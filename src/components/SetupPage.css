@@ -14,3 +14,52 @@
   color: var(--color-text-secondary);
   margin-top: calc(-1 * var(--space-4));
 }
+
+.setup-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--color-bg);
+  padding: var(--space-3) 0;
+}
+
+.setup-subnav-item {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.setup-subnav-item:hover {
+  border-color: var(--color-blue);
+  color: var(--color-text);
+}
+
+.setup-subnav-item.active {
+  background: var(--color-blue-strong);
+  border-color: var(--color-blue-strong);
+  color: #fff;
+}
+
+.setup-section {
+  scroll-margin-top: 76px;
+}
+
+@media (max-width: 880px) {
+  .setup-subnav {
+    top: 68px;
+  }
+
+  .setup-section {
+    scroll-margin-top: 144px;
+  }
+}

@@ -57,25 +57,26 @@
   gap: var(--space-3);
 }
 
+/* Checkbox nativ 18×18px (aceeași paradigmă ca Producție/modalul de zi din
+   Task-uri) — eticheta din jur păstrează o zonă de atingere de minim 40×40px
+   (padding invizibil), ca să nu regreseze ergonomia pe mobil a vechiului
+   buton custom de 44×44px pe care îl înlocuiește. */
 .taskuri-checkbox {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  border: 2px solid var(--color-border);
-  background: var(--color-surface);
+  width: 40px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-success);
-  transition: background-color 0.12s ease, border-color 0.12s ease;
+  cursor: pointer;
 }
 
-.taskuri-checkbox.checked {
-  background: var(--color-success-soft);
-  border-color: var(--color-success);
+.taskuri-checkbox input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-success);
+  cursor: pointer;
 }
 
 .taskuri-sarcina-row {

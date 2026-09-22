@@ -1,4 +1,5 @@
 import { formatSuma } from './SalariiPage.jsx'
+import './modal-base.css'
 import './SalariiDetaliuModal.css'
 
 function formatData(dataStr) {

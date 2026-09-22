@@ -130,9 +130,6 @@
 }
 
 @media (max-width: 560px) {
-  .modal-overlay {
-    padding: 0;
-  }
   .salarii-detaliu-modal {
     max-height: 100vh;
     height: 100vh;

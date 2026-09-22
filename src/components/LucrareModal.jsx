@@ -7,6 +7,7 @@ import DentalChart from './DentalChart.jsx'
 import SearchableSelect from './SearchableSelect.jsx'
 import DatePicker from './DatePicker.jsx'
 import TimePicker from './TimePicker.jsx'
+import './modal-base.css'
 import './LucrareModal.css'
 
 function formatDataOra(dataStr, oraStr) {
