@@ -43,7 +43,10 @@ export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
 
   const [selectateNumere, setSelectateNumere] = useState(initial.selectateNumere)
   const [linkPairs, setLinkPairs] = useState(initial.linkPairs)
-  const [nrElemente, setNrElemente] = useState(initial.selectateNumere.length)
+  // Citit din coloana reală `nr_elemente`, nu din `dinti.length` — pot
+  // diferi (ex. lucrări din Import CSV, unde nr_elemente vine dintr-o
+  // coloană separată, fără marcarea dinților pe schemă).
+  const [nrElemente, setNrElemente] = useState(lucrare.nr_elemente ?? 0)
   const [clinica, setClinica] = useState(lucrare.clinica || '')
   const [medic, setMedic] = useState(lucrare.medic || '')
   const [pacient, setPacient] = useState(lucrare.pacient || '')
