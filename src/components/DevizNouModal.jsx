@@ -16,8 +16,8 @@ function formatData(dataStr) {
 
 export default function DevizNouModal({ onClose, onGenerated }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
-  const [mediciOptions, setMediciOptions] = useState([])
-  const [medic, setMedic] = useState('')
+  const [cliniciOptions, setCliniciOptions] = useState([])
+  const [clinica, setClinica] = useState('')
   const [lucrari, setLucrari] = useState([])
   const [etape, setEtape] = useState([])
   const [alocari, setAlocari] = useState([])
@@ -31,14 +31,14 @@ export default function DevizNouModal({ onClose, onGenerated }) {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [medici, l, e, a, facturate] = await Promise.all([
-        getConfigList('medici'),
+      const [clinici, l, e, a, facturate] = await Promise.all([
+        getConfigList('clinici'),
         getLucrari(),
         getEtapeProductie(),
         getToateAlocarile(),
         getLucrareIdsFacturate(),
       ])
-      setMediciOptions(medici)
+      setCliniciOptions(clinici)
       setLucrari(l)
       setEtape(e)
       setAlocari(a)
@@ -48,27 +48,31 @@ export default function DevizNouModal({ onClose, onGenerated }) {
     load()
   }, [])
 
-  // Lucrările medicului, cu status calculat — eligibile pentru deviz sunt cele
+  // Lucrările clinicii, cu status calculat — eligibile pentru deviz sunt cele
   // Finalizate sau În lucru (Neînceput rămâne exclus, n-are ce factura încă).
-  const lucrariMedic = useMemo(() => {
-    if (!medic) return []
+  // Un deviz e legat de o singură clinică — nu de o combinație liberă de
+  // lucrări — de-asta clinica e primul pas, iar lista se filtrează după ea.
+  const lucrariClinica = useMemo(() => {
+    if (!clinica) return []
     return lucrari
-      .filter((l) => l.medic === medic)
+      .filter((l) => l.clinica === clinica)
       .map((l) => {
         const randuri = alocari.filter((a) => a.lucrare_id === l.id)
         return { ...l, status: statusDinRanduri(etape.length, randuri) }
       })
       .filter((l) => l.status.id === 'finalizat' || l.status.id === 'in_lucru')
-  }, [lucrari, etape, alocari, medic])
+  }, [lucrari, etape, alocari, clinica])
 
   const lucrariAfisate = useMemo(
-    () => (arataFacturate ? lucrariMedic : lucrariMedic.filter((l) => !idsFacturate.has(l.id))),
-    [lucrariMedic, idsFacturate, arataFacturate]
+    () => (arataFacturate ? lucrariClinica : lucrariClinica.filter((l) => !idsFacturate.has(l.id))),
+    [lucrariClinica, idsFacturate, arataFacturate]
   )
 
+  // Schimbarea clinicii resetează selecția curentă — nu poți amesteca
+  // lucrări din clinici diferite în același deviz.
   useEffect(() => {
     setSelectate(new Set())
-  }, [medic])
+  }, [clinica])
 
   const toggleSelectie = (id) => {
     setSelectate((prev) => {
@@ -100,9 +104,12 @@ export default function DevizNouModal({ onClose, onGenerated }) {
     setGenerating(true)
     setError('')
     try {
-      // Clinica devizului: cea comună tuturor lucrărilor selectate, dacă există una.
-      const clinici = new Set(lucrariSelectate.map((l) => l.clinica).filter(Boolean))
-      const clinica = clinici.size === 1 ? [...clinici][0] : ''
+      // Clinica e mereu unică (impusă de filtrare); medicul devizului e cel
+      // comun lucrărilor selectate dacă există unul singur, altfel lista
+      // medicilor implicați — coloana `medic` rămâne obligatorie în bază,
+      // dar acum e doar informativă, clinica fiind legătura reală a devizului.
+      const medici = [...new Set(lucrariSelectate.map((l) => l.medic).filter(Boolean))]
+      const medic = medici.length === 1 ? medici[0] : medici.join(', ')
 
       const deviz = await creeazaDeviz({
         medic,
@@ -127,14 +134,14 @@ export default function DevizNouModal({ onClose, onGenerated }) {
         </header>
 
         <div className="deviz-nou-body">
-          <div className="deviz-nou-medic-row">
+          <div className="deviz-nou-clinica-row">
             <SearchableSelect
-              label="Medic"
-              value={medic}
-              onChange={setMedic}
-              options={mediciOptions}
+              label="Clinică"
+              value={clinica}
+              onChange={setClinica}
+              options={cliniciOptions}
               onAddOption={async (nume) => nume}
-              placeholder="Caută un medic…"
+              placeholder="Caută o clinică…"
             />
             <label className="deviz-nou-arata-facturate">
               <input type="checkbox" checked={arataFacturate} onChange={(e) => setArataFacturate(e.target.checked)} />
@@ -142,13 +149,13 @@ export default function DevizNouModal({ onClose, onGenerated }) {
             </label>
           </div>
 
-          {!medic ? (
-            <p className="deviz-nou-hint">Alege un medic ca să vezi lucrările lui finalizate sau în lucru.</p>
+          {!clinica ? (
+            <p className="deviz-nou-hint">Alege o clinică ca să vezi lucrările ei finalizate sau în lucru.</p>
           ) : loading ? (
             <p className="deviz-nou-hint">Se încarcă…</p>
           ) : lucrariAfisate.length === 0 ? (
             <p className="deviz-nou-hint">
-              Nicio lucrare finalizată sau în lucru{arataFacturate ? '' : ' și nefacturată încă'} pentru acest medic.
+              Nicio lucrare finalizată sau în lucru{arataFacturate ? '' : ' și nefacturată încă'} pentru această clinică.
             </p>
           ) : (
             <ul className="deviz-nou-list">
@@ -164,7 +171,7 @@ export default function DevizNouModal({ onClose, onGenerated }) {
                         {idsFacturate.has(l.id) && <span className="badge badge-neutral">Deja facturată</span>}
                       </div>
                       <p className="deviz-nou-item-sub">
-                        {l.tip_lucrare} · Pacient: {l.pacient || '—'} · {formatData(l.data_intrare)}
+                        {l.tip_lucrare} · Pacient: {l.pacient || '—'} · Medic: {l.medic || '—'} · {formatData(l.data_intrare)}
                       </p>
                     </div>
                   </label>

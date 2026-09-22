@@ -41,6 +41,8 @@ export default function DevizPreview({ deviz, onClose }) {
         (r) => `<tr>
           <td>${r.lucrare?.nr_inregistrare || ''}</td>
           <td>${r.lucrare?.pacient || '—'}</td>
+          <td>${r.lucrare?.medic || '—'}</td>
+          <td>${r.lucrare?.clinica || '—'}</td>
           <td>${r.lucrare?.tip_lucrare || ''}</td>
           <td>${formatData(r.lucrare?.data_intrare)}</td>
           <td>${formatSuma(r.suma)}</td>
@@ -52,12 +54,13 @@ export default function DevizPreview({ deviz, onClose }) {
       <h1>Algorithm Aesthetics</h1>
       <p>Registru lucrări laborator</p>
       <h2 style="margin-top:24px;">Deviz ${deviz.numar_deviz}</h2>
-      <p>Medic: ${deviz.medic}${deviz.clinica ? ` — ${deviz.clinica}` : ''}</p>
+      <p>Clinică: ${deviz.clinica || '—'}</p>
+      <p>Medic: ${deviz.medic}</p>
       <p>Data: ${formatData(deviz.data_generare)}${randPerioada(randuri) ? ` · Perioadă: ${randPerioada(randuri)}` : ''}</p>
       <table>
-        <thead><tr><th>Nr. înreg.</th><th>Pacient</th><th>Tip lucrare</th><th>Dată</th><th>Valoare</th></tr></thead>
+        <thead><tr><th>Nr. înreg.</th><th>Pacient</th><th>Medic</th><th>Clinică</th><th>Tip lucrare</th><th>Dată</th><th>Valoare</th></tr></thead>
         <tbody>${randuriHTML}</tbody>
-        <tfoot><tr class="total-row"><td colspan="4">Total</td><td>${formatSuma(deviz.total)}</td></tr></tfoot>
+        <tfoot><tr class="total-row"><td colspan="6">Total</td><td>${formatSuma(deviz.total)}</td></tr></tfoot>
       </table>`
 
     downloadHTML(`deviz-${deviz.numar_deviz}.html`, `Deviz ${deviz.numar_deviz}`, body)
@@ -91,8 +94,12 @@ export default function DevizPreview({ deviz, onClose }) {
 
         <div className="deviz-sheet-info">
           <div>
+            <span className="field-label">Clinică</span>
+            <p>{deviz.clinica || '—'}</p>
+          </div>
+          <div>
             <span className="field-label">Medic</span>
-            <p>{deviz.medic}{deviz.clinica ? ` — ${deviz.clinica}` : ''}</p>
+            <p>{deviz.medic}</p>
           </div>
           <div>
             <span className="field-label">Data generării</span>
@@ -114,6 +121,8 @@ export default function DevizPreview({ deviz, onClose }) {
               <tr>
                 <th>Nr. înreg.</th>
                 <th>Pacient</th>
+                <th>Medic</th>
+                <th>Clinică</th>
                 <th>Tip lucrare</th>
                 <th>Dată</th>
                 <th>Valoare</th>
@@ -124,6 +133,8 @@ export default function DevizPreview({ deviz, onClose }) {
                 <tr key={r.id}>
                   <td>{r.lucrare?.nr_inregistrare}</td>
                   <td>{r.lucrare?.pacient || '—'}</td>
+                  <td>{r.lucrare?.medic || '—'}</td>
+                  <td>{r.lucrare?.clinica || '—'}</td>
                   <td>{r.lucrare?.tip_lucrare}</td>
                   <td>{formatData(r.lucrare?.data_intrare)}</td>
                   <td>{formatSuma(r.suma)}</td>
@@ -132,7 +143,7 @@ export default function DevizPreview({ deviz, onClose }) {
             </tbody>
             <tfoot>
               <tr className="deviz-sheet-total-row">
-                <td colSpan={4}>Total</td>
+                <td colSpan={6}>Total</td>
                 <td>{formatSuma(deviz.total)}</td>
               </tr>
             </tfoot>

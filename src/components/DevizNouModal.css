@@ -5,20 +5,23 @@
 
 .deviz-nou-body {
   padding: var(--space-5);
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.deviz-nou-medic-row {
+.deviz-nou-clinica-row {
   display: flex;
   align-items: flex-end;
   gap: var(--space-4);
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
-.deviz-nou-medic-row > .searchable-select {
+.deviz-nou-clinica-row > .searchable-select {
   flex: 1;
   min-width: 220px;
 }
@@ -49,7 +52,9 @@
   gap: var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .deviz-nou-item {
