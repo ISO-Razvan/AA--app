@@ -1,6 +1,22 @@
+/* Dimensiune generoasă și fixă — nu depinde de câte lucrări sunt listate
+   la un moment dat (înainte de alegerea clinicii, corpul are doar un rând
+   de căutare + un hint scurt; fără o înălțime fixă, modalul „sărea" mic
+   apoi mare când lista se popula). Lățimea și înălțimea sunt calculate
+   ca proporție din viewport, cu un plafon pe ecrane foarte mari, ca să nu
+   devină absurd de mare — și se micșorează natural pe ecrane joase. */
 .deviz-nou-panel {
-  max-width: 640px;
-  max-height: 88vh;
+  width: 100%;
+  max-width: 900px;
+  height: 85vh;
+  max-height: 820px;
+}
+
+@media (max-width: 560px) {
+  .deviz-nou-panel {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
 }
 
 .deviz-nou-body {
