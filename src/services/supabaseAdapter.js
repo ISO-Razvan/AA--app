@@ -309,6 +309,41 @@ async function deleteLucrare(id) {
   fail(error, `Nu s-a putut șterge lucrarea ${id}`)
 }
 
+// Tabelele golite de „Șterge toate lucrările", de la copii spre părinți.
+// Deși schema are `on delete cascade`, le ștergem explicit pe toate: baza
+// live poate fi creată înainte de cascade, iar ordinea asta merge oricum.
+// Configurarea (etape, tehnicieni, tipuri, comisioane, extra_uri, clinici,
+// medici, culori, profiles) nu e atinsă.
+const TABELE_DATE_LUCRARI = ['deviz_lucrari', 'devize', 'productie_lucrare', 'poze_lucrare', 'linkuri_lucrare', 'lucrari']
+
+async function numaraRanduri(tabel) {
+  const { count, error } = await supabase.from(tabel).select('id', { count: 'exact', head: true })
+  fail(error, `Nu s-au putut număra rândurile din ${tabel}`)
+  return count || 0
+}
+
+async function numaraLucrariSiDevize() {
+  const [lucrari, devize] = await Promise.all([numaraRanduri('lucrari'), numaraRanduri('devize')])
+  return { lucrari, devize }
+}
+
+async function stergeToateLucrarile() {
+  const inainte = await numaraLucrariSiDevize()
+  for (const tabel of TABELE_DATE_LUCRARI) {
+    // Supabase refuză un delete fără filtru — acesta acoperă toate rândurile.
+    const { error } = await supabase.from(tabel).delete().not('id', 'is', null)
+    fail(error, `Nu s-a putut goli tabelul ${tabel}`)
+  }
+  // RLS poate bloca ștergerea fără eroare (0 rânduri afectate) — verificăm.
+  const ramase = []
+  for (const tabel of TABELE_DATE_LUCRARI) {
+    const n = await numaraRanduri(tabel)
+    if (n > 0) ramase.push(`${tabel} (${n})`)
+  }
+  if (ramase.length > 0) throw new Error(`Ștergerea nu s-a finalizat — au rămas rânduri în: ${ramase.join(', ')}`)
+  return inainte
+}
+
 async function importLucrari(rows) {
   const [{ data: existente, error: e0 }] = await Promise.all([supabase.from('lucrari').select('nr_inregistrare')])
   fail(e0, 'Nu s-au putut citi lucrările existente')
@@ -883,6 +918,8 @@ export const supabaseAdapter = {
   updateLucrare,
   updateLucrareSiRecalculeaza,
   deleteLucrare,
+  numaraLucrariSiDevize,
+  stergeToateLucrarile,
   getExtraUri,
   addExtra,
   updateExtra,

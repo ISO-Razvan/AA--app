@@ -15,7 +15,7 @@ const SECTIUNI = [
   { id: 'setup-comisioane', label: 'Comisioane' },
 ]
 
-export default function SetupPage() {
+export default function SetupPage({ profile, onDataChanged }) {
   const [etapeRefreshSignal, setEtapeRefreshSignal] = useState(0)
   const [tipuriRefreshSignal, setTipuriRefreshSignal] = useState(0)
   const [sectiuneActiva, setSectiuneActiva] = useState(SECTIUNI[0].id)
@@ -79,7 +79,7 @@ export default function SetupPage() {
         <ComisioaneGrid etapeRefreshSignal={etapeRefreshSignal} tipuriRefreshSignal={tipuriRefreshSignal} />
       </section>
 
-      <DateTestSection />
+      <DateTestSection profile={profile} onDataChanged={onDataChanged} />
     </div>
   )
 }

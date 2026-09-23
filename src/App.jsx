@@ -80,7 +80,7 @@ function AppContent({ profile, onSignOut }) {
                   onNewLucrare={() => setCreating(true)}
                 />
               )}
-              {pagina === 'setup' && <SetupPage />}
+              {pagina === 'setup' && <SetupPage profile={profile} onDataChanged={refresh} />}
               {pagina === 'taskuri' && <TaskuriPage />}
               {pagina === 'capacitate' && <CapacitatePage />}
               {pagina === 'salarii' && (
