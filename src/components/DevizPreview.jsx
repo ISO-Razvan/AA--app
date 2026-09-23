@@ -12,6 +12,50 @@ function formatData(dataStr) {
   return `${zi}.${luna}.${an}`
 }
 
+function escapeHTML(text) {
+  return String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+}
+
+// Defalcarea unei lucrări din deviz: dinți simpli, dinți pe implant, apoi
+// extra-urile în ordinea salvată (Try-in-ul, dacă e bifat, e primul), din
+// instantaneul lucrării. Lucrările mai vechi, fără prețul unitar al dinților
+// salvat, primesc un singur rând „Dinți" cu restul sumei.
+function defalcareLucrare(l) {
+  if (!l) return []
+  const extra = l.extra_uri || []
+  const totalExtra = extra.reduce((s, e) => s + (Number(e.cantitate) || 0) * (Number(e.pret_unitar) || 0), 0)
+  const n = Number(l.nr_elemente) || 0
+  const nImplant = Math.min(n, (l.dinti || []).filter((d) => d.implant === true).length)
+  const nSimplu = n - nImplant
+  const randuri = []
+  if (l.pret_dinte_simplu != null) {
+    const pSimplu = Number(l.pret_dinte_simplu) || 0
+    const pImplant = Number(l.pret_dinte_implant) || 0
+    if (nSimplu > 0) randuri.push({ descriere: 'Dinți simpli', cantitate: nSimplu, unitar: pSimplu, total: nSimplu * pSimplu })
+    if (nImplant > 0) randuri.push({ descriere: 'Dinți pe implant', cantitate: nImplant, unitar: pImplant, total: nImplant * pImplant })
+  } else if (n > 0) {
+    const totalDinti = (Number(l.incasare) || 0) - totalExtra
+    randuri.push({ descriere: 'Dinți', cantitate: n, unitar: totalDinti / n, total: totalDinti })
+  }
+  for (const e of extra) {
+    const cantitate = Number(e.cantitate) || 0
+    const unitar = Number(e.pret_unitar) || 0
+    randuri.push({ descriere: e.nume, cantitate, unitar, total: cantitate * unitar })
+  }
+  return randuri
+}
+
+function antetLucrare(l) {
+  if (!l) return []
+  return [
+    l.pacient && `Pacient: ${l.pacient}`,
+    l.medic && `Medic: ${l.medic}`,
+    l.clinica && `Clinică: ${l.clinica}`,
+    l.tip_lucrare,
+    formatData(l.data_intrare),
+  ].filter(Boolean)
+}
+
 function randPerioada(randuri) {
   const date = randuri.map((r) => r.lucrare?.data_intrare).filter(Boolean).sort()
   if (date.length === 0) return ''
@@ -37,30 +81,35 @@ export default function DevizPreview({ deviz, onClose }) {
 
   const handleDescarca = () => {
     const randuriHTML = randuri
-      .map(
-        (r) => `<tr>
-          <td>${r.lucrare?.nr_inregistrare || ''}</td>
-          <td>${r.lucrare?.pacient || '—'}</td>
-          <td>${r.lucrare?.medic || '—'}</td>
-          <td>${r.lucrare?.clinica || '—'}</td>
-          <td>${r.lucrare?.tip_lucrare || ''}</td>
-          <td>${formatData(r.lucrare?.data_intrare)}</td>
-          <td>${formatSuma(r.suma)}</td>
+      .map((r) => {
+        const antet = `<tr style="background:#F2F4FB;"><td colspan="4"><strong>${escapeHTML(r.lucrare?.nr_inregistrare)}</strong> · ${antetLucrare(r.lucrare).map(escapeHTML).join(' · ')}</td></tr>`
+        const detalii = defalcareLucrare(r.lucrare)
+          .map(
+            (d) => `<tr>
+          <td style="padding-left:24px;">${escapeHTML(d.descriere)}</td>
+          <td>${d.cantitate}</td>
+          <td>${formatSuma(d.unitar)}</td>
+          <td>${formatSuma(d.total)}</td>
         </tr>`
-      )
+          )
+          .join('')
+        const total = `<tr><td colspan="3" style="font-weight:600;">Total ${escapeHTML(r.lucrare?.nr_inregistrare)}</td><td style="font-weight:600;">${formatSuma(r.suma)}</td></tr>`
+        return antet + detalii + total
+      })
       .join('')
 
+    const perioada = randPerioada(randuri)
     const body = `
       <h1>Algorithm Aesthetics</h1>
       <p>Registru lucrări laborator</p>
-      <h2 style="margin-top:24px;">Deviz ${deviz.numar_deviz}</h2>
-      <p>Clinică: ${deviz.clinica || '—'}</p>
-      <p>Medic: ${deviz.medic}</p>
-      <p>Data: ${formatData(deviz.data_generare)}${randPerioada(randuri) ? ` · Perioadă: ${randPerioada(randuri)}` : ''}</p>
+      <h2 style="margin-top:24px;">Deviz ${escapeHTML(deviz.numar_deviz)}</h2>
+      <p>Clinică: ${escapeHTML(deviz.clinica || '—')}</p>
+      <p>Medic: ${escapeHTML(deviz.medic)}</p>
+      <p>Data: ${formatData(deviz.data_generare)}${perioada ? ` · Perioadă: ${perioada}` : ''}</p>
       <table>
-        <thead><tr><th>Nr. înreg.</th><th>Pacient</th><th>Medic</th><th>Clinică</th><th>Tip lucrare</th><th>Dată</th><th>Valoare</th></tr></thead>
+        <thead><tr><th>Descriere</th><th>Cant.</th><th>Preț unitar</th><th>Total</th></tr></thead>
         <tbody>${randuriHTML}</tbody>
-        <tfoot><tr class="total-row"><td colspan="6">Total</td><td>${formatSuma(deviz.total)}</td></tr></tfoot>
+        <tfoot><tr class="total-row"><td colspan="3">Total deviz</td><td>${formatSuma(deviz.total)}</td></tr></tfoot>
       </table>`
 
     downloadHTML(`deviz-${deviz.numar_deviz}.html`, `Deviz ${deviz.numar_deviz}`, body)
@@ -119,32 +168,40 @@ export default function DevizPreview({ deviz, onClose }) {
           <table className="deviz-sheet-table">
             <thead>
               <tr>
-                <th>Nr. înreg.</th>
-                <th>Pacient</th>
-                <th>Medic</th>
-                <th>Clinică</th>
-                <th>Tip lucrare</th>
-                <th>Dată</th>
-                <th>Valoare</th>
+                <th>Descriere</th>
+                <th className="deviz-num">Cant.</th>
+                <th className="deviz-num">Preț unitar</th>
+                <th className="deviz-num">Total</th>
               </tr>
             </thead>
-            <tbody>
-              {randuri.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.lucrare?.nr_inregistrare}</td>
-                  <td>{r.lucrare?.pacient || '—'}</td>
-                  <td>{r.lucrare?.medic || '—'}</td>
-                  <td>{r.lucrare?.clinica || '—'}</td>
-                  <td>{r.lucrare?.tip_lucrare}</td>
-                  <td>{formatData(r.lucrare?.data_intrare)}</td>
-                  <td>{formatSuma(r.suma)}</td>
+            {randuri.map((r) => (
+              <tbody key={r.id} className="deviz-lucrare">
+                <tr className="deviz-lucrare-antet">
+                  <td colSpan={4}>
+                    <strong>{r.lucrare?.nr_inregistrare}</strong>
+                    {antetLucrare(r.lucrare).map((t, i) => (
+                      <span key={i}> · {t}</span>
+                    ))}
+                  </td>
                 </tr>
-              ))}
-            </tbody>
+                {defalcareLucrare(r.lucrare).map((d, i) => (
+                  <tr key={i} className="deviz-lucrare-rand">
+                    <td>{d.descriere}</td>
+                    <td className="deviz-num">{d.cantitate}</td>
+                    <td className="deviz-num">{formatSuma(d.unitar)}</td>
+                    <td className="deviz-num">{formatSuma(d.total)}</td>
+                  </tr>
+                ))}
+                <tr className="deviz-lucrare-total">
+                  <td colSpan={3}>Total {r.lucrare?.nr_inregistrare}</td>
+                  <td className="deviz-num">{formatSuma(r.suma)}</td>
+                </tr>
+              </tbody>
+            ))}
             <tfoot>
               <tr className="deviz-sheet-total-row">
-                <td colSpan={6}>Total</td>
-                <td>{formatSuma(deviz.total)}</td>
+                <td colSpan={3}>Total deviz</td>
+                <td className="deviz-num">{formatSuma(deviz.total)}</td>
               </tr>
             </tfoot>
           </table>

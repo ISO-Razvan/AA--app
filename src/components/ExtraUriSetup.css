@@ -1,0 +1,90 @@
+.extra-setup-mod {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+
+.extra-setup-mod button {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.extra-setup-mod button.active {
+  background: var(--color-surface);
+  color: var(--color-blue-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.extra-setup-mod button:disabled {
+  cursor: not-allowed;
+}
+
+.extra-setup-mod button:disabled:not(.active) {
+  opacity: 0.45;
+}
+
+.extra-setup-nume,
+.extra-setup-nume-sistem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.extra-setup-nume-sistem {
+  min-height: 40px;
+  font-weight: 600;
+}
+
+.extra-setup-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-purple-soft);
+  color: var(--color-purple-strong);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.extra-setup-badge-inactiv {
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+}
+
+.extra-setup-inactiv input,
+.extra-setup-inactiv .extra-setup-mod {
+  opacity: 0.55;
+}
+
+.extra-setup-activ-btn {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  white-space: nowrap;
+}
+
+.extra-setup-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.extra-setup-add-form > .text-input:first-child {
+  flex: 1;
+  min-width: 180px;
+  max-width: 280px;
+}

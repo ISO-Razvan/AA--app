@@ -24,23 +24,33 @@ function grupuriDinArc(order, selectedSet, linkSet) {
   return grupOf
 }
 
-// selectateNumere: number[], linkPairs: [number, number][]
-// -> [{ numar, grup }]
-export function calculeazaDinti(selectateNumere, linkPairs) {
+// selectateNumere: number[], linkPairs: [number, number][], implantNumere: number[]
+// -> [{ numar, grup, implant }]
+export function calculeazaDinti(selectateNumere, linkPairs, implantNumere = []) {
   const selectedSet = new Set(selectateNumere)
   const linkSet = new Set(linkPairs.map(([a, b]) => `${a}-${b}`))
+  const implantSet = new Set(implantNumere)
   const grupMaxilar = grupuriDinArc(ORDINE_MAXILAR, selectedSet, linkSet)
   const grupMandibula = grupuriDinArc(ORDINE_MANDIBULA, selectedSet, linkSet)
   return selectateNumere.map((numar) => ({
     numar,
     grup: grupMaxilar.get(numar) ?? grupMandibula.get(numar) ?? null,
+    implant: implantSet.has(numar),
   }))
 }
 
-// Reface selecția + perechile legate dintr-un array salvat [{numar, grup}],
-// pentru pre-completarea formularului la editare.
+// Comută marcajul „pe implant" al unui dinte selectat.
+export function toggleImplant(implantNumere, numar) {
+  return implantNumere.includes(numar)
+    ? implantNumere.filter((n) => n !== numar)
+    : [...implantNumere, numar].sort((a, b) => a - b)
+}
+
+// Reface selecția + perechile legate + dinții pe implant dintr-un array
+// salvat [{numar, grup, implant?}], pentru pre-completarea formularului.
 export function dinDintiSalvati(dinti) {
   const selectateNumere = (dinti || []).map((d) => d.numar)
+  const implantNumere = (dinti || []).filter((d) => d.implant === true).map((d) => d.numar)
   const dintiMap = new Map((dinti || []).map((d) => [d.numar, d.grup ?? null]))
   const linkPairs = []
   for (const order of [ORDINE_MAXILAR, ORDINE_MANDIBULA]) {
@@ -52,7 +62,7 @@ export function dinDintiSalvati(dinti) {
       if (ga && gb && ga === gb) linkPairs.push([a, b])
     }
   }
-  return { selectateNumere, linkPairs }
+  return { selectateNumere, linkPairs, implantNumere }
 }
 
 export function toggleLinkPair(linkPairs, a, b) {

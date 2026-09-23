@@ -74,6 +74,33 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+.deviz-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.deviz-sheet-table th.deviz-num {
+  text-align: right;
+}
+
+.deviz-lucrare-antet td {
+  background: var(--color-surface-alt);
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.deviz-lucrare-antet strong {
+  color: var(--color-text);
+}
+
+.deviz-lucrare-rand td:first-child {
+  padding-left: var(--space-6);
+}
+
+.deviz-lucrare-total td {
+  font-weight: 600;
+}
+
 .deviz-sheet-total-row td {
   font-weight: 700;
   border-top: 2px solid var(--color-text);

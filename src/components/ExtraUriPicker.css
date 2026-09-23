@@ -1,0 +1,127 @@
+.extra-uri-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.extra-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+button.extra-chip:hover:not(:disabled) {
+  border-color: var(--color-blue);
+  color: var(--color-blue-strong);
+  background: var(--color-blue-light);
+}
+
+.extra-chip-selectat {
+  gap: var(--space-1);
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border-style: solid;
+  border-color: var(--color-blue);
+  background: var(--color-blue-soft);
+  color: var(--color-blue-strong);
+  cursor: default;
+}
+
+.extra-chip-nume {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.extra-chip-stepper {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-1);
+  border: 1px solid var(--color-blue);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+}
+
+.extra-chip-stepper button {
+  min-width: 26px;
+  min-height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--color-blue-strong);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+}
+
+.extra-chip-stepper button:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.extra-chip-cantitate {
+  min-width: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.extra-chip-x {
+  min-width: 26px;
+  min-height: 26px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-blue-strong);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.extra-chip-x:hover:not(:disabled) {
+  background: var(--color-surface);
+}
+
+.extra-chip:disabled,
+.extra-chip button:disabled {
+  cursor: not-allowed;
+}
+
+.extra-uri-gol {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.extra-uri-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.extra-uri-lista li {
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.extra-uri-lista-cantitate {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}

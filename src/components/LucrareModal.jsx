@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { addLucrare, getConfigList, addConfigValue, generateNrInregistrare } from '../services/dataService'
+import { addLucrare, getConfigList, addConfigValue, generateNrInregistrare, getExtraUri } from '../services/dataService'
 import { MODEL_OPTIONS } from '../data/configDefaults'
-import { calculeazaDinti, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
+import { calculeazaDinti, toggleImplant, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
 import { azi as todayISO } from '../utils/date'
 import DentalChart from './DentalChart.jsx'
 import SearchableSelect from './SearchableSelect.jsx'
 import DatePicker from './DatePicker.jsx'
 import TimePicker from './TimePicker.jsx'
+import ExtraUriPicker from './ExtraUriPicker.jsx'
 import './modal-base.css'
 import './LucrareModal.css'
 
@@ -20,19 +21,21 @@ function formatDataOra(dataStr, oraStr) {
 export default function LucrareModal({ onClose, onSaved }) {
   const [selectateNumere, setSelectateNumere] = useState([])
   const [linkPairs, setLinkPairs] = useState([])
+  const [implantNumere, setImplantNumere] = useState([])
   const [nrElemente, setNrElemente] = useState(0)
   const [clinica, setClinica] = useState('')
   const [medic, setMedic] = useState('')
   const [pacient, setPacient] = useState('')
   const [tipLucrare, setTipLucrare] = useState('')
   const [culoare, setCuloare] = useState('')
-  const [implant, setImplant] = useState(false)
   const [tryIn, setTryIn] = useState(false)
   const [model, setModel] = useState('')
   const [dataIntrare, setDataIntrare] = useState(todayISO())
   const [termenPredare, setTermenPredare] = useState('')
   const [oraProgramare, setOraProgramare] = useState('')
   const [nota, setNota] = useState('')
+  const [extraSelectie, setExtraSelectie] = useState([])
+  const [extraOptiuni, setExtraOptiuni] = useState([])
 
   const [tipuriOptions, setTipuriOptions] = useState([])
   const [culoriOptions, setCuloriOptions] = useState([])
@@ -52,13 +55,16 @@ export default function LucrareModal({ onClose, onSaved }) {
 
   useEffect(() => {
     async function load() {
-      const [tipuri, culori, medici, clinici, nr] = await Promise.all([
+      const [tipuri, culori, medici, clinici, nr, extra] = await Promise.all([
         getConfigList('tipuri_lucrare'),
         getConfigList('culori'),
         getConfigList('medici'),
         getConfigList('clinici'),
         generateNrInregistrare(),
+        getExtraUri(),
       ])
+      // Try-in rămâne controlat exclusiv de bifa Try-in.
+      setExtraOptiuni(extra.filter((e) => e.activ && !e.sistem))
       setTipuriOptions(tipuri)
       setCuloriOptions(culori)
       setMediciOptions(medici)
@@ -72,10 +78,17 @@ export default function LucrareModal({ onClose, onSaved }) {
     setNrElemente(selectateNumere.length)
   }, [selectateNumere])
 
+  const implant = implantNumere.length > 0
+
   const toggleTooth = (numar) => {
     const next = toggleToothSelection(selectateNumere, linkPairs, numar)
     setSelectateNumere(next.selectateNumere)
     setLinkPairs(next.linkPairs)
+    setImplantNumere((prev) => prev.filter((n) => next.selectateNumere.includes(n)))
+  }
+
+  const toggleImplantDinte = (numar) => {
+    setImplantNumere((prev) => toggleImplant(prev, numar))
   }
 
   const toggleLink = (a, b) => {
@@ -99,7 +112,7 @@ export default function LucrareModal({ onClose, onSaved }) {
     setSaving(true)
     setError('')
     try {
-      const dinti = calculeazaDinti(selectateNumere, linkPairs)
+      const dinti = calculeazaDinti(selectateNumere, linkPairs, implantNumere)
       await addLucrare({
         clinica,
         medic,
@@ -115,6 +128,7 @@ export default function LucrareModal({ onClose, onSaved }) {
         termen_predare: termenPredare,
         ora_programare: oraProgramare,
         nota,
+        extra_uri: extraSelectie.map((s) => ({ extra_id: s.extra_id, cantitate: s.cantitate })),
       })
       await onSaved()
     } catch (err) {
@@ -142,8 +156,10 @@ export default function LucrareModal({ onClose, onSaved }) {
               <DentalChart
                 selectateNumere={selectateNumere}
                 linkPairs={linkPairs}
+                implantNumere={implantNumere}
                 onToggleTooth={toggleTooth}
                 onToggleLink={toggleLink}
+                onToggleImplant={toggleImplantDinte}
                 culoare={culoare}
                 culoriOptions={culoriOptions}
                 onCuloareChange={setCuloare}
@@ -219,9 +235,9 @@ export default function LucrareModal({ onClose, onSaved }) {
                 <div className="lucrare-form-row-3">
                   <div>
                     <span className="field-label">Implant</span>
-                    <div className="segmented" role="group" aria-label="Implant">
-                      <button type="button" className={`segmented-option ${!implant ? 'active' : ''}`} onClick={() => setImplant(false)}>Nu</button>
-                      <button type="button" className={`segmented-option ${implant ? 'active' : ''}`} onClick={() => setImplant(true)}>Da</button>
+                    <div className="culoare-readonly" title="Se stabilește automat din schema dentară">
+                      {implant ? 'Da' : 'Nu'}
+                      <span className="culoare-readonly-empty">&nbsp;· din schemă</span>
                     </div>
                   </div>
                   <div>
@@ -246,6 +262,11 @@ export default function LucrareModal({ onClose, onSaved }) {
                       ))}
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <span className="field-label">Extra-uri</span>
+                  <ExtraUriPicker optiuni={extraOptiuni} selectie={extraSelectie} onChange={setExtraSelectie} />
                 </div>
               </section>
 

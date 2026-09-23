@@ -18,9 +18,47 @@ create table if not exists tipuri_lucrare (
   -- instantaneu pe `lucrari` la înregistrare (vezi cost_laborator/incasare/
   -- profit de mai jos).
   cost_laborator numeric not null default 0,
+  -- `incasare` = prețul per element pentru dinte simplu; `pret_implant` =
+  -- prețul per element pentru dinte pe implant. Costul de laborator e unic.
   incasare numeric not null default 0,
+  pret_implant numeric not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- Prețul pe implant — adăugat ulterior, pe un tabel cu date reale. Coloana și
+-- valoarea de pornire (pret_implant = incasare) se aplică o singură dată,
+-- doar când coloana lipsește — rularea repetată nu suprascrie prețurile
+-- ajustate manual după aceea.
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'tipuri_lucrare' and column_name = 'pret_implant'
+  ) then
+    alter table tipuri_lucrare add column pret_implant numeric not null default 0;
+    update tipuri_lucrare set pret_implant = incasare;
+  end if;
+end $$;
+
+-- Extra-uri taxabile pe comandă (ex. model printat, bont), configurate din
+-- Setup. `mod_taxare`: 'per_comanda' (cantitate fixă 1) sau 'per_bucata'.
+-- Un extra dezactivat nu mai apare la înregistrare, dar rămâne pe lucrările
+-- care îl au deja. `sistem` marchează rândurile gestionate de aplicație —
+-- 'try_in' e legat de bifa Try-in a lucrării (nu se redenumește/dezactivează).
+create table if not exists extra_uri (
+  id uuid primary key default gen_random_uuid(),
+  nume text not null unique,
+  pret numeric not null default 0,
+  cost_laborator numeric not null default 0,
+  mod_taxare text not null default 'per_comanda' check (mod_taxare in ('per_comanda', 'per_bucata')),
+  activ boolean not null default true,
+  sistem text unique,
+  created_at timestamptz not null default now()
+);
+
+insert into extra_uri (nume, sistem, mod_taxare, pret, cost_laborator)
+values ('Try-in', 'try_in', 'per_comanda', 0, 0)
+on conflict do nothing;
 
 create table if not exists culori (
   id uuid primary key default gen_random_uuid(),
@@ -86,11 +124,13 @@ create table if not exists lucrari (
   medic text,
   pacient text,
   tip_lucrare text not null,
-  -- array de obiecte { numar: <FDI 11-48>, grup: <id text> | null }.
+  -- array de obiecte { numar: <FDI 11-48>, grup: <id text> | null, implant?: boolean }.
   -- `grup` leagă între ei dinții selectați pentru aceeași punte/lucrare unitară.
+  -- `implant` lipsă (elemente vechi) = false.
   dinti jsonb not null default '[]'::jsonb,
   nr_elemente integer not null default 0,
   culoare text,
+  -- derivat automat: true dacă măcar un element din `dinti` are implant = true.
   implant boolean not null default false,
   try_in boolean not null default false,
   model text check (model in ('Gips', 'Print')),
@@ -132,6 +172,15 @@ create index if not exists lucrari_arhivat_idx on lucrari (arhivat);
 -- ---------------------------------------------------------------------------
 alter table lucrari add column if not exists arhivat boolean not null default false;
 alter table lucrari add column if not exists data_arhivare timestamptz;
+
+-- Extra-uri pe lucrare — instantaneu de la momentul adăugării: array de
+-- { extra_id, nume, cantitate, pret_unitar, cost_unitar, mod_taxare }. Dacă
+-- try_in = true, conține și extra-ul de sistem „Try-in" (cantitate 1).
+alter table lucrari add column if not exists extra_uri jsonb not null default '[]'::jsonb;
+-- Prețul per element (dinte simplu / pe implant) folosit în instantaneul
+-- lucrării — necesar pentru defalcarea din deviz. Null la lucrările vechi.
+alter table lucrari add column if not exists pret_dinte_simplu numeric;
+alter table lucrari add column if not exists pret_dinte_implant numeric;
 
 -- Programare producție per lucrare — un rând per (lucrare, etapă), cu
 -- tehnicianul alocat, data planificată și starea de finalizare. Afișat ca
@@ -252,6 +301,7 @@ on conflict (nume) do nothing;
 -- ---------------------------------------------------------------------------
 
 alter table tipuri_lucrare enable row level security;
+alter table extra_uri enable row level security;
 alter table culori enable row level security;
 alter table medici enable row level security;
 alter table clinici enable row level security;
@@ -272,7 +322,7 @@ declare
 begin
   for t in
     select unnest(array[
-      'tipuri_lucrare', 'culori', 'medici', 'clinici', 'etape_productie',
+      'tipuri_lucrare', 'extra_uri', 'culori', 'medici', 'clinici', 'etape_productie',
       'tehnicieni', 'comisioane', 'lucrari', 'productie_lucrare',
       'poze_lucrare', 'linkuri_lucrare', 'devize', 'deviz_lucrari'
     ])

@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { updateLucrare, deleteLucrare, getConfigList, addConfigValue, getEtapeProductie, getProductieLucrare } from '../services/dataService'
+import {
+  updateLucrare,
+  updateLucrareSiRecalculeaza,
+  deleteLucrare,
+  getConfigList,
+  addConfigValue,
+  getEtapeProductie,
+  getProductieLucrare,
+  getExtraUri,
+} from '../services/dataService'
 import { MODEL_OPTIONS } from '../data/configDefaults'
-import { calculeazaDinti, dinDintiSalvati, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
+import { calculeazaDinti, dinDintiSalvati, toggleImplant, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
 import { statusDinRanduri } from '../utils/statusLucrare'
 import DentalChart from './DentalChart.jsx'
 import SearchableSelect from './SearchableSelect.jsx'
@@ -10,6 +19,7 @@ import DatePicker from './DatePicker.jsx'
 import TimePicker from './TimePicker.jsx'
 import ProductieTimeline from './ProductieTimeline.jsx'
 import GaleriePoze from './GaleriePoze.jsx'
+import ExtraUriPicker, { ExtraUriLista } from './ExtraUriPicker.jsx'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import './modal-base.css'
 import './LucrareDetailPanel.css'
@@ -35,14 +45,16 @@ const TABS = [
   { id: 'chat', label: 'Chat' },
 ]
 
-export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
+export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated }) {
   const readOnly = !!lucrare.arhivat
+  const esteAdmin = profile?.rol === 'admin'
   const { confirm, dialog: confirmDialog } = useConfirm()
   const [tab, setTab] = useState('detalii')
   const initial = dinDintiSalvati(lucrare.dinti)
 
   const [selectateNumere, setSelectateNumere] = useState(initial.selectateNumere)
   const [linkPairs, setLinkPairs] = useState(initial.linkPairs)
+  const [implantNumere, setImplantNumere] = useState(initial.implantNumere)
   // Citit din coloana reală `nr_elemente`, nu din `dinti.length` — pot
   // diferi (ex. lucrări din Import CSV, unde nr_elemente vine dintr-o
   // coloană separată, fără marcarea dinților pe schemă).
@@ -60,6 +72,10 @@ export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
   const [oraProgramare, setOraProgramare] = useState(lucrare.ora_programare || '')
   const [nextDate, setNextDate] = useState(lucrare.next_date || '')
   const [nota, setNota] = useState(lucrare.nota || '')
+  // null până se încarcă lista din Setup — fără ea nu știm care element din
+  // `lucrare.extra_uri` e Try-in-ul (afișat doar ca bifă, nu și în listă).
+  const [extraToate, setExtraToate] = useState(null)
+  const [extraSelectie, setExtraSelectie] = useState([])
 
   const [tipuriOptions, setTipuriOptions] = useState([])
   const [culoriOptions, setCuloriOptions] = useState([])
@@ -100,6 +116,43 @@ export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
     load()
   }, [])
 
+  useEffect(() => {
+    async function loadExtra() {
+      const toate = await getExtraUri()
+      const tryInId = toate.find((e) => e.sistem === 'try_in')?.id
+      setExtraSelectie(
+        (lucrare.extra_uri || [])
+          .filter((e) => e.extra_id !== tryInId)
+          .map((e) => ({ extra_id: e.extra_id, nume: e.nume, mod_taxare: e.mod_taxare, cantitate: e.cantitate }))
+      )
+      setExtraToate(toate)
+    }
+    loadExtra()
+    // Doar la deschiderea fișei — după aceea selecția locală e sursa afișării.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lucrare.id])
+
+  // Extra-urile și bifa Try-in: doar admin, cu recalcularea instantaneului.
+  const poateEditaFinanciar = esteAdmin && !readOnly
+
+  const schimbaExtra = async (noua) => {
+    if (!poateEditaFinanciar) return
+    setExtraSelectie(noua)
+    await updateLucrareSiRecalculeaza(lucrare.id, {
+      extra_uri: noua.map((s) => ({ extra_id: s.extra_id, cantitate: s.cantitate })),
+    })
+    setSavedAt(Date.now())
+    await onUpdated?.()
+  }
+
+  const schimbaTryIn = async (valoare) => {
+    if (!poateEditaFinanciar) return
+    setTryIn(valoare)
+    await updateLucrareSiRecalculeaza(lucrare.id, { try_in: valoare })
+    setSavedAt(Date.now())
+    await onUpdated?.()
+  }
+
   const persist = async (patch) => {
     if (readOnly) return
     await updateLucrare(lucrare.id, patch)
@@ -119,21 +172,47 @@ export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
     await onUpdated?.()
   }
 
+  // Modificarea dinților / marcajelor de implant: câmpul `implant` al lucrării
+  // se derivă automat, iar pentru un admin se recalculează și instantaneul
+  // financiar al acestei lucrări (prețuri curente din Setup). Pentru ceilalți
+  // utilizatori instantaneul rămâne înghețat de la înregistrare.
+  const persistDinti = async (patch, nextImplant) => {
+    if (readOnly) return
+    const implantNou = nextImplant.length > 0
+    setImplant(implantNou)
+    const complet = { ...patch, implant: implantNou }
+    if (esteAdmin) await updateLucrareSiRecalculeaza(lucrare.id, complet)
+    else await updateLucrare(lucrare.id, complet)
+    setSavedAt(Date.now())
+    await onUpdated?.()
+  }
+
   const toggleTooth = async (numar) => {
     const next = toggleToothSelection(selectateNumere, linkPairs, numar)
+    const nextImplant = implantNumere.filter((n) => next.selectateNumere.includes(n))
     setSelectateNumere(next.selectateNumere)
     setLinkPairs(next.linkPairs)
+    setImplantNumere(nextImplant)
     setNrElemente(next.selectateNumere.length)
-    await persist({
-      dinti: calculeazaDinti(next.selectateNumere, next.linkPairs),
-      nr_elemente: next.selectateNumere.length,
-    })
+    await persistDinti(
+      {
+        dinti: calculeazaDinti(next.selectateNumere, next.linkPairs, nextImplant),
+        nr_elemente: next.selectateNumere.length,
+      },
+      nextImplant
+    )
+  }
+
+  const toggleImplantDinte = async (numar) => {
+    const nextImplant = toggleImplant(implantNumere, numar)
+    setImplantNumere(nextImplant)
+    await persistDinti({ dinti: calculeazaDinti(selectateNumere, linkPairs, nextImplant) }, nextImplant)
   }
 
   const toggleLink = async (a, b) => {
     const next = toggleLinkPair(linkPairs, a, b)
     setLinkPairs(next)
-    await persist({ dinti: calculeazaDinti(selectateNumere, next) })
+    await persist({ dinti: calculeazaDinti(selectateNumere, next, implantNumere) })
   }
 
   const handleAdd = (configTip, setOptions) => async (nume) => {
@@ -206,8 +285,10 @@ export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
                 <DentalChart
                   selectateNumere={selectateNumere}
                   linkPairs={linkPairs}
+                  implantNumere={implantNumere}
                   onToggleTooth={toggleTooth}
                   onToggleLink={toggleLink}
+                  onToggleImplant={toggleImplantDinte}
                   culoare={culoare}
                   culoriOptions={culoriOptions}
                   onCuloareChange={async (v) => {
@@ -301,29 +382,9 @@ export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
                   <div className="detail-field-row-3">
                     <div>
                       <span className="field-label">Implant</span>
-                      <div className="segmented" role="group" aria-label="Implant">
-                        <button
-                          type="button"
-                          className={`segmented-option ${!implant ? 'active' : ''}`}
-                          onClick={async () => {
-                            setImplant(false)
-                            await persist({ implant: false })
-                          }}
-                          disabled={readOnly}
-                        >
-                          Nu
-                        </button>
-                        <button
-                          type="button"
-                          className={`segmented-option ${implant ? 'active' : ''}`}
-                          onClick={async () => {
-                            setImplant(true)
-                            await persist({ implant: true })
-                          }}
-                          disabled={readOnly}
-                        >
-                          Da
-                        </button>
+                      <div className="culoare-readonly" title="Se stabilește automat din schema dentară">
+                        {implant ? 'Da' : 'Nu'}
+                        <span className="culoare-readonly-empty">&nbsp;· din schemă</span>
                       </div>
                     </div>
                     <div>
@@ -332,22 +393,16 @@ export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
                         <button
                           type="button"
                           className={`segmented-option ${!tryIn ? 'active' : ''}`}
-                          onClick={async () => {
-                            setTryIn(false)
-                            await persist({ try_in: false })
-                          }}
-                          disabled={readOnly}
+                          onClick={() => schimbaTryIn(false)}
+                          disabled={!poateEditaFinanciar}
                         >
                           Nu
                         </button>
                         <button
                           type="button"
                           className={`segmented-option ${tryIn ? 'active' : ''}`}
-                          onClick={async () => {
-                            setTryIn(true)
-                            await persist({ try_in: true })
-                          }}
-                          disabled={readOnly}
+                          onClick={() => schimbaTryIn(true)}
+                          disabled={!poateEditaFinanciar}
                         >
                           Da
                         </button>
@@ -372,6 +427,18 @@ export default function LucrareDetailPanel({ lucrare, onClose, onUpdated }) {
                         ))}
                       </div>
                     </div>
+                  </div>
+                  <div>
+                    <span className="field-label">Extra-uri</span>
+                    {extraToate === null ? null : poateEditaFinanciar ? (
+                      <ExtraUriPicker
+                        optiuni={extraToate.filter((e) => e.activ && !e.sistem)}
+                        selectie={extraSelectie}
+                        onChange={schimbaExtra}
+                      />
+                    ) : (
+                      <ExtraUriLista selectie={extraSelectie} />
+                    )}
                   </div>
                 </section>
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import EtapeProductieList from './EtapeProductieList.jsx'
 import TehnicieniList from './TehnicieniList.jsx'
 import TipuriLucrareCosturi from './TipuriLucrareCosturi.jsx'
+import ExtraUriSetup from './ExtraUriSetup.jsx'
 import ComisioaneGrid from './ComisioaneGrid.jsx'
 import DateTestSection from './DateTestSection.jsx'
 import './SetupPage.css'
@@ -10,6 +11,7 @@ const SECTIUNI = [
   { id: 'setup-etape', label: 'Etape de producție' },
   { id: 'setup-tehnicieni', label: 'Tehnicieni' },
   { id: 'setup-tipuri', label: 'Tipuri de lucrare' },
+  { id: 'setup-extra', label: 'Extra-uri' },
   { id: 'setup-comisioane', label: 'Comisioane' },
 ]
 
@@ -69,6 +71,9 @@ export default function SetupPage() {
       </section>
       <section id="setup-tipuri" className="setup-section">
         <TipuriLucrareCosturi onChange={() => setTipuriRefreshSignal((v) => v + 1)} />
+      </section>
+      <section id="setup-extra" className="setup-section">
+        <ExtraUriSetup />
       </section>
       <section id="setup-comisioane" className="setup-section">
         <ComisioaneGrid etapeRefreshSignal={etapeRefreshSignal} tipuriRefreshSignal={tipuriRefreshSignal} />

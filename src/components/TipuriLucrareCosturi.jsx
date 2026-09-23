@@ -45,6 +45,7 @@ export default function TipuriLucrareCosturi({ onChange }) {
     await updateTipLucrareCosturi(tip.id, {
       cost_laborator: tip.cost_laborator,
       incasare: tip.incasare,
+      pret_implant: tip.pret_implant,
     })
   }
 
@@ -82,7 +83,7 @@ export default function TipuriLucrareCosturi({ onChange }) {
 
   const handleRecalculeaza = async () => {
     const ok = await confirm(
-      'Această acțiune va actualiza valorile financiare (cost, încasare, comisioane) pentru TOATE lucrările existente, cu prețurile curente din Setup. Lucrările nemodificate manual după aceasta vor păstra valorile noi. Continui?',
+      'Această acțiune va actualiza valorile financiare (cost, încasare, comisioane, inclusiv extra-urile și Try-in-ul) pentru TOATE lucrările existente, cu prețurile curente din Setup. Lucrările nemodificate manual după aceasta vor păstra valorile noi. Continui?',
       { title: 'Recalculezi valorile financiare?', confirmLabel: 'Recalculează' }
     )
     if (!ok) return
@@ -104,9 +105,9 @@ export default function TipuriLucrareCosturi({ onChange }) {
         <h3>Tipuri de lucrare</h3>
         <p>
           Adaugă, redenumește sau șterge tipurile de lucrare disponibile în formularul de înregistrare, plus costul
-          de laborator și suma facturată pentru fiecare — profitul se calculează automat. Modificările de cost/
-          încasare se aplică doar lucrărilor înregistrate după salvare — cele existente păstrează valorile de la
-          momentul înregistrării. Ștergerea unui tip nu afectează lucrările deja înregistrate cu acel tip — doar nu
+          de laborator și prețul facturat per element — separat pentru dinte simplu și dinte pe implant (costul de
+          laborator e același) — profitul se calculează automat. Modificările de cost/preț se aplică doar
+          lucrărilor înregistrate după salvare — cele existente păstrează valorile de la momentul înregistrării. Ștergerea unui tip nu afectează lucrările deja înregistrate cu acel tip — doar nu
           mai apare ca opțiune pentru unele noi.
         </p>
         <button
@@ -151,7 +152,8 @@ export default function TipuriLucrareCosturi({ onChange }) {
               <tr>
                 <th>Tip lucrare</th>
                 <th>Cost laborator</th>
-                <th>Încasare</th>
+                <th>Preț dinte simplu</th>
+                <th>Preț pe implant</th>
                 <th>Profit</th>
                 <th></th>
               </tr>
@@ -159,6 +161,7 @@ export default function TipuriLucrareCosturi({ onChange }) {
             <tbody>
               {tipuri.map((tip) => {
                 const profit = (Number(tip.incasare) || 0) - (Number(tip.cost_laborator) || 0)
+                const profitImplant = (Number(tip.pret_implant) || 0) - (Number(tip.cost_laborator) || 0)
                 return (
                   <tr key={tip.id}>
                     <td>
@@ -190,12 +193,30 @@ export default function TipuriLucrareCosturi({ onChange }) {
                         value={tip.incasare}
                         onChange={(e) => handleChange(tip.id, 'incasare', e.target.value)}
                         onBlur={() => handleBlurCosturi(tip)}
+                        aria-label={`Preț dinte simplu — ${tip.nume}`}
                       />
                     </td>
                     <td>
-                      <span className={`costuri-profit ${profit < 0 ? 'costuri-profit-negativ' : ''}`}>
-                        {formatRON(profit)}
-                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="text-input costuri-input"
+                        value={tip.pret_implant ?? ''}
+                        onChange={(e) => handleChange(tip.id, 'pret_implant', e.target.value)}
+                        onBlur={() => handleBlurCosturi(tip)}
+                        aria-label={`Preț pe implant — ${tip.nume}`}
+                      />
+                    </td>
+                    <td>
+                      <div className="costuri-profit-stack">
+                        <span className={`costuri-profit ${profit < 0 ? 'costuri-profit-negativ' : ''}`} title="Profit dinte simplu">
+                          {formatRON(profit)}
+                        </span>
+                        <span className={`costuri-profit ${profitImplant < 0 ? 'costuri-profit-negativ' : ''}`} title="Profit dinte pe implant">
+                          impl. {formatRON(profitImplant)}
+                        </span>
+                      </div>
                     </td>
                     <td>
                       <button

@@ -71,6 +71,91 @@
 .dc-tooth-selectat .dc-tooth-groove {
   stroke: rgba(255, 255, 255, 0.55);
 }
+/* Dinte pe implant — nuanță verde, distinctă de albastrul dintelui simplu
+   selectat și de violetul conectorilor de punte. */
+.dc-tooth-implant .dc-tooth-shape {
+  fill: var(--color-success);
+  stroke: var(--color-success-strong);
+}
+
+.dc-tooth-implant:hover .dc-tooth-shape {
+  stroke: var(--color-success-strong);
+}
+
+.dc-implant {
+  cursor: pointer;
+}
+
+.dc-implant-hit {
+  fill: transparent;
+}
+
+.dc-implant-body {
+  transition: fill 0.12s ease, stroke 0.12s ease, opacity 0.12s ease;
+}
+
+.dc-implant-activ .dc-implant-body {
+  fill: var(--color-success-strong);
+  stroke: var(--color-success-strong);
+  stroke-width: 0.6;
+}
+
+.dc-implant-activ .dc-implant-threads {
+  stroke: #fff;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* Comutatorul „pe implant" pe un dinte selectat, încă nemarcat — contur
+   discret, vizibil fără hover (și pe touch), accentuat la hover. */
+.dc-implant-ghost .dc-implant-body {
+  fill: var(--color-surface);
+  stroke: var(--color-text-muted);
+  stroke-width: 0.9;
+  stroke-dasharray: 1.6 1.2;
+}
+
+.dc-implant-ghost .dc-implant-threads {
+  stroke: var(--color-text-muted);
+  stroke-width: 0.7;
+  pointer-events: none;
+}
+
+.dc-implant-ghost:hover .dc-implant-body {
+  fill: var(--color-success-soft);
+  stroke: var(--color-success-strong);
+  stroke-dasharray: none;
+}
+
+.dc-implant-ghost:hover .dc-implant-threads {
+  stroke: var(--color-success-strong);
+}
+
+.dc-legend {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-1);
+}
+
+.dc-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.dc-legend-icon {
+  width: 14px;
+  height: 27px;
+}
+
+.dc-legend-icon .dc-tooth {
+  cursor: default;
+  pointer-events: none;
+}
 
 /* Stări pregătite pentru extensii viitoare (nefolosite încă în UI) */
 .dc-tooth-absent .dc-tooth-shape {

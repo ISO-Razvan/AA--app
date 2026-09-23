@@ -27,9 +27,9 @@ function normalizeDinti(dinti) {
   if (!Array.isArray(dinti)) return []
   return dinti
     .map((d) => {
-      if (typeof d === 'number') return { numar: d, grup: null }
+      if (typeof d === 'number') return { numar: d, grup: null, implant: false }
       if (d && typeof d === 'object' && typeof d.numar === 'number') {
-        return { numar: d.numar, grup: d.grup ?? null }
+        return { numar: d.numar, grup: d.grup ?? null, implant: d.implant === true }
       }
       return null
     })
@@ -82,17 +82,17 @@ function buildLucrareInput(input, nr_inregistrare) {
   }
 }
 
-// Preț PER ELEMENT pentru un tip de lucrare — cost_laborator/încasare din
-// `tipuri_lucrare` și fiecare sumă din grila de comisioane sunt definite per
-// element, nu per lucrare. Rezultatul final de pus pe o lucrare se obține
-// mereu prin `aplicaNrElemente` de mai jos — niciodată folosit brut.
+// Preț PER ELEMENT pentru un tip de lucrare — cost_laborator/încasare/
+// pret_implant din `tipuri_lucrare` și fiecare sumă din grila de comisioane
+// sunt definite per element, nu per lucrare. Rezultatul final de pus pe o
+// lucrare se obține mereu prin `calculeazaInstantaneu` de mai jos.
 async function getSnapshotPerElement(tipLucrareNume) {
   const [
     { data: tipuri, error: e1 },
     { data: etape, error: e2 },
     { data: comisioaneRaw, error: e3 },
   ] = await Promise.all([
-    supabase.from('tipuri_lucrare').select('cost_laborator, incasare').eq('nume', tipLucrareNume).maybeSingle(),
+    supabase.from('tipuri_lucrare').select('*').eq('nume', tipLucrareNume).maybeSingle(),
     supabase.from('etape_productie').select('id, nume'),
     supabase.from('comisioane').select('etapa_id, suma').eq('tip_lucrare', tipLucrareNume),
   ])
@@ -100,6 +100,7 @@ async function getSnapshotPerElement(tipLucrareNume) {
 
   const cost_laborator = tipuri ? Number(tipuri.cost_laborator) || 0 : 0
   const incasare = tipuri ? Number(tipuri.incasare) || 0 : 0
+  const pret_implant = tipuri ? Number(tipuri.pret_implant) || 0 : 0
   const etapeById = new Map((etape || []).map((e) => [e.id, e]))
   const comisioane = (comisioaneRaw || []).map((c) => ({
     etapa_id: c.etapa_id,
@@ -107,29 +108,158 @@ async function getSnapshotPerElement(tipLucrareNume) {
     suma: Number(c.suma) || 0,
   }))
 
-  return { cost_laborator, incasare, comisioane }
+  return { cost_laborator, incasare, pret_implant, comisioane }
 }
 
-// Instantaneu financiar final de pe o lucrare — prețul per element (Setup)
-// × nr_elemente ale lucrării, aplicat identic la cost_laborator, incasare
-// ȘI la fiecare sumă de comision. `nr_elemente` e normalizat la număr aici
-// ca să nu se strecoare vreodată un string (ar da concatenare, nu înmulțire).
-function aplicaNrElemente(snapshotPerElement, nrElemente) {
+// Instantaneu financiar final de pe o lucrare.
+// Dinți: elemente simple × incasare + elemente pe implant × pret_implant;
+// elementele simple sunt nr_elemente minus dinții marcați pe implant (deci și
+// intermediarii de punte și elementele nemarcate pe schemă). Costul dinților
+// și comisioanele rămân preț per element × nr_elemente.
+// Extra-uri (inclusiv Try-in, dacă e bifat): Σ cantitate × preț/cost unitar
+// din instantaneul fiecărui extra de pe lucrare. Comisioanele nu le includ.
+// `nr_elemente` e normalizat la număr ca să nu se strecoare un string.
+function calculeazaInstantaneu(snapshotPerElement, nrElemente, dinti, extraUri) {
   const n = Number(nrElemente) || 0
-  const cost_laborator = snapshotPerElement.cost_laborator * n
-  const incasare = snapshotPerElement.incasare * n
+  const nImplant = Math.min(n, (dinti || []).filter((d) => d && d.implant === true).length)
+  const nSimplu = n - nImplant
+  const extra = extraUri || []
+  const incasareExtra = extra.reduce((s, e) => s + (Number(e.cantitate) || 0) * (Number(e.pret_unitar) || 0), 0)
+  const costExtra = extra.reduce((s, e) => s + (Number(e.cantitate) || 0) * (Number(e.cost_unitar) || 0), 0)
+  const cost_laborator = snapshotPerElement.cost_laborator * n + costExtra
+  const incasare = snapshotPerElement.incasare * nSimplu + snapshotPerElement.pret_implant * nImplant + incasareExtra
   const comisioane = snapshotPerElement.comisioane.map((c) => ({ ...c, suma: c.suma * n }))
-  return { cost_laborator, incasare, profit: incasare - cost_laborator, comisioane }
+  return {
+    cost_laborator,
+    incasare,
+    profit: incasare - cost_laborator,
+    comisioane,
+    pret_dinte_simplu: snapshotPerElement.incasare,
+    pret_dinte_implant: snapshotPerElement.pret_implant,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Extra-uri — configurare (Setup) + instantaneul lor pe lucrare
+// ---------------------------------------------------------------------------
+
+const SISTEM_TRY_IN = 'try_in'
+
+async function getExtraUri() {
+  const { data, error } = await supabase.from('extra_uri').select('*').order('created_at')
+  fail(error, 'Nu s-au putut încărca extra-urile')
+  // Rândurile de sistem (Try-in) primele.
+  return (data || []).sort((a, b) => (b.sistem ? 1 : 0) - (a.sistem ? 1 : 0))
+}
+
+async function getExtraSetup() {
+  const lista = await getExtraUri()
+  return {
+    byId: new Map(lista.map((e) => [e.id, e])),
+    tryIn: lista.find((e) => e.sistem === SISTEM_TRY_IN) || null,
+  }
+}
+
+function numarSauZero(v) {
+  return v === '' || v == null ? 0 : Number(v) || 0
+}
+
+// Extra-urile alese (fără Try-in) dintr-un array salvat pe lucrare.
+function selectieDinExtraUri(extraUri, extraSetup) {
+  const tryInId = extraSetup.tryIn?.id
+  return (extraUri || []).filter((e) => e.extra_id !== tryInId).map((e) => ({ extra_id: e.extra_id, cantitate: e.cantitate }))
+}
+
+// Construiește array-ul `extra_uri` de salvat pe lucrare, din selecția
+// curentă [{ extra_id, cantitate }] + bifa Try-in. Un extra deja prezent pe
+// lucrare își păstrează prețul/costul din instantaneu; unul nou (sau Try-in
+// bifat acum) preia prețul/costul curent din Setup. Cu `preturiCurente`
+// (butonul „Recalculează"), toate primesc prețurile curente din Setup.
+function construiesteExtraUri({ selectie, existente, tryIn, extraSetup, preturiCurente = false }) {
+  const vechi = existente || []
+  const element = (extraId, cantitateCeruta) => {
+    const existent = vechi.find((e) => e.extra_id === extraId)
+    const setup = extraSetup.byId.get(extraId)
+    if (!existent && !setup) return null
+    const dinSetup = setup && (preturiCurente || !existent)
+    const mod_taxare = setup?.mod_taxare ?? existent.mod_taxare
+    return {
+      extra_id: extraId,
+      nume: setup?.nume ?? existent.nume,
+      cantitate: mod_taxare === 'per_bucata' ? Math.max(1, Math.round(Number(cantitateCeruta) || 1)) : 1,
+      pret_unitar: dinSetup ? numarSauZero(setup.pret) : numarSauZero(existent.pret_unitar),
+      cost_unitar: dinSetup ? numarSauZero(setup.cost_laborator) : numarSauZero(existent.cost_unitar),
+      mod_taxare,
+    }
+  }
+
+  const rezultat = []
+  if (tryIn && extraSetup.tryIn) rezultat.push(element(extraSetup.tryIn.id, 1))
+  for (const s of selectie || []) {
+    if (s.extra_id === extraSetup.tryIn?.id) continue
+    if (rezultat.some((e) => e && e.extra_id === s.extra_id)) continue
+    rezultat.push(element(s.extra_id, s.cantitate))
+  }
+  return rezultat.filter(Boolean)
+}
+
+async function addExtra({ nume, pret, cost_laborator, mod_taxare }) {
+  const valoare = String(nume || '').trim()
+  if (!valoare) throw new Error('Numele extra-ului nu poate fi gol')
+  if (!['per_comanda', 'per_bucata'].includes(mod_taxare)) throw new Error('Mod de taxare invalid')
+  const { data: existent, error: e1 } = await supabase.from('extra_uri').select('id').ilike('nume', valoare).maybeSingle()
+  fail(e1, 'Nu s-a putut verifica extra-ul')
+  if (existent) throw new Error(`Extra-ul „${valoare}” există deja`)
+  const { data, error } = await supabase
+    .from('extra_uri')
+    .insert({ nume: valoare, pret: numarSauZero(pret), cost_laborator: numarSauZero(cost_laborator), mod_taxare })
+    .select()
+    .single()
+  fail(error, 'Nu s-a putut adăuga extra-ul')
+  return data
+}
+
+// La un rând de sistem (Try-in) se pot modifica doar prețul și costul.
+async function updateExtra(id, patch) {
+  const { data: curent, error: e0 } = await supabase.from('extra_uri').select('sistem').eq('id', id).single()
+  fail(e0, 'Extra-ul nu a fost găsit')
+  const payload = {}
+  if ('pret' in patch) payload.pret = numarSauZero(patch.pret)
+  if ('cost_laborator' in patch) payload.cost_laborator = numarSauZero(patch.cost_laborator)
+  if (!curent.sistem) {
+    if ('nume' in patch) {
+      const valoare = String(patch.nume || '').trim()
+      if (!valoare) throw new Error('Numele extra-ului nu poate fi gol')
+      const { data: dup, error: e1 } = await supabase.from('extra_uri').select('id').ilike('nume', valoare).neq('id', id).maybeSingle()
+      fail(e1, 'Nu s-a putut verifica extra-ul')
+      if (dup) throw new Error(`Extra-ul „${valoare}” există deja`)
+      payload.nume = valoare
+    }
+    if ('mod_taxare' in patch) {
+      if (!['per_comanda', 'per_bucata'].includes(patch.mod_taxare)) throw new Error('Mod de taxare invalid')
+      payload.mod_taxare = patch.mod_taxare
+    }
+    if ('activ' in patch) payload.activ = !!patch.activ
+  }
+  if (Object.keys(payload).length === 0) {
+    const { data, error } = await supabase.from('extra_uri').select('*').eq('id', id).single()
+    fail(error, 'Nu s-a putut citi extra-ul')
+    return data
+  }
+  const { data, error } = await supabase.from('extra_uri').update(payload).eq('id', id).select().single()
+  fail(error, 'Nu s-a putut actualiza extra-ul')
+  return data
 }
 
 async function addLucrare(input) {
   const nr_inregistrare = input.nr_inregistrare || (await generateNrInregistrare())
   const built = buildLucrareInput(input, nr_inregistrare)
-  const perElement = await getSnapshotPerElement(built.tip_lucrare)
-  const snapshot = aplicaNrElemente(perElement, built.nr_elemente)
+  const [perElement, extraSetup] = await Promise.all([getSnapshotPerElement(built.tip_lucrare), getExtraSetup()])
+  const extra_uri = construiesteExtraUri({ selectie: input.extra_uri, existente: [], tryIn: built.try_in, extraSetup })
+  const snapshot = calculeazaInstantaneu(perElement, built.nr_elemente, built.dinti, extra_uri)
   const { data, error } = await supabase
     .from('lucrari')
-    .insert({ ...built, ...snapshot })
+    .insert({ ...built, extra_uri, ...snapshot })
     .select()
     .single()
   fail(error, 'Nu s-a putut înregistra lucrarea')
@@ -144,6 +274,34 @@ async function updateLucrare(id, patch) {
   return data
 }
 
+// Ca updateLucrare, dar recalculează și instantaneul financiar al ACESTEI
+// lucrări, în același update: dinții cu prețurile curente din Setup,
+// extra-urile cu prețul din instantaneul lor (cele nou adăugate / Try-in
+// bifat acum — cu prețul curent). Folosit doar când un admin modifică din
+// fișă dinții, marcajele de implant, extra-urile sau bifa Try-in.
+// `patch.extra_uri`, dacă e prezent, e selecția [{ extra_id, cantitate }].
+async function updateLucrareSiRecalculeaza(id, patch) {
+  const { data: curenta, error: e0 } = await supabase
+    .from('lucrari')
+    .select('tip_lucrare, nr_elemente, dinti, try_in, extra_uri')
+    .eq('id', id)
+    .single()
+  fail(e0, `Nu s-a putut citi lucrarea ${id}`)
+  const dinti = patch.dinti !== undefined ? normalizeDinti(patch.dinti) : curenta.dinti
+  const nrElemente = patch.nr_elemente !== undefined ? patch.nr_elemente : curenta.nr_elemente
+  const tip = patch.tip_lucrare !== undefined ? patch.tip_lucrare : curenta.tip_lucrare
+  const tryIn = patch.try_in !== undefined ? !!patch.try_in : curenta.try_in
+  const [perElement, extraSetup] = await Promise.all([getSnapshotPerElement(tip), getExtraSetup()])
+  const extra_uri = construiesteExtraUri({
+    selectie: patch.extra_uri !== undefined ? patch.extra_uri : selectieDinExtraUri(curenta.extra_uri, extraSetup),
+    existente: curenta.extra_uri,
+    tryIn,
+    extraSetup,
+  })
+  const snapshot = calculeazaInstantaneu(perElement, nrElemente, dinti, extra_uri)
+  return updateLucrare(id, { ...patch, extra_uri, ...snapshot })
+}
+
 // `on delete cascade` în schema.sql curăță automat productie_lucrare,
 // poze_lucrare și linkuri_lucrare pentru această lucrare.
 async function deleteLucrare(id) {
@@ -155,6 +313,7 @@ async function importLucrari(rows) {
   const [{ data: existente, error: e0 }] = await Promise.all([supabase.from('lucrari').select('nr_inregistrare')])
   fail(e0, 'Nu s-au putut citi lucrările existente')
   const existingNr = new Set((existente || []).map((l) => l.nr_inregistrare))
+  const extraSetup = await getExtraSetup()
 
   // Prețul per element se poate cache-ui pe tip (nu depinde de lucrare), dar
   // înmulțirea cu nr_elemente trebuie făcută separat, per rând — de-aici bug-ul
@@ -229,9 +388,10 @@ async function importLucrari(rows) {
         nr_inregistrare
       )
       const perElement = await perElementPentru(built.tip_lucrare)
-      const snapshot = aplicaNrElemente(perElement, built.nr_elemente)
+      const extra_uri = construiesteExtraUri({ selectie: [], existente: [], tryIn: built.try_in, extraSetup })
+      const snapshot = calculeazaInstantaneu(perElement, built.nr_elemente, built.dinti, extra_uri)
 
-      deInserat.push({ ...built, ...snapshot })
+      deInserat.push({ ...built, extra_uri, ...snapshot })
       existingNr.add(nr_inregistrare)
     } catch (err) {
       erori.push({ rand: rowNr, motiv: err.message })
@@ -246,15 +406,17 @@ async function importLucrari(rows) {
   return { importate: deInserat.length, sarite: erori.length, erori }
 }
 
-// Recalculează instantaneul financiar (cost_laborator/incasare/comisioane)
-// pentru TOATE lucrările existente, cu prețurile curente din Setup — doar la
-// cerere explicită (butonul din Setup → Tipuri de lucrare). Comportamentul
-// implicit al aplicației (instantaneu la înregistrare) nu se schimbă.
+// Recalculează instantaneul financiar (cost_laborator/incasare/comisioane,
+// inclusiv extra-urile și Try-in-ul) pentru TOATE lucrările existente, cu
+// prețurile curente din Setup — doar la cerere explicită (butonul din Setup →
+// Tipuri de lucrare). Comportamentul implicit (instantaneu la înregistrare)
+// nu se schimbă.
 async function recalculeazaValoriFinanciare() {
   const { data: toateLucrarile, error: e0 } = await supabase
     .from('lucrari')
-    .select('id, nr_inregistrare, tip_lucrare, nr_elemente')
+    .select('id, nr_inregistrare, tip_lucrare, nr_elemente, dinti, try_in, extra_uri')
   fail(e0, 'Nu s-au putut citi lucrările')
+  const extraSetup = await getExtraSetup()
 
   const { data: tipuriExistente, error: e1 } = await supabase.from('tipuri_lucrare').select('nume')
   fail(e1, 'Nu s-au putut citi tipurile de lucrare')
@@ -274,8 +436,15 @@ async function recalculeazaValoriFinanciare() {
       continue
     }
     const perElement = await perElementPentru(l.tip_lucrare)
-    const snapshot = aplicaNrElemente(perElement, l.nr_elemente)
-    const { error } = await supabase.from('lucrari').update(snapshot).eq('id', l.id)
+    const extra_uri = construiesteExtraUri({
+      selectie: selectieDinExtraUri(l.extra_uri, extraSetup),
+      existente: l.extra_uri,
+      tryIn: l.try_in,
+      extraSetup,
+      preturiCurente: true,
+    })
+    const snapshot = calculeazaInstantaneu(perElement, l.nr_elemente, l.dinti, extra_uri)
+    const { error } = await supabase.from('lucrari').update({ extra_uri, ...snapshot }).eq('id', l.id)
     fail(error, `Nu s-a putut actualiza lucrarea ${l.nr_inregistrare}`)
     actualizate++
   }
@@ -343,10 +512,11 @@ async function getTipuriLucrareDetaliate() {
   return data || []
 }
 
-async function updateTipLucrareCosturi(id, { cost_laborator, incasare }) {
+async function updateTipLucrareCosturi(id, { cost_laborator, incasare, pret_implant }) {
   const payload = {
     cost_laborator: cost_laborator === '' || cost_laborator == null ? 0 : Number(cost_laborator),
     incasare: incasare === '' || incasare == null ? 0 : Number(incasare),
+    pret_implant: pret_implant === '' || pret_implant == null ? 0 : Number(pret_implant),
   }
   const { data, error } = await supabase.from('tipuri_lucrare').update(payload).eq('id', id).select().single()
   fail(error, `Nu s-au putut actualiza costurile tipului de lucrare ${id}`)
@@ -711,7 +881,11 @@ export const supabaseAdapter = {
   getLucrari,
   addLucrare,
   updateLucrare,
+  updateLucrareSiRecalculeaza,
   deleteLucrare,
+  getExtraUri,
+  addExtra,
+  updateExtra,
   getConfigList,
   addConfigValue,
   generateNrInregistrare,

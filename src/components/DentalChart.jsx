@@ -24,8 +24,15 @@ const RAD = Math.PI / 180
 const CX = 205
 const MAX = { cy: 270, rx: 112, ry: 190 }
 const MAN = { cy: 380, rx: 109, ry: 181 }
-const OUTER_DELTA = 24
+// Conectorul de punte stă mai departe de dinte decât șurubul de implant
+// (vezi IMPLANT_*), ca cele două marcaje să nu se atingă.
+const OUTER_DELTA = 32
 const PALATE_Y = 245
+
+// Șurub de implant, în coordonatele locale ale dintelui: spre y negativ e
+// exteriorul arcadei (partea rădăcinii), deci „sub coroană".
+const IMPLANT_BODY_PATH = 'M -4,-18.5 L 4,-18.5 L 4,-16.5 L -4,-16.5 Z M -3,-18.5 L 3,-18.5 L 2,-25.5 Q 0,-27.8 -2,-25.5 Z'
+const IMPLANT_THREADS_PATH = 'M -2.9,-20.4 L 2.8,-21.2 M -2.6,-22.5 L 2.5,-23.3 M -2.3,-24.5 L 2.1,-25.1'
 
 function buildTeeth(order, geo, isMaxilar) {
   return order.map((numar, i) => {
@@ -63,27 +70,45 @@ function arcPath(theta1, theta2, geo, isMaxilar, rxOverride, ryOverride) {
 // Element independent per dinte — pregătit pentru extensii viitoare ale
 // câmpului `stare` (ex. 'absent', 'tratat'), dincolo de 'normal'/'selectat'
 // folosite acum.
-function Tooth({ numar, x, y, rotate, stare, onClick }) {
+function Tooth({ numar, x, y, rotate, stare, implant, onClick, onToggleImplant, readOnly }) {
   const { path, sx, sy, groove } = formaPentruDinte(numar)
+  const selectat = stare === 'selectat'
   return (
     <g
-      className={`dc-tooth dc-tooth-${stare}`}
+      className={`dc-tooth dc-tooth-${stare} ${selectat && implant ? 'dc-tooth-implant' : ''}`}
       transform={`translate(${x},${y}) rotate(${rotate})`}
       onClick={onClick}
       role="button"
-      aria-pressed={stare === 'selectat'}
-      aria-label={`Dinte ${numar}`}
+      aria-pressed={selectat}
+      aria-label={`Dinte ${numar}${selectat && implant ? ' (pe implant)' : ''}`}
     >
       <circle className="dc-tooth-hit" r="18" />
       <g transform={`scale(${sx},${sy})`}>
         <path className="dc-tooth-shape" d={path} />
         {groove && <path className="dc-tooth-groove" d={groove} fill="none" />}
       </g>
+      {selectat && (implant || !readOnly) && (
+        <g
+          className={`dc-implant ${implant ? 'dc-implant-activ' : 'dc-implant-ghost'}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleImplant(numar)
+          }}
+          role="button"
+          aria-pressed={implant}
+          aria-label={implant ? `Scoate dintele ${numar} de pe implant` : `Marchează dintele ${numar} pe implant`}
+        >
+          <title>{implant ? 'Pe implant — click ca să scoți marcajul' : 'Click ca să marchezi dintele pe implant'}</title>
+          <rect className="dc-implant-hit" x="-9" y="-30" width="18" height="15" />
+          <path className="dc-implant-body" d={IMPLANT_BODY_PATH} />
+          <path className="dc-implant-threads" d={IMPLANT_THREADS_PATH} fill="none" />
+        </g>
+      )}
     </g>
   )
 }
 
-function ArcadaSvg({ order, geo, isMaxilar, selectedSet, linkPairs, onToggleTooth, onToggleLink }) {
+function ArcadaSvg({ order, geo, isMaxilar, selectedSet, implantSet, linkPairs, onToggleTooth, onToggleLink, onToggleImplant, readOnly }) {
   const teeth = useMemo(() => buildTeeth(order, geo, isMaxilar), [order, geo, isMaxilar])
   const linkSet = useMemo(() => new Set(linkPairs.map(([a, b]) => `${a}-${b}`)), [linkPairs])
 
@@ -130,7 +155,10 @@ function ArcadaSvg({ order, geo, isMaxilar, selectedSet, linkPairs, onToggleToot
           y={t.y}
           rotate={t.rotate}
           stare={selectedSet.has(t.numar) ? 'selectat' : 'normal'}
+          implant={implantSet.has(t.numar)}
           onClick={() => onToggleTooth(t.numar)}
+          onToggleImplant={onToggleImplant}
+          readOnly={readOnly}
         />
       ))}
 
@@ -175,11 +203,32 @@ function ArcadaSvg({ order, geo, isMaxilar, selectedSet, linkPairs, onToggleToot
   )
 }
 
+function LegendaDinte({ implant }) {
+  const { path, sx, sy } = formaPentruDinte(11)
+  return (
+    <svg viewBox="-12 -30 24 46" className="dc-legend-icon" aria-hidden="true">
+      <g className={`dc-tooth dc-tooth-selectat ${implant ? 'dc-tooth-implant' : ''}`}>
+        <g transform={`scale(${sx},${sy})`}>
+          <path className="dc-tooth-shape" d={path} />
+        </g>
+        {implant && (
+          <g className="dc-implant dc-implant-activ">
+            <path className="dc-implant-body" d={IMPLANT_BODY_PATH} />
+            <path className="dc-implant-threads" d={IMPLANT_THREADS_PATH} fill="none" />
+          </g>
+        )}
+      </g>
+    </svg>
+  )
+}
+
 export default function DentalChart({
   selectateNumere,
   linkPairs,
+  implantNumere = [],
   onToggleTooth,
   onToggleLink,
+  onToggleImplant,
   culoare,
   culoriOptions,
   onCuloareChange,
@@ -188,6 +237,8 @@ export default function DentalChart({
 }) {
   const [picatorDeschis, setPicatorDeschis] = useState(false)
   const selectedSet = useMemo(() => new Set(selectateNumere), [selectateNumere])
+  const implantSet = useMemo(() => new Set(implantNumere), [implantNumere])
+  const nrImplant = selectateNumere.filter((n) => implantSet.has(n)).length
 
   const culoareHex = VITA_HEX[culoare] || null
 
@@ -206,18 +257,24 @@ export default function DentalChart({
           geo={MAX}
           isMaxilar
           selectedSet={selectedSet}
+          implantSet={implantSet}
           linkPairs={linkPairs}
           onToggleTooth={readOnly ? () => {} : onToggleTooth}
           onToggleLink={readOnly ? () => {} : onToggleLink}
+          onToggleImplant={readOnly ? () => {} : onToggleImplant}
+          readOnly={readOnly}
         />
         <ArcadaSvg
           order={ORDINE_MANDIBULA}
           geo={MAN}
           isMaxilar={false}
           selectedSet={selectedSet}
+          implantSet={implantSet}
           linkPairs={linkPairs}
           onToggleTooth={readOnly ? () => {} : onToggleTooth}
           onToggleLink={readOnly ? () => {} : onToggleLink}
+          onToggleImplant={readOnly ? () => {} : onToggleImplant}
+          readOnly={readOnly}
         />
 
         <g
@@ -262,11 +319,24 @@ export default function DentalChart({
         </div>
       )}
 
+      <div className="dc-legend">
+        <span className="dc-legend-item">
+          <LegendaDinte implant={false} />
+          Dinte simplu
+        </span>
+        <span className="dc-legend-item">
+          <LegendaDinte implant />
+          Pe implant
+        </span>
+      </div>
+
       <p className="dental-chart-count">
         {selectateNumere.length} {selectateNumere.length === 1 ? 'dinte selectat' : 'dinți selectați'}
+        {nrImplant > 0 && ` · ${nrImplant} pe implant`}
       </p>
       <p className="dental-chart-hint">
         Selectează 2 dinți vecini ca să apară punctul de legare (⊕) între ei — click pe el îi unește într-o punte.
+        Click pe șurubul de sub un dinte selectat îl marchează pe implant.
       </p>
     </div>
   )
