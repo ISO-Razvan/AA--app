@@ -5,14 +5,16 @@
    ca proporție din viewport, cu un plafon pe ecrane foarte mari, ca să nu
    devină absurd de mare — și se micșorează natural pe ecrane joase. */
 .deviz-nou-panel {
-  width: 100%;
-  max-width: 900px;
+  width: min(1100px, 95vw);
+  max-width: 100%;
   height: 85vh;
+  min-height: min(80vh, 720px);
   max-height: 820px;
 }
 
 @media (max-width: 560px) {
   .deviz-nou-panel {
+    width: 100%;
     height: 100vh;
     max-height: 100vh;
     border-radius: 0;

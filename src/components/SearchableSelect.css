@@ -6,12 +6,12 @@
   position: relative;
 }
 
+/* Portal în document.body — top/bottom/left/width/max-height vin inline din
+   SearchableSelect.jsx. z-index peste modale (100), sub ConfirmDialog (200). */
 .searchable-select-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 30;
+  position: fixed;
+  z-index: 150;
+  box-sizing: border-box;
   list-style: none;
   margin: 0;
   padding: var(--space-1);
@@ -19,7 +19,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
-  max-height: 220px;
   overflow-y: auto;
 }
 

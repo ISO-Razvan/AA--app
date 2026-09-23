@@ -1,5 +1,26 @@
-import { useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import './SearchableSelect.css'
+
+const LISTA_MAX_H = 220
+const MARGINE = 8
+const DISTANTA = 4
+
+// Lista e randată în document.body (portal) cu position: fixed, ca să nu fie
+// decupată de containerele cu overflow ale modalelor; se deschide în sus
+// când dedesubt nu are loc în viewport.
+function calculeazaPozitie(input) {
+  const r = input.getBoundingClientRect()
+  const jos = window.innerHeight - r.bottom - MARGINE - DISTANTA
+  const sus = r.top - MARGINE - DISTANTA
+  const inSus = jos < LISTA_MAX_H && sus > jos
+  return {
+    left: r.left,
+    width: r.width,
+    maxHeight: Math.max(80, Math.min(LISTA_MAX_H, inSus ? sus : jos)),
+    ...(inSus ? { bottom: window.innerHeight - r.top + DISTANTA } : { top: r.bottom + DISTANTA }),
+  }
+}
 
 // Dropdown cu căutare + opțiunea de a adăuga o valoare nouă direct din formular.
 export default function SearchableSelect({
@@ -14,7 +35,25 @@ export default function SearchableSelect({
 }) {
   const [open, setOpen] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [pozitie, setPozitie] = useState(null)
   const inputRef = useRef(null)
+
+  const vizibil = !disabled && open
+
+  useLayoutEffect(() => {
+    if (!vizibil) return
+    const actualizeaza = () => {
+      if (inputRef.current) setPozitie(calculeazaPozitie(inputRef.current))
+    }
+    actualizeaza()
+    // capture: true — prinde și scroll-ul din corpul modalului, nu doar al paginii.
+    window.addEventListener('scroll', actualizeaza, true)
+    window.addEventListener('resize', actualizeaza)
+    return () => {
+      window.removeEventListener('scroll', actualizeaza, true)
+      window.removeEventListener('resize', actualizeaza)
+    }
+  }, [vizibil])
 
   const trimmed = value.trim()
   const exactMatch = options.some((o) => o.toLowerCase() === trimmed.toLowerCase())
@@ -72,8 +111,13 @@ export default function SearchableSelect({
           autoComplete="off"
           disabled={disabled}
         />
-        {!disabled && open && (
-          <ul className="searchable-select-dropdown" role="listbox">
+        {vizibil && pozitie && createPortal(
+          <ul
+            className="searchable-select-dropdown"
+            role="listbox"
+            style={pozitie}
+            onMouseDown={(e) => e.preventDefault()}
+          >
             {filtered.length === 0 && !trimmed && (
               <li className="searchable-select-empty">Nicio opțiune încă</li>
             )}
@@ -106,7 +150,8 @@ export default function SearchableSelect({
                 </button>
               </li>
             )}
-          </ul>
+          </ul>,
+          document.body
         )}
       </div>
     </div>
