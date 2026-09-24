@@ -199,6 +199,13 @@
   margin-top: var(--space-1);
 }
 
+.productie-din-termen {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--color-text-muted);
+  margin-top: calc(var(--space-1) * -1);
+}
+
 .productie-arhivare {
   max-width: 620px;
   margin: var(--space-6) auto 0;

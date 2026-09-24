@@ -3,6 +3,7 @@ import { getLucrari, getEtapeProductie, getProductieTehnician, setProductieAloca
 import { azi } from '../utils/date'
 import CalendarLunar from './CalendarLunar.jsx'
 import PrintChecklist from './PrintChecklist.jsx'
+import DeschideFisaButton from './DeschideFisaButton.jsx'
 import './TaskuriTehnicianContent.css'
 
 function formatZiLunga(dataStr) {
@@ -118,6 +119,7 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
                   <p className="taskuri-sarcina-line">Pacient: {lucrare.pacient || '—'}</p>
                   <p className="taskuri-sarcina-line">{clientLabel(lucrare)}</p>
                 </button>
+                <DeschideFisaButton className="taskuri-sarcina-fisa" onClick={() => onOpenLucrare(lucrare)} />
               </li>
             ))}
           </ul>

@@ -27,7 +27,7 @@ function clientLabel(l) {
 export default function TaskuriZiPrint({ tehnician, zi, sarcini, onClose }) {
   const handleDescarca = () => {
     const randuriHTML = sarcini
-      .map(({ lucrare, alocare }) => {
+      .map(({ lucrare, finalizat }) => {
         const termen = termenPentru(lucrare)
         return `<tr>
           <td>${lucrare.nr_inregistrare}</td>
@@ -36,7 +36,7 @@ export default function TaskuriZiPrint({ tehnician, zi, sarcini, onClose }) {
           <td>${lucrare.tip_lucrare}</td>
           <td>${lucrare.nr_elemente}</td>
           <td>${formatDataScurta(termen.data)}${termen.eticheta ? ` (${termen.eticheta})` : ''}</td>
-          <td>${alocare.finalizat ? 'Da' : 'Nu'}</td>
+          <td>${finalizat ? 'Da' : 'Nu'}</td>
         </tr>`
       })
       .join('')
@@ -98,10 +98,10 @@ export default function TaskuriZiPrint({ tehnician, zi, sarcini, onClose }) {
               </tr>
             </thead>
             <tbody>
-              {sarcini.map(({ alocare, lucrare }) => {
+              {sarcini.map(({ cheie, finalizat, lucrare }) => {
                 const termen = termenPentru(lucrare)
                 return (
-                  <tr key={alocare.id}>
+                  <tr key={cheie}>
                     <td>{lucrare.nr_inregistrare}</td>
                     <td>{lucrare.pacient || '—'}</td>
                     <td>{clientLabel(lucrare)}</td>
@@ -111,7 +111,7 @@ export default function TaskuriZiPrint({ tehnician, zi, sarcini, onClose }) {
                       {formatDataScurta(termen.data)}
                       {termen.eticheta && <span className="taskuri-zi-termen-badge">{termen.eticheta}</span>}
                     </td>
-                    <td>{alocare.finalizat ? 'Da' : 'Nu'}</td>
+                    <td>{finalizat ? 'Da' : 'Nu'}</td>
                   </tr>
                 )
               })}

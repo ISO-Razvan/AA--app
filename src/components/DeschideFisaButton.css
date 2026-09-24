@@ -1,0 +1,22 @@
+.deschide-fisa-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.deschide-fisa-btn:hover,
+.deschide-fisa-btn:focus-visible {
+  color: var(--color-blue-strong);
+  background: var(--color-blue-soft);
+  border-color: var(--color-blue);
+}

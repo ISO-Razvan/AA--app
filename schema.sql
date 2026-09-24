@@ -343,6 +343,114 @@ create policy "select_own_profile" on profiles
   using (auth.uid() = id);
 
 -- ---------------------------------------------------------------------------
+-- Etapa „Livrare" — planificată automat din termenul de predare. Sursa unică
+-- de adevăr e `lucrari.termen_predare`: rândul din `productie_lucrare` pentru
+-- Livrare primește mereu data = termen_predare și tehnicianul = singurul
+-- tehnician cu rolul Livrare. Sincronizarea se face în baza de date (trigger),
+-- ca să acopere orice cale de scriere (fișă, Import CSV, alte sesiuni).
+-- Nu se aplică dacă nu există exact un tehnician cu rolul Livrare și nu
+-- modifică niciodată un rând de Livrare deja bifat ca finalizat.
+-- ---------------------------------------------------------------------------
+
+create or replace function sincronizeaza_livrare(p_lucrare_id uuid)
+returns boolean
+language plpgsql
+as $$
+declare
+  v_etapa uuid;
+  v_tehnician uuid;
+  v_nr_tehnicieni integer;
+  v_termen date;
+  v_rand productie_lucrare%rowtype;
+begin
+  select id into v_etapa from etape_productie where lower(trim(nume)) = 'livrare' limit 1;
+  if v_etapa is null then
+    return false;
+  end if;
+
+  select count(*), min(id::text)::uuid into v_nr_tehnicieni, v_tehnician
+  from tehnicieni
+  where roluri ? v_etapa::text;
+  if v_nr_tehnicieni <> 1 then
+    return false;
+  end if;
+
+  select termen_predare into v_termen from lucrari where id = p_lucrare_id;
+  if not found then
+    return false;
+  end if;
+
+  select * into v_rand from productie_lucrare where lucrare_id = p_lucrare_id and etapa_id = v_etapa;
+  if found then
+    if v_rand.finalizat then
+      return false;
+    end if;
+    if v_rand.tehnician_id is not distinct from v_tehnician
+       and v_rand.data_planificata is not distinct from v_termen then
+      return false;
+    end if;
+    update productie_lucrare
+    set tehnician_id = v_tehnician, data_planificata = v_termen
+    where id = v_rand.id;
+  else
+    insert into productie_lucrare (lucrare_id, etapa_id, tehnician_id, data_planificata)
+    values (p_lucrare_id, v_etapa, v_tehnician, v_termen);
+  end if;
+  return true;
+end;
+$$;
+
+-- Toate lucrările nearhivate cu termen de predare — întoarce câte au primit
+-- sau și-au corectat alocarea de Livrare.
+create or replace function sincronizeaza_livrare_toate()
+returns integer
+language plpgsql
+as $$
+declare
+  v_id uuid;
+  v_nr integer := 0;
+begin
+  for v_id in select id from lucrari where termen_predare is not null and not arhivat loop
+    if sincronizeaza_livrare(v_id) then
+      v_nr := v_nr + 1;
+    end if;
+  end loop;
+  return v_nr;
+end;
+$$;
+
+create or replace function trg_lucrari_sincronizeaza_livrare()
+returns trigger
+language plpgsql
+as $$
+begin
+  perform sincronizeaza_livrare(new.id);
+  return null;
+end;
+$$;
+
+drop trigger if exists lucrari_sincronizeaza_livrare on lucrari;
+create trigger lucrari_sincronizeaza_livrare
+  after insert or update of termen_predare on lucrari
+  for each row execute function trg_lucrari_sincronizeaza_livrare();
+
+-- Dacă rolul Livrare trece la alt tehnician, alocările nefinalizate îl urmează.
+create or replace function trg_tehnicieni_sincronizeaza_livrare()
+returns trigger
+language plpgsql
+as $$
+begin
+  perform sincronizeaza_livrare_toate();
+  return null;
+end;
+$$;
+
+drop trigger if exists tehnicieni_sincronizeaza_livrare on tehnicieni;
+create trigger tehnicieni_sincronizeaza_livrare
+  after insert or update of roluri or delete on tehnicieni
+  for each statement execute function trg_tehnicieni_sincronizeaza_livrare();
+
+-- ---------------------------------------------------------------------------
 -- Realtime — publică modificările (INSERT/UPDATE/DELETE) pe `lucrari` și
 -- `productie_lucrare`, ca aplicația să reflecte automat bifarea unei etape
 -- sau adăugarea/ștergerea unei lucrări, fără refresh manual (Kanban,

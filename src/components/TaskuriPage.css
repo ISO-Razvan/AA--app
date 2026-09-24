@@ -145,6 +145,8 @@
 }
 
 .taskuri-task-card {
+  display: flex;
+  align-items: flex-start;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -167,7 +169,8 @@
 }
 
 .taskuri-task-open {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
   display: flex;
   flex-direction: column;
@@ -339,8 +342,31 @@
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-text);
+  padding-right: 0;
 }
 
+.taskuri-task-fisa {
+  margin: 4px 4px 0 0;
+  width: 22px;
+  height: 22px;
+}
+
+/* Card compact: fiecare rând pe o singură linie, trunchiat cu „…"; textul
+   complet apare la hover (atributul title al cardului). */
+.taskuri-day-card-pacient,
+.taskuri-day-card-client {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.taskuri-day-card-client {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
 /* Navigare zi-cu-zi (sub 640px) — săgeți + pastile pentru oricare zi din
    săptămâna vizibilă; calendarul de mai jos arată o singură coloană. */
 .taskuri-day-nav {

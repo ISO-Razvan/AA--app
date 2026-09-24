@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { getEtapeProductie, getTehnicieni, getProductieLucrare, setProductieAlocare, updateLucrare } from '../services/dataService'
 import { subscribeToTable } from '../services/realtime'
 import { statusDinRanduri } from '../utils/statusLucrare'
+import { configLivrare } from '../utils/etapaProductie'
 import { azi } from '../utils/date'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import './ProductieTimeline.css'
@@ -106,6 +107,8 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
   }
 
   const status = statusDinRanduri(etape.length, randuri)
+  const livrare = configLivrare(etape, tehnicieni)
+  const livrareAutoId = livrare.automata ? livrare.etapa.id : null
 
   return (
     <div className="productie-timeline">
@@ -188,6 +191,7 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
                       <p className="productie-value">{formatData(rand?.data_planificata)}</p>
                     </div>
                   </div>
+                  {etapa.id === livrareAutoId && <p className="productie-din-termen">din termenul de predare</p>}
                   <label className={`productie-checkbox productie-checkbox-etapa ${arhivat ? 'disabled' : ''}`}>
                     <input
                       type="checkbox"

@@ -6,6 +6,7 @@ import {
   updateTehnician,
   deleteTehnician,
 } from '../services/dataService'
+import { configLivrare } from '../utils/etapaProductie'
 import './TehnicieniList.css'
 
 const FORM_INIT = { nume: '', roluri: [] }
@@ -33,6 +34,7 @@ export default function TehnicieniList({ etapeRefreshSignal }) {
   }, [etapeRefreshSignal])
 
   const etapaById = (id) => etape.find((e) => e.id === id)
+  const livrare = configLivrare(etape, tehnicieni)
 
   const startAdd = () => {
     setEditingId('new')
@@ -93,6 +95,16 @@ export default function TehnicieniList({ etapeRefreshSignal }) {
         <h3>Tehnicieni</h3>
         <p>Fiecare tehnician poate avea unul sau mai multe roluri, alese dintre etapele de producție definite mai sus.</p>
       </div>
+
+      {!loading && livrare.etapa && !livrare.automata && (
+        <p className="tehnicieni-livrare-avertisment" role="status">
+          {livrare.tehnicieniCuRol.length === 0
+            ? 'Niciun tehnician nu are rolul Livrare'
+            : `Mai mulți tehnicieni au rolul Livrare (${livrare.tehnicieniCuRol.map((t) => t.nume).join(', ')})`}{' '}
+          — livrarea nu se mai planifică automat din termenul de predare. Păstrează rolul Livrare la un singur
+          tehnician.
+        </p>
+      )}
 
       {loading ? (
         <p className="tehnicieni-loading">Se încarcă…</p>

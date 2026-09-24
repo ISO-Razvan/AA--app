@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Dropdown from './Dropdown.jsx'
 import TaskuriZiPrint from './TaskuriZiPrint.jsx'
+import DeschideFisaButton from './DeschideFisaButton.jsx'
 import './modal-base.css'
 import './TaskuriZiModal.css'
 
@@ -15,11 +16,6 @@ function formatDataScurta(dataStr) {
   const [an, luna, zi] = dataStr.split('-')
   if (!an || !luna || !zi) return dataStr
   return `${zi}.${luna}.${an}`
-}
-
-function clientLabel(l) {
-  const parts = [l.clinica, l.medic].filter(Boolean)
-  return parts.length > 0 ? parts.join(' — ') : '—'
 }
 
 // „Termen" afișat per task — cea mai apropiată în timp dintre `next_date`
@@ -43,6 +39,8 @@ export function termenPentru(lucrare) {
 // din calendar e dezactivat, adaugă și „editare directă": asignarea unei
 // lucrări neplanificate în ziua curentă, mutarea unui task în altă zi și
 // scoaterea lui din planificare — toate prin selecturi, nu prin tragere.
+// `sarcini` sunt căsuțe grupate per lucrare ({ cheie, lucrare, alocari,
+// etapaIds, finalizat }) — bifa/mutarea acționează pe toate etapele grupului.
 export default function TaskuriZiModal({
   zi,
   zileSaptamana,
@@ -50,6 +48,7 @@ export default function TaskuriZiModal({
   tehnician,
   sarcini,
   lucrariNeplanificate,
+  etapaDinTermenId,
   isMobil,
   onClose,
   onToggleFinalizat,
@@ -132,21 +131,27 @@ export default function TaskuriZiModal({
               <p className="taskuri-panel-hint">Nicio sarcină programată pentru această zi.</p>
             ) : (
               <ul className="taskuri-zi-sarcini-list">
-                {sarcini.map(({ alocare, lucrare }) => {
+                {sarcini.map((grup) => {
+                  const { lucrare } = grup
                   const termen = termenPentru(lucrare)
+                  const areEtapeDeScos = grup.etapaIds.some((id) => id !== etapaDinTermenId)
                   return (
-                    <li key={alocare.id} className="taskuri-zi-sarcina-item">
+                    <li key={grup.cheie} className="taskuri-zi-sarcina-item">
                       <button type="button" className="taskuri-zi-sarcina-row" onClick={() => onOpenLucrare(lucrare)}>
                         <div className="taskuri-zi-sarcina-info">
                           <span className="taskuri-zi-sarcina-nr">{lucrare.nr_inregistrare}</span>
-                          {alocare.finalizat && <span className="taskuri-zi-finalizat-badge">Finalizat</span>}
+                          {grup.finalizat && <span className="taskuri-zi-finalizat-badge">Finalizat</span>}
                           <span>
                             <span className="taskuri-zi-info-label">Pacient</span>
                             {lucrare.pacient || '—'}
                           </span>
                           <span>
+                            <span className="taskuri-zi-info-label">Clinică</span>
+                            {lucrare.clinica || '—'}
+                          </span>
+                          <span>
                             <span className="taskuri-zi-info-label">Medic</span>
-                            {clientLabel(lucrare)}
+                            {lucrare.medic || '—'}
                           </span>
                           <span>
                             <span className="taskuri-zi-info-label">Tip lucrare</span>
@@ -165,12 +170,9 @@ export default function TaskuriZiModal({
                       </button>
 
                       <div className="taskuri-zi-sarcina-actions">
+                        <DeschideFisaButton onClick={() => onOpenLucrare(lucrare)} />
                         <label className="taskuri-zi-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={!!alocare.finalizat}
-                            onChange={() => onToggleFinalizat({ lucrare, alocare })}
-                          />
+                          <input type="checkbox" checked={grup.finalizat} onChange={() => onToggleFinalizat(grup)} />
                           <span>Finalizat</span>
                         </label>
 
@@ -179,17 +181,20 @@ export default function TaskuriZiModal({
                             <Dropdown
                               value={zi}
                               onChange={(v) => {
-                                if (v && v !== zi) onMuta(lucrare.id, alocare.etapa_id, v)
+                                if (v && v !== zi) onMuta(lucrare.id, grup.etapaIds, v)
                               }}
                               options={optiuniZile}
                             />
-                            <button
-                              type="button"
-                              className="btn btn-ghost taskuri-zi-elimina-btn"
-                              onClick={() => onElimina(lucrare.id, alocare.etapa_id)}
-                            >
-                              Scoate din planificare
-                            </button>
+                            {/* Livrarea automată nu se scoate din planificare — data ei e termenul de predare. */}
+                            {areEtapeDeScos && (
+                              <button
+                                type="button"
+                                className="btn btn-ghost taskuri-zi-elimina-btn"
+                                onClick={() => onElimina(lucrare.id, grup.etapaIds)}
+                              >
+                                Scoate din planificare
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

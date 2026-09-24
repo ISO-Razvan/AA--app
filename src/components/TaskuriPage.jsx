@@ -10,10 +10,20 @@ import {
   useDroppable,
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { getTehnicieni, getEtapeProductie, getLucrari, getToateAlocarile, setProductieAlocare } from '../services/dataService'
+import {
+  getTehnicieni,
+  getEtapeProductie,
+  getLucrari,
+  getToateAlocarile,
+  setProductieAlocare,
+  updateLucrare,
+} from '../services/dataService'
 import { azi, adaugaZile } from '../utils/date'
+import { configLivrare } from '../utils/etapaProductie'
 import { subscribeToTable } from '../services/realtime'
+import { useConfirm } from '../hooks/useConfirm.jsx'
 import TaskuriZiModal from './TaskuriZiModal.jsx'
+import DeschideFisaButton from './DeschideFisaButton.jsx'
 import './TaskuriPage.css'
 
 const NEPLANIFICATE_ID = '__neplanificate__'
@@ -41,6 +51,12 @@ function formatZiScurt(dataStr) {
   return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+function formatData(dataStr) {
+  if (!dataStr) return '—'
+  const [an, luna, zi] = dataStr.split('-')
+  return `${zi}.${luna}.${an}`
+}
+
 function formatIntervalSaptamana(zile) {
   const prima = new Date(`${zile[0]}T00:00:00`)
   const ultima = new Date(`${zile[6]}T00:00:00`)
@@ -66,7 +82,7 @@ function DropZone({ id, className, children }) {
 // `disabled` blochează și tragerea, și click-ul (folosit cât timp scrierea
 // e în curs); `dragDisabled` blochează DOAR tragerea (pe mobil, unde
 // reprogramarea se face din modalul de zi) — cardul rămâne apăsabil.
-function DraggableTaskCard({ dragId, data, disabled, dragDisabled, onOpen, className, children }) {
+function DraggableTaskCard({ dragId, data, disabled, dragDisabled, onOpen, className, title, children }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: dragId,
     data,
@@ -80,17 +96,29 @@ function DraggableTaskCard({ dragId, data, disabled, dragDisabled, onOpen, class
       style={style}
       {...listeners}
       {...attributes}
+      title={title}
       className={`${className} ${isDragging ? 'taskuri-task-card-dragging' : ''}`}
     >
       <button type="button" className="taskuri-task-open" onClick={onOpen} disabled={disabled}>
         {children}
       </button>
+      <DeschideFisaButton className="taskuri-task-fisa" onClick={onOpen} />
     </div>
   )
 }
 
+function titluCard(lucrare) {
+  return [
+    lucrare.nr_inregistrare,
+    `Pacient: ${lucrare.pacient || '—'}`,
+    `Clinică: ${lucrare.clinica || '—'}`,
+    `Medic: ${lucrare.medic || '—'}`,
+  ].join('\n')
+}
+
 export default function TaskuriPage() {
   const navigate = useNavigate()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const [tehnicieni, setTehnicieni] = useState([])
   const [etape, setEtape] = useState([])
   const [lucrari, setLucrari] = useState([])
@@ -167,6 +195,14 @@ export default function TaskuriPage() {
 
   const etapaById = (id) => etape.find((e) => e.id === id)
 
+  // Livrare planificată automat: data vine din termenul de predare (trigger
+  // în baza de date), deci nu apare în „neplanificate", iar mutarea cardului
+  // pe altă zi înseamnă mutarea termenului de predare.
+  const livrareAutoId = useMemo(() => {
+    const cfg = configLivrare(etape, tehnicieni)
+    return cfg.automata ? cfg.etapa.id : null
+  }, [etape, tehnicieni])
+
   // Pentru fiecare rol al tehnicianului selectat, verificare directă per
   // etapă (fără nicio ordine/gating între etape, spre deosebire de Kanban,
   // care rămâne pe `etapaCurentaPentru` neschimbat): are lucrarea un rând în
@@ -184,6 +220,14 @@ export default function TaskuriPage() {
       const etapeNealocate = []
       for (const etapaId of roluri) {
         const rand = alocari.find((a) => a.lucrare_id === l.id && a.etapa_id === etapaId)
+        // Livrarea automată e neplanificată doar cât lucrarea n-are termen de
+        // predare — plasarea ei în calendar setează termenul (vezi mutaTermenul).
+        if (etapaId === livrareAutoId) {
+          if (l.termen_predare || rand?.finalizat) continue
+          const etapa = etape.find((e) => e.id === etapaId)
+          if (etapa) etapeNealocate.push(etapa)
+          continue
+        }
         const asignat = !!(rand?.tehnician_id && rand?.data_planificata)
         if (asignat) continue
         const etapa = etape.find((e) => e.id === etapaId)
@@ -195,10 +239,13 @@ export default function TaskuriPage() {
       }
     }
     return rezultat
-  }, [lucrari, etape, alocari, tehnicianSelectat])
+  }, [lucrari, etape, alocari, tehnicianSelectat, livrareAutoId])
 
-  // Toate task-urile tehnicianului selectat, în săptămâna vizibilă, grupate
-  // pe zi (după `data_planificata`).
+  // Task-urile tehnicianului selectat în săptămâna vizibilă, pe zi, cu o
+  // singură căsuță per lucrare: toate etapele lui planificate pentru aceeași
+  // lucrare în aceeași zi se grupează (oricare ar fi ele — gruparea vine din
+  // alocările reale, nu din perechi de roluri fixe). Aceleași etape în zile
+  // diferite rămân căsuțe separate.
   const taskuriPeZi = useMemo(() => {
     const map = Object.fromEntries(zileSaptamana.map((zi) => [zi, []]))
     if (!tehnicianSelectat) return map
@@ -207,21 +254,22 @@ export default function TaskuriPage() {
       if (!a.data_planificata || !map[a.data_planificata]) continue
       const lucrare = lucrari.find((l) => l.id === a.lucrare_id)
       if (!lucrare) continue
-      map[a.data_planificata].push({ alocare: a, lucrare })
+      const grupuriZi = map[a.data_planificata]
+      let grup = grupuriZi.find((g) => g.lucrare.id === lucrare.id)
+      if (!grup) {
+        grup = { cheie: `${lucrare.id}|${a.data_planificata}`, lucrare, alocari: [] }
+        grupuriZi.push(grup)
+      }
+      grup.alocari.push(a)
+    }
+    for (const grupuriZi of Object.values(map)) {
+      for (const g of grupuriZi) {
+        g.etapaIds = g.alocari.map((a) => a.etapa_id)
+        g.finalizat = g.alocari.every((a) => a.finalizat)
+      }
     }
     return map
   }, [alocari, lucrari, tehnicianSelectat, zileSaptamana])
-
-  const handleAlocare = async (lucrareId, etapaId, patch) => {
-    const cheie = `${lucrareId}-${etapaId}`
-    setMutandKey(cheie)
-    try {
-      await setProductieAlocare(lucrareId, etapaId, patch)
-      await reincarcaAlocarile()
-    } finally {
-      setMutandKey(null)
-    }
-  }
 
   // Variantă pentru un element grupat din „Lucrări neplanificate" — un
   // singur drag scrie același patch (tehnician + dată, sau ștergerea lor) pe
@@ -237,27 +285,87 @@ export default function TaskuriPage() {
     }
   }
 
-  // Bifă „Finalizat" direct pe cardul din calendar — scrie în același loc
-  // din `productie_lucrare` folosit de Producție/Kanban, deci avansarea pe
-  // Kanban și Realtime-ul deja construite se declanșează identic.
-  const handleFinalizare = (lucrareId, etapaId, finalizat) => {
-    handleAlocare(lucrareId, etapaId, { finalizat, data_finalizare: finalizat ? azi() : null })
+  // Bifa „Finalizat" a unei căsuțe (grupate) — finalizează/definalizează toate
+  // etapele din ea, în același loc din `productie_lucrare` folosit de
+  // Producție/Kanban. Etapele deja în starea dorită nu se rescriu (își
+  // păstrează data de finalizare).
+  const handleFinalizareGrup = async (grup) => {
+    const finalizat = !grup.finalizat
+    const deSchimbat = grup.alocari.filter((a) => !!a.finalizat !== finalizat)
+    setMutandKey(`${grup.lucrare.id}-finalizare`)
+    try {
+      await Promise.all(
+        deSchimbat.map((a) =>
+          setProductieAlocare(a.lucrare_id, a.etapa_id, { finalizat, data_finalizare: finalizat ? azi() : null })
+        )
+      )
+      await reincarcaAlocarile()
+    } finally {
+      setMutandKey(null)
+    }
+  }
+
+  // Plasarea/mutarea unui card de Livrare = setarea/mutarea termenului de
+  // predare al lucrării; triggerul din baza de date mută apoi și rândul de
+  // producție. La anulare nu se scrie nimic, iar cardul rămâne pe loc.
+  // Întoarce true doar dacă termenul a fost salvat.
+  const mutaTermenul = async (lucrareId, dataNoua) => {
+    const lucrare = lucrari.find((l) => l.id === lucrareId)
+    if (!lucrare || !dataNoua || dataNoua === lucrare.termen_predare) return false
+    const ok = lucrare.termen_predare
+      ? await confirm(
+          `Muți termenul de predare pentru ${lucrare.nr_inregistrare} de pe ${formatData(lucrare.termen_predare)} pe ${formatData(dataNoua)}?`,
+          { title: 'Muți termenul de predare?', confirmLabel: 'Mută termenul' }
+        )
+      : await confirm(`Setezi termenul de predare pentru ${lucrare.nr_inregistrare} pe ${formatData(dataNoua)}?`, {
+          title: 'Setezi termenul de predare?',
+          confirmLabel: 'Setează termenul',
+        })
+    if (!ok) return false
+    setMutandKey(`${lucrareId}-${livrareAutoId}`)
+    try {
+      await updateLucrare(lucrareId, { termen_predare: dataNoua })
+      await Promise.all([reincarcaLucrarile(), reincarcaAlocarile()])
+    } finally {
+      setMutandKey(null)
+    }
+    return true
+  }
+
+  // Un grup de etape (din „Lucrări neplanificate" sau o căsuță din calendar)
+  // pus pe o zi: Livrarea automată (dacă e în grup) setează/mută termenul de
+  // predare — cu confirmare; la anulare nu se mută nimic din grup. Celelalte
+  // etape se alocă normal pe acea zi.
+  const planificaPeZi = async (lucrareId, ids, zi) => {
+    const alte = ids.filter((id) => id !== livrareAutoId)
+    if (livrareAutoId && ids.includes(livrareAutoId)) {
+      const ok = await mutaTermenul(lucrareId, zi)
+      if (!ok) return
+    }
+    if (alte.length > 0) {
+      await handleAlocareMultipla(lucrareId, alte, { tehnician_id: tehnicianSelectat.id, data_planificata: zi })
+    }
+  }
+
+  // Livrarea automată nu se poate scoate din planificare (data ei e termenul).
+  const scoateDinPlanificare = async (lucrareId, ids) => {
+    const alte = ids.filter((id) => id !== livrareAutoId)
+    if (alte.length > 0) await handleAlocareMultipla(lucrareId, alte, { tehnician_id: null, data_planificata: null })
   }
 
   const handleDragEnd = (event) => {
     const { active, over } = event
     if (!over || !tehnicianSelectat) return
-    const { lucrareId, etapaId, etapaIds, source, day: sourceDay } = active.data.current || {}
-    const ids = etapaIds || (etapaId ? [etapaId] : [])
-    if (!lucrareId || ids.length === 0) return
+    const { lucrareId, etapaIds, source, day: sourceDay } = active.data.current || {}
+    if (!lucrareId || !etapaIds || etapaIds.length === 0) return
     const targetId = over.id
 
     if (targetId === NEPLANIFICATE_ID) {
       if (source === 'neplanificate') return
-      handleAlocareMultipla(lucrareId, ids, { tehnician_id: null, data_planificata: null })
+      scoateDinPlanificare(lucrareId, etapaIds)
     } else {
       if (source === 'calendar' && sourceDay === targetId) return
-      handleAlocareMultipla(lucrareId, ids, { tehnician_id: tehnicianSelectat.id, data_planificata: targetId })
+      planificaPeZi(lucrareId, etapaIds, targetId)
     }
   }
 
@@ -322,6 +430,7 @@ export default function TaskuriPage() {
                             disabled={mutandKey === cheieGrup}
                             dragDisabled={isMobil}
                             onOpen={() => deschideLucrarea(lucrare)}
+                            title={titluCard(lucrare)}
                             className="taskuri-task-card taskuri-neplanificat-item"
                           >
                             <span className="taskuri-task-top">
@@ -425,17 +534,21 @@ export default function TaskuriPage() {
                           </button>
                           <div className="taskuri-day-body">
                             {(taskuriPeZi[zi] || []).length === 0 && <p className="taskuri-day-empty">—</p>}
-                            {(taskuriPeZi[zi] || []).map(({ alocare, lucrare }) => (
+                            {(taskuriPeZi[zi] || []).map((grup) => (
                               <DraggableTaskCard
-                                key={alocare.id}
-                                dragId={`planificat-${alocare.id}`}
-                                data={{ lucrareId: lucrare.id, etapaId: alocare.etapa_id, source: 'calendar', day: zi }}
-                                disabled={mutandKey === `${lucrare.id}-${alocare.etapa_id}`}
+                                key={grup.cheie}
+                                dragId={`planificat-${grup.cheie}`}
+                                data={{ lucrareId: grup.lucrare.id, etapaIds: grup.etapaIds, source: 'calendar', day: zi }}
+                                disabled={!!mutandKey && mutandKey.startsWith(`${grup.lucrare.id}-`)}
                                 dragDisabled={isMobil}
-                                onOpen={() => deschideLucrarea(lucrare)}
+                                onOpen={() => deschideLucrarea(grup.lucrare)}
+                                title={titluCard(grup.lucrare)}
                                 className="taskuri-task-card taskuri-day-card"
                               >
-                                {lucrare.pacient || '—'}
+                                <span className="taskuri-day-card-pacient">{grup.lucrare.pacient || '—'}</span>
+                                <span className="taskuri-day-card-client">
+                                  {[grup.lucrare.clinica, grup.lucrare.medic].filter(Boolean).join(' · ') || '—'}
+                                </span>
                               </DraggableTaskCard>
                             ))}
                           </div>
@@ -458,21 +571,18 @@ export default function TaskuriPage() {
           tehnician={tehnicianSelectat}
           sarcini={taskuriPeZi[ziModalDeschisa] || []}
           lucrariNeplanificate={lucrariNeplanificate}
+          etapaDinTermenId={livrareAutoId}
           isMobil={isMobil}
           onClose={() => setZiModalDeschisa(null)}
-          onToggleFinalizat={({ lucrare, alocare }) => handleFinalizare(lucrare.id, alocare.etapa_id, !alocare.finalizat)}
+          onToggleFinalizat={handleFinalizareGrup}
           onOpenLucrare={deschideLucrarea}
-          onAsigneaza={(lucrareId, etapaIds) =>
-            handleAlocareMultipla(lucrareId, etapaIds, { tehnician_id: tehnicianSelectat.id, data_planificata: ziModalDeschisa })
-          }
-          onMuta={(lucrareId, etapaId, ziNoua) =>
-            handleAlocareMultipla(lucrareId, [etapaId], { tehnician_id: tehnicianSelectat.id, data_planificata: ziNoua })
-          }
-          onElimina={(lucrareId, etapaId) =>
-            handleAlocareMultipla(lucrareId, [etapaId], { tehnician_id: null, data_planificata: null })
-          }
+          onAsigneaza={(lucrareId, etapaIds) => planificaPeZi(lucrareId, etapaIds, ziModalDeschisa)}
+          onMuta={(lucrareId, etapaIds, ziNoua) => planificaPeZi(lucrareId, etapaIds, ziNoua)}
+          onElimina={scoateDinPlanificare}
         />
       )}
+
+      {confirmDialog}
     </div>
   )
 }

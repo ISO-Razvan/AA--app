@@ -98,6 +98,10 @@
   box-shadow: var(--shadow-sm);
 }
 
+.taskuri-sarcina-fisa {
+  align-self: center;
+}
+
 .taskuri-sarcina-finalizata .taskuri-sarcina-row {
   opacity: 0.65;
 }
