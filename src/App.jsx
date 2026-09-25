@@ -15,6 +15,7 @@ import CapacitatePage from './components/CapacitatePage.jsx'
 import SalariiPage from './components/SalariiPage.jsx'
 import FinanciarPage from './components/FinanciarPage.jsx'
 import TaskurileMelePage from './components/TaskurileMelePage.jsx'
+import SalariulMeuPage from './components/SalariulMeuPage.jsx'
 import './App.css'
 
 function AppContent({ profile, onSignOut }) {
@@ -61,7 +62,11 @@ function AppContent({ profile, onSignOut }) {
       <main className="app-main">
         <div className="app-main-inner">
           {esteTehnician ? (
-            <TaskurileMelePage tehnicianId={profile.tehnician_id} />
+            pagina === 'salariul-meu' ? (
+              <SalariulMeuPage />
+            ) : (
+              <TaskurileMelePage tehnicianId={profile.tehnician_id} />
+            )
           ) : (
             <>
               {pagina === 'dashboard' && (

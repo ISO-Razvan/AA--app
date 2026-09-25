@@ -19,7 +19,7 @@ export default function Login() {
       // succesul declanșează automat onAuthStateChange în App — nu mai e
       // nevoie de nicio acțiune suplimentară aici.
     } catch (err) {
-      setError('Email sau parolă greșită.')
+      setError('Email/utilizator sau parolă greșită.')
       setSaving(false)
     }
   }
@@ -38,10 +38,12 @@ export default function Login() {
         <h2 className="login-title">Autentificare</h2>
 
         <div>
-          <label className="field-label" htmlFor="login-email">Email</label>
+          <label className="field-label" htmlFor="login-email">Email sau utilizator</label>
           <input
             id="login-email"
-            type="email"
+            type="text"
+            autoCapitalize="none"
+            spellCheck={false}
             className="text-input"
             autoComplete="username"
             value={email}

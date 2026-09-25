@@ -3,10 +3,12 @@ import { formatSuma } from './SalariiPage.jsx'
 import './modal-base.css'
 import './SalariiDetaliuModal.css'
 
-// `randuri` = etapele FINALIZATE ale tehnicianului în luna selectată (filtrate
-// în SalariiPage), sortate descrescător după data finalizării — fiecare cu
-// lucrarea, etapa și suma comisionului din instantaneul lucrării.
-export default function SalariiDetaliuModal({ tehnician, lunaLabel, randuri, onClose, onOpenLucrare }) {
+// Conținutul detaliului de salariu (statistică pe etape + listă de lucrări),
+// folosit de fereastra adminului din Salarii și de „Salariul meu".
+// `randuri` = etapele FINALIZATE ale unui tehnician într-o lună, sortate
+// descrescător după data finalizării — fiecare cu lucrarea, etapa și suma
+// comisionului: [{ alocare: { id, data_finalizare }, lucrare, etapa, suma }].
+export function SalariuDetaliuContinut({ randuri, onOpenLucrare }) {
   // Sus: o secțiune per etapă (în ordinea din Setup), iar în ea grupuri pe
   // tip de lucrare. Fiecare rând e o etapă distinctă a unei lucrări, deci
   // elementele se adună o dată per lucrare în grup.
@@ -53,28 +55,13 @@ export default function SalariiDetaliuModal({ tehnician, lunaLabel, randuri, onC
     return rezultat
   }, [randuri])
 
-  const handleRowClick = (lucrare) => {
-    onClose()
-    onOpenLucrare(lucrare)
+  const handleRowClick = onOpenLucrare
+
+  if (randuri.length === 0) {
+    return <p className="salarii-status-text">Nicio etapă finalizată în această lună.</p>
   }
 
   return (
-    <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="salarii-detaliu-modal" role="dialog" aria-modal="true" aria-label={`Detalii salariu ${tehnician.nume}`}>
-        <header className="salarii-detaliu-header">
-          <div>
-            <h2>{tehnician.nume}</h2>
-            <p className="salarii-detaliu-luna">{lunaLabel}</p>
-          </div>
-          <button type="button" className="btn btn-ghost modal-close" onClick={onClose} aria-label="Închide">
-            ✕
-          </button>
-        </header>
-
-        <div className="salarii-detaliu-body">
-          {randuri.length === 0 ? (
-            <p className="salarii-status-text">Nicio etapă finalizată în această lună.</p>
-          ) : (
             <>
               <section>
                 <h3 className="salarii-detaliu-sectiune">Pe etapă și tip de lucrare</h3>
@@ -146,7 +133,30 @@ export default function SalariiDetaliuModal({ tehnician, lunaLabel, randuri, onC
                 </table>
               </section>
             </>
-          )}
+  )
+}
+
+export default function SalariiDetaliuModal({ tehnician, lunaLabel, randuri, onClose, onOpenLucrare }) {
+  const handleRowClick = (lucrare) => {
+    onClose()
+    onOpenLucrare(lucrare)
+  }
+
+  return (
+    <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="salarii-detaliu-modal" role="dialog" aria-modal="true" aria-label={`Detalii salariu ${tehnician.nume}`}>
+        <header className="salarii-detaliu-header">
+          <div>
+            <h2>{tehnician.nume}</h2>
+            <p className="salarii-detaliu-luna">{lunaLabel}</p>
+          </div>
+          <button type="button" className="btn btn-ghost modal-close" onClick={onClose} aria-label="Închide">
+            ✕
+          </button>
+        </header>
+
+        <div className="salarii-detaliu-body">
+          <SalariuDetaliuContinut randuri={randuri} onOpenLucrare={handleRowClick} />
         </div>
       </div>
     </div>

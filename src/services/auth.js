@@ -8,11 +8,21 @@ import { supabase, REMEMBER_ME_KEY } from './supabaseClient'
 // sesiunea imediat ce primește răspunsul, iar `authStorage` din
 // `supabaseClient.js` decide localStorage/sessionStorage citind exact
 // această valoare în acel moment.
-export async function signIn(email, parola, rememberMe = true) {
+// Conturile de tehnician au un email sintetic (vezi worker/index.js) — la
+// login se poate scrie doar partea dinainte de „@" (numele de utilizator).
+const DOMENIU_TEHNICIENI = 'tehnicieni.algorithmlab.local'
+
+export async function signIn(emailSauUtilizator, parola, rememberMe = true) {
   localStorage.setItem(REMEMBER_ME_KEY, rememberMe ? 'true' : 'false')
+  const email = emailSauUtilizator.includes('@') ? emailSauUtilizator : `${emailSauUtilizator}@${DOMENIU_TEHNICIENI}`
   const { data, error } = await supabase.auth.signInWithPassword({ email, password: parola })
   if (error) throw error
   return data.session
+}
+
+export async function schimbaParola(parolaNoua) {
+  const { error } = await supabase.auth.updateUser({ password: parolaNoua })
+  if (error) throw error
 }
 
 export async function signOut() {

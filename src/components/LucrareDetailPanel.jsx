@@ -46,8 +46,10 @@ const TABS = [
 ]
 
 export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated }) {
-  const readOnly = !!lucrare.arhivat
   const esteAdmin = profile?.rol === 'admin'
+  // Tehnicianul vede fișa doar pentru citire — baza de date îi permite
+  // oricum doar citirea lucrărilor (prin view-ul fără date financiare).
+  const readOnly = !!lucrare.arhivat || !esteAdmin
   const { confirm, dialog: confirmDialog } = useConfirm()
   const [tab, setTab] = useState('detalii')
   const initial = dinDintiSalvati(lucrare.dinti)
@@ -101,6 +103,9 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
   }, [lucrare.id])
 
   useEffect(() => {
+    // Listele de sugestii contează doar la editare (admin); tipurile de
+    // lucrare nici nu sunt accesibile unui tehnician.
+    if (!esteAdmin) return
     async function load() {
       const [tipuri, culori, medici, clinici] = await Promise.all([
         getConfigList('tipuri_lucrare'),
@@ -114,10 +119,19 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
       setCliniciOptions(clinici)
     }
     load()
-  }, [])
+  }, [esteAdmin])
 
   useEffect(() => {
     async function loadExtra() {
+      // Pentru tehnician, view-ul întoarce deja extra-urile fără prețuri și
+      // fără Try-in; tabelul `extra_uri` îi e inaccesibil.
+      if (!esteAdmin) {
+        setExtraSelectie(
+          (lucrare.extra_uri || []).map((e) => ({ extra_id: e.extra_id, nume: e.nume, mod_taxare: e.mod_taxare, cantitate: e.cantitate }))
+        )
+        setExtraToate([])
+        return
+      }
       const toate = await getExtraUri()
       const tryInId = toate.find((e) => e.sistem === 'try_in')?.id
       setExtraSelectie(
@@ -233,10 +247,10 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
               {statusLucrare && (
                 <span className={`badge ${statusLucrare.badgeClass}`}>{statusLucrare.label}</span>
               )}
-              {readOnly && <span className="badge badge-neutral">Arhivată</span>}
+              {lucrare.arhivat && <span className="badge badge-neutral">Arhivată</span>}
             </div>
             <p>{lucrare.nr_inregistrare}</p>
-            {readOnly && (
+            {lucrare.arhivat && (
               <p className="detail-panel-arhivat-hint">
                 Arhivată{lucrare.data_arhivare ? ` pe ${formatDataArhivare(lucrare.data_arhivare)}` : ''} — needitabilă, doar de consultat.
               </p>
@@ -249,15 +263,17 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
           </div>
 
           <div className="detail-panel-header-actions">
-            <button
-              type="button"
-              className="btn btn-ghost detail-panel-delete"
-              onClick={handleDelete}
-              disabled={readOnly}
-              title={readOnly ? 'Lucrare arhivată — needitabilă' : undefined}
-            >
-              Șterge lucrarea
-            </button>
+            {esteAdmin && (
+              <button
+                type="button"
+                className="btn btn-ghost detail-panel-delete"
+                onClick={handleDelete}
+                disabled={readOnly}
+                title={readOnly ? 'Lucrare arhivată — needitabilă' : undefined}
+              >
+                Șterge lucrarea
+              </button>
+            )}
             <button type="button" className="btn btn-ghost modal-close" onClick={onClose} aria-label="Închide">
               ✕
             </button>
@@ -521,10 +537,12 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
               arhivat={lucrare.arhivat}
               dataArhivare={lucrare.data_arhivare}
               onArhivat={onUpdated}
+              esteAdmin={esteAdmin}
+              tehnicianId={profile?.tehnician_id}
             />
           )}
 
-          {tab === 'galerie' && <GaleriePoze lucrareId={lucrare.id} readOnly={readOnly} />}
+          {tab === 'galerie' && <GaleriePoze lucrareId={lucrare.id} readOnly={!!lucrare.arhivat} />}
 
           {tab === 'chat' && (
             <div className="detail-tab-placeholder">

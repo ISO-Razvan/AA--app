@@ -5,14 +5,18 @@ import {
   addTehnician,
   updateTehnician,
   deleteTehnician,
+  getTehnicieniCuCont,
 } from '../services/dataService'
 import { configLivrare } from '../utils/etapaProductie'
+import ContTehnicianDialog from './ContTehnicianDialog.jsx'
 import './TehnicieniList.css'
 
 const FORM_INIT = { nume: '', roluri: [] }
 
-export default function TehnicieniList({ etapeRefreshSignal }) {
+export default function TehnicieniList({ etapeRefreshSignal, esteAdmin = false }) {
   const [tehnicieni, setTehnicieni] = useState([])
+  const [cuCont, setCuCont] = useState(new Set())
+  const [contDeschis, setContDeschis] = useState(null)
   const [etape, setEtape] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState(null) // null | 'new' | id
@@ -22,9 +26,14 @@ export default function TehnicieniList({ etapeRefreshSignal }) {
 
   const load = async () => {
     setLoading(true)
-    const [t, e] = await Promise.all([getTehnicieni(), getEtapeProductie()])
+    const [t, e, conturi] = await Promise.all([
+      getTehnicieni(),
+      getEtapeProductie(),
+      esteAdmin ? getTehnicieniCuCont() : Promise.resolve(new Set()),
+    ])
     setTehnicieni(t)
     setEtape(e)
+    setCuCont(conturi)
     setLoading(false)
   }
 
@@ -127,6 +136,16 @@ export default function TehnicieniList({ etapeRefreshSignal }) {
                 </div>
               </div>
               <div className="tehnicieni-actions">
+                {esteAdmin && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost tehnicieni-cont-btn"
+                    onClick={() => setContDeschis(t)}
+                    title={cuCont.has(t.id) ? 'Are deja cont — generează o parolă temporară nouă' : 'Creează un cont de autentificare'}
+                  >
+                    {cuCont.has(t.id) ? 'Resetează parola' : 'Creează cont'}
+                  </button>
+                )}
                 <button type="button" className="btn btn-ghost" onClick={() => startEdit(t)}>
                   Editează
                 </button>
@@ -195,6 +214,15 @@ export default function TehnicieniList({ etapeRefreshSignal }) {
         <button type="button" className="btn btn-secondary tehnicieni-add-btn" onClick={startAdd}>
           + Adaugă tehnician
         </button>
+      )}
+
+      {contDeschis && (
+        <ContTehnicianDialog
+          tehnician={contDeschis}
+          areCont={cuCont.has(contDeschis.id)}
+          onClose={() => setContDeschis(null)}
+          onDone={async () => setCuCont(await getTehnicieniCuCont())}
+        />
       )}
     </div>
   )

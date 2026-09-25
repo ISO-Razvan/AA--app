@@ -1,0 +1,52 @@
+.cont-tehnician-dialog {
+  max-width: 440px;
+}
+
+.cont-tehnician-date {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+}
+
+.cont-tehnician-date dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  align-self: center;
+}
+
+.cont-tehnician-date dd {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  word-break: break-all;
+}
+
+.cont-tehnician-avertisment {
+  margin-top: var(--space-3);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-warning-strong);
+}
+
+.cont-tehnician-nota {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  word-break: break-all;
+}
+
+.cont-tehnician-eroare {
+  margin-top: var(--space-3);
+  font-size: 0.85rem;
+  color: var(--color-danger-strong);
+}

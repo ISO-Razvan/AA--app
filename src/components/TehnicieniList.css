@@ -94,6 +94,11 @@
   flex-shrink: 0;
 }
 
+.tehnicieni-cont-btn {
+  color: var(--color-blue-strong);
+  white-space: nowrap;
+}
+
 .tehnicieni-delete-btn {
   color: var(--color-danger);
 }

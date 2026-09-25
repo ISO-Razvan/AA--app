@@ -1,5 +1,11 @@
 import { useState } from 'react'
+import SchimbaParolaDialog from './SchimbaParolaDialog.jsx'
 import './Sidebar.css'
+
+const NAV_TEHNICIAN = [
+  { id: 'task-urile-mele', label: 'Task-urile mele' },
+  { id: 'salariul-meu', label: 'Salariul meu' },
+]
 
 const NAV_GROUPS_ADMIN = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -39,6 +45,7 @@ export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) 
   // Panoul glisant de pe mobil (sub 880px) — închis implicit; desktop-ul nu
   // folosește deloc starea asta (sidebar-ul rămâne mereu vizibil acolo).
   const [mobilDeschis, setMobilDeschis] = useState(false)
+  const [schimbaParolaDeschis, setSchimbaParolaDeschis] = useState(false)
 
   const toggleGroup = (id) => {
     setExpandedGroups((prev) => {
@@ -97,14 +104,17 @@ export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) 
 
         <nav className="sidebar-nav" aria-label="Navigare principală">
           {esteTehnician ? (
-            <button
-              type="button"
-              className={`sidebar-nav-item ${activePage === 'task-urile-mele' ? 'active' : ''}`}
-              onClick={() => navigheaza('task-urile-mele')}
-              aria-current={activePage === 'task-urile-mele' ? 'page' : undefined}
-            >
-              Task-urile mele
-            </button>
+            NAV_TEHNICIAN.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`sidebar-nav-item ${activePage === item.id ? 'active' : ''}`}
+                onClick={() => navigheaza(item.id)}
+                aria-current={activePage === item.id ? 'page' : undefined}
+              >
+                {item.label}
+              </button>
+            ))
           ) : (
             NAV_GROUPS_ADMIN.map((item) =>
               item.children ? (
@@ -159,11 +169,18 @@ export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) 
             <span className="sidebar-account-name">{profile?.nume || (profile?.rol === 'admin' ? 'Administrator' : 'Tehnician')}</span>
             <span className="sidebar-account-rol">{profile?.rol === 'admin' ? 'Administrator' : 'Tehnician'}</span>
           </div>
-          <button type="button" className="btn btn-ghost sidebar-signout-btn" onClick={onSignOut}>
-            Deconectare
-          </button>
+          <div className="sidebar-account-actions">
+            <button type="button" className="btn btn-ghost sidebar-signout-btn" onClick={() => setSchimbaParolaDeschis(true)}>
+              Schimbă parola
+            </button>
+            <button type="button" className="btn btn-ghost sidebar-signout-btn" onClick={onSignOut}>
+              Deconectare
+            </button>
+          </div>
         </div>
       </aside>
+
+      {schimbaParolaDeschis && <SchimbaParolaDialog onClose={() => setSchimbaParolaDeschis(false)} />}
     </>
   )
 }

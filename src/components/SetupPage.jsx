@@ -67,7 +67,7 @@ export default function SetupPage({ profile, onDataChanged }) {
         <EtapeProductieList onChange={() => setEtapeRefreshSignal((v) => v + 1)} />
       </section>
       <section id="setup-tehnicieni" className="setup-section">
-        <TehnicieniList etapeRefreshSignal={etapeRefreshSignal} />
+        <TehnicieniList etapeRefreshSignal={etapeRefreshSignal} esteAdmin={profile?.rol === 'admin'} />
       </section>
       <section id="setup-tipuri" className="setup-section">
         <TipuriLucrareCosturi onChange={() => setTipuriRefreshSignal((v) => v + 1)} />

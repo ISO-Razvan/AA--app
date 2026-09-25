@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getEtapeProductie, getTehnicieni, getProductieLucrare, setProductieAlocare, updateLucrare } from '../services/dataService'
+import {
+  getEtapeProductie,
+  getTehnicieni,
+  getProductieLucrare,
+  setProductieAlocare,
+  setFinalizareEtapa,
+  updateLucrare,
+} from '../services/dataService'
 import { subscribeToTable } from '../services/realtime'
 import { statusDinRanduri } from '../utils/statusLucrare'
 import { configLivrare } from '../utils/etapaProductie'
@@ -21,7 +28,18 @@ function formatDataOra(iso) {
   return d.toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredare, arhivat, dataArhivare, onArhivat }) {
+// Tehnicianul (esteAdmin = false) poate bifa doar etapele alocate lui
+// (`tehnicianId`) — aceeași regulă e impusă și în baza de date.
+export default function ProductieTimeline({
+  lucrareId,
+  dataIntrare,
+  termenPredare,
+  arhivat,
+  dataArhivare,
+  onArhivat,
+  esteAdmin = false,
+  tehnicianId = null,
+}) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const [etape, setEtape] = useState([])
   const [tehnicieni, setTehnicieni] = useState([])
@@ -63,9 +81,16 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
       : null
   const depasesteTermenul = !!(ultimaDataPlanificata && termenPredare && ultimaDataPlanificata > termenPredare)
 
-  const handlePatch = async (etapaId, patch) => {
-    if (arhivat) return
-    const updated = await setProductieAlocare(lucrareId, etapaId, patch)
+  const poateBifa = (rand) => !arhivat && (esteAdmin || (!!tehnicianId && rand?.tehnician_id === tehnicianId))
+
+  const handleBifa = async (etapaId, finalizat) => {
+    const rand = randPentru(etapaId)
+    if (!poateBifa(rand)) return
+    // Pe un rând existent — doar bifa (singura scriere permisă tehnicianului);
+    // o etapă fără rând încă (ex. „Model") o poate bifa doar adminul.
+    const updated = rand
+      ? await setFinalizareEtapa(lucrareId, etapaId, finalizat)
+      : await setProductieAlocare(lucrareId, etapaId, { finalizat, data_finalizare: finalizat ? azi() : null })
     setRanduri((prev) => {
       const idx = prev.findIndex((r) => r.etapa_id === etapaId)
       if (idx === -1) return [...prev, updated]
@@ -165,17 +190,12 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
                 )}
               </span>
               {esteModel ? (
-                <label className={`productie-checkbox ${arhivat ? 'disabled' : ''}`}>
+                <label className={`productie-checkbox ${!poateBifa(rand) ? 'disabled' : ''}`}>
                   <input
                     type="checkbox"
                     checked={finalizat}
-                    disabled={arhivat}
-                    onChange={() =>
-                      handlePatch(etapa.id, {
-                        finalizat: !finalizat,
-                        data_finalizare: !finalizat ? azi() : null,
-                      })
-                    }
+                    disabled={!poateBifa(rand)}
+                    onChange={() => handleBifa(etapa.id, !finalizat)}
                   />
                   <span>Finalizat</span>
                 </label>
@@ -192,17 +212,12 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
                     </div>
                   </div>
                   {etapa.id === livrareAutoId && <p className="productie-din-termen">din termenul de predare</p>}
-                  <label className={`productie-checkbox productie-checkbox-etapa ${arhivat ? 'disabled' : ''}`}>
+                  <label className={`productie-checkbox productie-checkbox-etapa ${!poateBifa(rand) ? 'disabled' : ''}`}>
                     <input
                       type="checkbox"
                       checked={finalizat}
-                      disabled={arhivat}
-                      onChange={() =>
-                        handlePatch(etapa.id, {
-                          finalizat: !finalizat,
-                          data_finalizare: !finalizat ? azi() : null,
-                        })
-                      }
+                      disabled={!poateBifa(rand)}
+                      onChange={() => handleBifa(etapa.id, !finalizat)}
                     />
                     <span>Finalizat</span>
                   </label>
@@ -229,7 +244,7 @@ export default function ProductieTimeline({ lucrareId, dataIntrare, termenPredar
         </div>
       </div>
 
-      {etape.length > 0 && (
+      {esteAdmin && etape.length > 0 && (
         <div className="productie-arhivare">
           {arhivat ? (
             <>

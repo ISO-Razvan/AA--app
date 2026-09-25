@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getLucrari, getEtapeProductie, getProductieTehnician, setProductieAlocare } from '../services/dataService'
+import { getLucrari, getEtapeProductie, getProductieTehnician, setFinalizareEtapa } from '../services/dataService'
 import { azi } from '../utils/date'
 import CalendarLunar from './CalendarLunar.jsx'
 import PrintChecklist from './PrintChecklist.jsx'
@@ -70,11 +70,7 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
     .filter((s) => s.lucrare)
 
   const handleToggleFinalizat = async (alocare) => {
-    const nextFinalizat = !alocare.finalizat
-    const updated = await setProductieAlocare(alocare.lucrare_id, alocare.etapa_id, {
-      finalizat: nextFinalizat,
-      data_finalizare: nextFinalizat ? azi() : null,
-    })
+    const updated = await setFinalizareEtapa(alocare.lucrare_id, alocare.etapa_id, !alocare.finalizat)
     setAlocari((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
   }
 

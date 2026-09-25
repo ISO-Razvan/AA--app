@@ -1,8 +1,16 @@
 {
   "name": "aa--app",
+  "main": "worker/index.js",
   "compatibility_date": "2026-09-01",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  // Public (aceeași adresă ca VITE_SUPABASE_URL). Cheia de serviciu NU stă
+  // aici: se setează ca secret SUPABASE_SERVICE_ROLE_KEY în Cloudflare.
+  "vars": {
+    "SUPABASE_URL": "https://kuxcmmrxhppudbwiwmxv.supabase.co"
   }
 }

@@ -294,11 +294,32 @@ on conflict (nume) do nothing;
 -- medici și clinici nu au valori implicite — se adaugă liber din formular.
 
 -- ---------------------------------------------------------------------------
--- Securitate — Row Level Security. Doar utilizatorii autentificați (orice
--- rol) pot citi/scrie datele operaționale în această rundă — restricțiile
--- fine pe rol (ex. tehnicianul nu vede sumele financiare) se adaugă separat,
--- la runda următoare. Fără RLS, cheia "anon" ar da acces public la tot.
+-- Securitate — Row Level Security, pe roluri (profiles.rol). Fără RLS,
+-- cheia "anon" ar da acces public la tot. Toți utilizatorii logați au același
+-- rol de bază de date (`authenticated`), deci diferența admin/tehnician se
+-- face în politici, prin funcțiile de mai jos (security definer, ca să poată
+-- citi `profiles` indiferent de politicile acestuia).
 -- ---------------------------------------------------------------------------
+
+create or replace function public.este_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and rol = 'admin');
+$$;
+
+create or replace function public.tehnicianul_meu()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select tehnician_id from public.profiles where id = auth.uid() and rol = 'tehnician';
+$$;
 
 alter table tipuri_lucrare enable row level security;
 alter table extra_uri enable row level security;
@@ -316,17 +337,51 @@ alter table devize enable row level security;
 alter table deviz_lucrari enable row level security;
 alter table profiles enable row level security;
 
+-- Date financiare sau de preț — doar admin (citire și scriere). Tehnicianul
+-- citește lucrările prin view-ul `lucrari_vizibile` (mai jos), nu direct.
 do $$
 declare
   t text;
 begin
   for t in
-    select unnest(array[
-      'tipuri_lucrare', 'extra_uri', 'culori', 'medici', 'clinici', 'etape_productie',
-      'tehnicieni', 'comisioane', 'lucrari', 'productie_lucrare',
-      'poze_lucrare', 'linkuri_lucrare', 'devize', 'deviz_lucrari'
-    ])
+    select unnest(array['lucrari', 'comisioane', 'extra_uri', 'tipuri_lucrare', 'devize', 'deviz_lucrari'])
   loop
+    execute format(
+      'drop policy if exists "authenticated_all" on %I;
+       drop policy if exists "admin_all" on %I;
+       create policy "admin_all" on %I for all to authenticated
+         using ((select public.este_admin())) with check ((select public.este_admin()));',
+      t, t, t
+    );
+  end loop;
+end $$;
+
+-- Configurare fără prețuri — citire pentru toți cei logați, scriere doar admin.
+do $$
+declare
+  t text;
+begin
+  for t in
+    select unnest(array['tehnicieni', 'etape_productie', 'culori', 'medici', 'clinici'])
+  loop
+    execute format(
+      'drop policy if exists "authenticated_all" on %I;
+       drop policy if exists "citire_toti" on %I;
+       drop policy if exists "admin_all" on %I;
+       create policy "citire_toti" on %I for select to authenticated using (true);
+       create policy "admin_all" on %I for all to authenticated
+         using ((select public.este_admin())) with check ((select public.este_admin()));',
+      t, t, t, t, t
+    );
+  end loop;
+end $$;
+
+-- Galerie (poze, link-uri) — fără date financiare, accesibilă tuturor celor logați.
+do $$
+declare
+  t text;
+begin
+  for t in select unnest(array['poze_lucrare', 'linkuri_lucrare']) loop
     execute format(
       'drop policy if exists "authenticated_all" on %I;
        create policy "authenticated_all" on %I for all to authenticated using (true) with check (true);',
@@ -335,12 +390,156 @@ begin
   end loop;
 end $$;
 
--- profiles: un utilizator își poate citi doar propriul rând (suficient ca
--- aplicația să afle rolul la login); scrierea se face manual, din Supabase.
+-- Producție — citire pentru toți; adminul modifică orice; tehnicianul poate
+-- actualiza doar rândurile alocate lui, și doar bifa + data finalizării
+-- (restul coloanelor sunt blocate de triggerul de mai jos).
+drop policy if exists "authenticated_all" on productie_lucrare;
+drop policy if exists "citire_toti" on productie_lucrare;
+drop policy if exists "admin_all" on productie_lucrare;
+drop policy if exists "tehnician_finalizare" on productie_lucrare;
+create policy "citire_toti" on productie_lucrare for select to authenticated using (true);
+create policy "admin_all" on productie_lucrare for all to authenticated
+  using ((select public.este_admin())) with check ((select public.este_admin()));
+create policy "tehnician_finalizare" on productie_lucrare for update to authenticated
+  using (tehnician_id = (select public.tehnicianul_meu()))
+  with check (tehnician_id = (select public.tehnicianul_meu()));
+
+create or replace function public.protectie_productie_tehnician()
+returns trigger
+language plpgsql
+as $$
+begin
+  -- auth.uid() null = SQL Editor / cheia de serviciu / triggerul Livrare rulat de server.
+  if auth.uid() is null or public.este_admin() then
+    return new;
+  end if;
+  if new.id is distinct from old.id
+     or new.lucrare_id is distinct from old.lucrare_id
+     or new.etapa_id is distinct from old.etapa_id
+     or new.tehnician_id is distinct from old.tehnician_id
+     or new.data_planificata is distinct from old.data_planificata
+     or new.created_at is distinct from old.created_at then
+    raise exception 'Un tehnician poate modifica doar bifa Finalizat și data finalizării.' using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists productie_protectie_tehnician on productie_lucrare;
+create trigger productie_protectie_tehnician
+  before update on productie_lucrare
+  for each row execute function public.protectie_productie_tehnician();
+
+-- profiles: fiecare își citește propriul rând (rolul la login); adminul le
+-- vede pe toate (ca să știe ce tehnicieni au deja cont). Scrierea se face
+-- doar din funcția de server /api/creare-cont-tehnician (cheia de serviciu).
 drop policy if exists "select_own_profile" on profiles;
 create policy "select_own_profile" on profiles
   for select to authenticated
   using (auth.uid() = id);
+drop policy if exists "admin_citire" on profiles;
+create policy "admin_citire" on profiles
+  for select to authenticated
+  using ((select public.este_admin()));
+
+-- Lucrările pentru citire — toate coloanele pentru admin; pentru tehnician
+-- coloanele financiare vin goale, comisioanele ca listă goală, iar
+-- extra-urile doar cu nume + cantitate (fără prețuri și fără Try-in, afișat
+-- separat ca bifă). View-ul rulează cu drepturile proprietarului (ocolește
+-- politica admin-only de pe `lucrari`) și e doar de citit.
+create or replace view public.lucrari_vizibile
+with (security_barrier = true)
+as
+select
+  l.id,
+  l.nr_inregistrare,
+  l.clinica,
+  l.medic,
+  l.pacient,
+  l.tip_lucrare,
+  l.dinti,
+  l.nr_elemente,
+  l.culoare,
+  l.implant,
+  l.try_in,
+  l.model,
+  l.data_intrare,
+  l.termen_predare,
+  l.ora_programare,
+  l.next_date,
+  l.nota,
+  l.arhivat,
+  l.data_arhivare,
+  l.created_at,
+  case when r.admin then l.cost_laborator end as cost_laborator,
+  case when r.admin then l.incasare end as incasare,
+  case when r.admin then l.profit end as profit,
+  case when r.admin then l.pret_dinte_simplu end as pret_dinte_simplu,
+  case when r.admin then l.pret_dinte_implant end as pret_dinte_implant,
+  case when r.admin then l.comisioane else '[]'::jsonb end as comisioane,
+  case
+    when r.admin then l.extra_uri
+    else coalesce((
+      select jsonb_agg(
+        jsonb_build_object('extra_id', x.e -> 'extra_id', 'nume', x.e -> 'nume', 'cantitate', x.e -> 'cantitate', 'mod_taxare', x.e -> 'mod_taxare')
+        order by x.ord
+      )
+      from jsonb_array_elements(l.extra_uri) with ordinality as x(e, ord)
+      where not exists (
+        select 1 from public.extra_uri s where s.id::text = x.e ->> 'extra_id' and s.sistem is not null
+      )
+    ), '[]'::jsonb)
+  end as extra_uri
+from public.lucrari l
+cross join (select public.este_admin() as admin, public.tehnicianul_meu() as tehnician) r
+where r.admin or r.tehnician is not null;
+
+revoke all on public.lucrari_vizibile from anon, authenticated;
+grant select on public.lucrari_vizibile to authenticated;
+
+-- Salariul tehnicianului logat — doar comisioanele LUI (auth.uid() →
+-- profiles.tehnician_id), din etapele finalizate în luna cerută ('AAAA-LL'),
+-- cu suma etapei respective din instantaneul lucrării. Nimic despre alți
+-- tehnicieni sau alte etape nu iese din funcție.
+create or replace function public.salariul_meu(p_luna text)
+returns table (
+  lucrare_id uuid,
+  nr_inregistrare text,
+  medic text,
+  pacient text,
+  tip_lucrare text,
+  nr_elemente integer,
+  etapa_id uuid,
+  etapa_nume text,
+  etapa_ordine integer,
+  data_finalizare date,
+  suma numeric
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    l.id, l.nr_inregistrare, l.medic, l.pacient, l.tip_lucrare, l.nr_elemente,
+    e.id, e.nume, e.ordine, p.data_finalizare,
+    coalesce((
+      select (c ->> 'suma')::numeric
+      from jsonb_array_elements(l.comisioane) c
+      where c ->> 'etapa_id' = p.etapa_id::text
+      limit 1
+    ), 0)
+  from public.productie_lucrare p
+  join public.lucrari l on l.id = p.lucrare_id
+  left join public.etape_productie e on e.id = p.etapa_id
+  where p.tehnician_id = public.tehnicianul_meu()
+    and p.finalizat
+    and to_char(p.data_finalizare, 'YYYY-MM') = p_luna
+  order by p.data_finalizare desc;
+$$;
+
+revoke all on function public.salariul_meu(text) from public, anon;
+grant execute on function public.salariul_meu(text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Etapa „Livrare" — planificată automat din termenul de predare. Sursa unică

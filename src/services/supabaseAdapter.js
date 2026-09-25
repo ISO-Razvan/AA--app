@@ -51,8 +51,11 @@ async function generateNrInregistrare() {
   return `AA-${String(max + 1).padStart(3, '0')}`
 }
 
+// Citirea lucrărilor se face din view-ul `lucrari_vizibile` (vezi schema.sql):
+// adminul primește toate coloanele, tehnicianul primește coloanele financiare
+// goale. Tabelul `lucrari` în sine e accesibil direct doar adminului.
 async function getLucrari() {
-  const { data, error } = await supabase.from('lucrari').select('*').order('created_at', { ascending: true })
+  const { data, error } = await supabase.from('lucrari_vizibile').select('*').order('created_at', { ascending: true })
   fail(error, 'Nu s-au putut încărca lucrările')
   return data || []
 }
@@ -663,6 +666,57 @@ async function getToateAlocarile() {
   return data || []
 }
 
+// Doar bifa „Finalizat" pe un rând existent (UPDATE, nu upsert) — singura
+// scriere pe producție permisă unui tehnician, și doar pe rândurile lui.
+async function setFinalizareEtapa(lucrareId, etapaId, finalizat) {
+  const { data, error } = await supabase
+    .from('productie_lucrare')
+    .update({ finalizat, data_finalizare: finalizat ? todayISO() : null })
+    .eq('lucrare_id', lucrareId)
+    .eq('etapa_id', etapaId)
+    .select()
+    .single()
+  fail(error, 'Nu s-a putut salva bifa Finalizat')
+  return data
+}
+
+// Comisioanele tehnicianului logat pentru luna 'AAAA-LL' — calculate în baza
+// de date (RPC `salariul_meu`), fără acces la datele altor tehnicieni.
+async function getSalariulMeu(luna) {
+  const { data, error } = await supabase.rpc('salariul_meu', { p_luna: luna })
+  fail(error, 'Nu s-a putut încărca salariul')
+  return data || []
+}
+
+// Id-urile tehnicienilor care au deja cont (rând în `profiles`) — vizibil
+// doar pentru admin (politica „admin_citire").
+async function getTehnicieniCuCont() {
+  const { data, error } = await supabase.from('profiles').select('tehnician_id').not('tehnician_id', 'is', null)
+  fail(error, 'Nu s-au putut încărca conturile tehnicienilor')
+  return new Set((data || []).map((p) => p.tehnician_id))
+}
+
+// Creează contul tehnicianului sau îi resetează parola — prin funcția de
+// server (Worker), care verifică rolul de admin și folosește cheia de serviciu.
+async function creeazaContTehnician(tehnicianId, parola) {
+  const { data: sesiune } = await supabase.auth.getSession()
+  const token = sesiune.session?.access_token
+  if (!token) throw new Error('Sesiunea a expirat — autentifică-te din nou.')
+  let raspuns
+  try {
+    raspuns = await fetch('/api/creare-cont-tehnician', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ tehnician_id: tehnicianId, parola }),
+    })
+  } catch {
+    throw new Error('Serverul nu a putut fi contactat.')
+  }
+  const body = await raspuns.json().catch(() => null)
+  if (!raspuns.ok || !body) throw new Error(body?.eroare || `Serverul a răspuns cu eroarea ${raspuns.status}.`)
+  return body
+}
+
 async function setProductieAlocare(lucrareId, etapaId, patch) {
   const row = { lucrare_id: lucrareId, etapa_id: etapaId, ...golAsNull(patch, ['data_planificata', 'data_finalizare']) }
   const { data, error } = await supabase
@@ -948,6 +1002,10 @@ export const supabaseAdapter = {
   getProductieTehnician,
   getToateAlocarile,
   setProductieAlocare,
+  setFinalizareEtapa,
+  getSalariulMeu,
+  getTehnicieniCuCont,
+  creeazaContTehnician,
   getPozeLucrare,
   addPozaLucrare,
   deletePozaLucrare,
