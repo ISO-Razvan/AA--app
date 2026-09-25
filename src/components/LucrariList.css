@@ -169,7 +169,8 @@
 }
 
 .lucrari-table-nr {
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--color-blue-strong);
   white-space: nowrap;
 }
@@ -215,9 +216,9 @@
   width: 36px;
   height: 36px;
   flex-shrink: 0;
-  border: none;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-text-muted);
   transition: background-color 0.12s ease, color 0.12s ease;
 }
@@ -239,9 +240,9 @@
   width: 36px;
   height: 36px;
   flex-shrink: 0;
-  border: none;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-text-muted);
   transition: background-color 0.12s ease, color 0.12s ease;
 }
@@ -334,8 +335,15 @@
 }
 
 .lucrare-card-nr {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-blue-strong);
+}
+
+.lucrare-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.8rem;
 }
 
 .lucrare-card-livrare {
@@ -343,9 +351,8 @@
   font-weight: 600;
 }
 
-.lucrare-card-tip {
+.lucrare-card-pacient {
   font-size: 1.05rem;
-  font-weight: 700;
 }
 
 .lucrare-card-line {

@@ -209,20 +209,23 @@ export default function LucrariKanban({ lucrari, onRowClick }) {
                       onOpen={() => onRowClick(lucrare)}
                     >
                       <div className="kanban-card-top">
-                        <span className="kanban-card-nr">{lucrare.nr_inregistrare}</span>
+                        <span className="kanban-card-pacient rezumat-pacient">{lucrare.pacient || '—'}</span>
                         {tehnician && (
                           <span className="kanban-card-tehnician" title={tehnician.nume}>
                             {initiale(tehnician.nume)}
                           </span>
                         )}
                       </div>
-                      <p className="kanban-card-tip">{lucrare.tip_lucrare}</p>
-                      <p className="kanban-card-pacient">{lucrare.pacient || '—'}</p>
-                      <span
-                        className={`kanban-card-termen ${depasit ? 'kanban-card-termen-depasit' : ''} ${urgent ? 'kanban-card-termen-urgent' : ''}`}
-                      >
-                        {formatData(lucrare.termen_predare)}
-                      </span>
+                      <p className="kanban-card-medic rezumat-medic">{lucrare.medic || '—'}</p>
+                      <p className="kanban-card-tip rezumat-tip">{lucrare.tip_lucrare}</p>
+                      <div className="kanban-card-meta">
+                        <span className="kanban-card-nr">{lucrare.nr_inregistrare}</span>
+                        <span
+                          className={`kanban-card-termen ${depasit ? 'kanban-card-termen-depasit' : ''} ${urgent ? 'kanban-card-termen-urgent' : ''}`}
+                        >
+                          {formatData(lucrare.termen_predare)}
+                        </span>
+                      </div>
                     </KanbanCard>
                   )
                 })}

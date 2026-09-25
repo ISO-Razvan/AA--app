@@ -108,7 +108,7 @@ export default function EtapeProductieList({ onChange }) {
                       </button>
                       <button
                         type="button"
-                        className="btn btn-ghost etape-delete-btn"
+                        className="btn btn-outline-danger etape-delete-btn"
                         onClick={() => handleDelete(etapa.id)}
                         aria-label={`Șterge „${etapa.nume}”`}
                       >

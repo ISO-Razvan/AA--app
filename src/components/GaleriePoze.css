@@ -209,9 +209,9 @@
   height: 40px;
   min-height: 0;
   padding: 0;
-  border: none;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-text-muted);
   font-size: 0.85rem;
   transition: background-color 0.12s ease, color 0.12s ease;
@@ -250,7 +250,9 @@
   opacity: 0.85;
 }
 
-.galerie-lightbox-close {
+/* .btn.… — stilul general .btn-ghost (fundal alb) e gândit pentru fundal
+   deschis; aici butonul stă pe overlay-ul întunecat al pozei mărite. */
+.btn.galerie-lightbox-close {
   position: absolute;
   top: var(--space-4);
   right: var(--space-4);
@@ -259,13 +261,16 @@
   min-height: 0;
   padding: 0;
   border-radius: var(--radius-pill);
+  border-color: rgba(255, 255, 255, 0.45);
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   font-size: 1.1rem;
 }
 
-.galerie-lightbox-close:hover {
+.btn.galerie-lightbox-close:hover {
   background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #fff;
 }
 
 @media (max-width: 480px) {

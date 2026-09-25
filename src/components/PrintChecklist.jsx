@@ -1,11 +1,6 @@
 import { createPortal } from 'react-dom'
 import './PrintChecklist.css'
 
-function clientLabel(l) {
-  const parts = [l.clinica, l.medic].filter(Boolean)
-  return parts.length > 0 ? parts.join(' — ') : '—'
-}
-
 export default function PrintChecklist({ tehnician, dataLabel, sarcini, onClose }) {
   return createPortal(
     <div className="print-overlay">
@@ -31,11 +26,15 @@ export default function PrintChecklist({ tehnician, dataLabel, sarcini, onClose 
                 <span className="print-checkbox" aria-hidden="true">☐</span>
                 <div className="print-sheet-item-body">
                   <p className="print-sheet-item-top">
-                    <span className="print-sheet-nr">{lucrare.nr_inregistrare}</span>
+                    <span className="print-sheet-pacient rezumat-pacient">{lucrare.pacient || '—'}</span>
                     {etapa && <span className="print-sheet-etapa">{etapa.nume}</span>}
                   </p>
-                  <p className="print-sheet-sub">{lucrare.tip_lucrare}</p>
-                  <p className="print-sheet-sub">Pacient: {lucrare.pacient || '—'} · {clientLabel(lucrare)}</p>
+                  <p className="print-sheet-sub rezumat-medic">{lucrare.medic || '—'}</p>
+                  <p className="print-sheet-sub rezumat-tip">{lucrare.tip_lucrare}</p>
+                  <p className="print-sheet-sub">
+                    <span className="print-sheet-nr">{lucrare.nr_inregistrare}</span>
+                    {lucrare.clinica && ` · ${lucrare.clinica}`}
+                  </p>
                 </div>
               </li>
             ))}

@@ -120,18 +120,20 @@
   flex-wrap: wrap;
 }
 
+.taskuri-sarcina-pacient {
+  font-size: 1rem;
+}
+
 .taskuri-sarcina-nr {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-blue-strong);
 }
 
-.taskuri-sarcina-tip {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--color-text);
+.taskuri-sarcina-line {
+  font-size: 0.9rem;
 }
 
-.taskuri-sarcina-line {
-  font-size: 0.85rem;
+.taskuri-sarcina-meta {
+  font-size: 0.78rem;
   color: var(--color-text-secondary);
 }

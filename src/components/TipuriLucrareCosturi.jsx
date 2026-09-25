@@ -221,7 +221,7 @@ export default function TipuriLucrareCosturi({ onChange }) {
                     <td>
                       <button
                         type="button"
-                        className="btn btn-ghost costuri-delete-btn"
+                        className="btn btn-outline-danger costuri-delete-btn"
                         onClick={() => handleDelete(tip.id)}
                         aria-label={`Șterge „${tip.nume}”`}
                       >

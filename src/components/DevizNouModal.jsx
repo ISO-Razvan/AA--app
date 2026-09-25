@@ -164,15 +164,18 @@ export default function DevizNouModal({ onClose, onGenerated }) {
                   <label className="deviz-nou-item-label">
                     <input type="checkbox" checked={selectate.has(l.id)} onChange={() => toggleSelectie(l.id)} />
                     <div className="deviz-nou-item-body">
+                      <div className="deviz-nou-item-principal">
+                        <span className="deviz-nou-item-pacient rezumat-pacient">{l.pacient || '—'}</span>
+                        <span className="rezumat-medic">{l.medic || '—'}</span>
+                        <span className="rezumat-tip">{l.tip_lucrare}</span>
+                      </div>
                       <div className="deviz-nou-item-top">
                         <span className="deviz-nou-item-nr">{l.nr_inregistrare}</span>
+                        <span className="deviz-nou-item-sub">{formatData(l.data_intrare)}</span>
                         <span className={`badge ${l.status.badgeClass}`}>{l.status.label}</span>
                         {l.status.id === 'in_lucru' && <span className="badge badge-warning">Neterminată</span>}
                         {idsFacturate.has(l.id) && <span className="badge badge-neutral">Deja facturată</span>}
                       </div>
-                      <p className="deviz-nou-item-sub">
-                        {l.tip_lucrare} · Pacient: {l.pacient || '—'} · Medic: {l.medic || '—'} · {formatData(l.data_intrare)}
-                      </p>
                     </div>
                   </label>
                   <span className="deviz-nou-item-suma">{formatSuma(l.incasare)}</span>

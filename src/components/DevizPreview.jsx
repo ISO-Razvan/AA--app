@@ -45,13 +45,15 @@ function defalcareLucrare(l) {
   return randuri
 }
 
+// Antetul unei lucrări din deviz, după pacient (afișat separat, îngroșat):
+// medic, tip lucrare, apoi nr. înregistrare, clinică, dată.
 function antetLucrare(l) {
   if (!l) return []
   return [
-    l.pacient && `Pacient: ${l.pacient}`,
     l.medic && `Medic: ${l.medic}`,
-    l.clinica && `Clinică: ${l.clinica}`,
     l.tip_lucrare,
+    l.nr_inregistrare,
+    l.clinica && `Clinică: ${l.clinica}`,
     formatData(l.data_intrare),
   ].filter(Boolean)
 }
@@ -82,7 +84,7 @@ export default function DevizPreview({ deviz, onClose }) {
   const handleDescarca = () => {
     const randuriHTML = randuri
       .map((r) => {
-        const antet = `<tr style="background:#F2F4FB;"><td colspan="4"><strong>${escapeHTML(r.lucrare?.nr_inregistrare)}</strong> · ${antetLucrare(r.lucrare).map(escapeHTML).join(' · ')}</td></tr>`
+        const antet = `<tr style="background:#F2F4FB;"><td colspan="4"><strong>${escapeHTML(r.lucrare?.pacient || '—')}</strong> · ${antetLucrare(r.lucrare).map(escapeHTML).join(' · ')}</td></tr>`
         const detalii = defalcareLucrare(r.lucrare)
           .map(
             (d) => `<tr>
@@ -178,7 +180,7 @@ export default function DevizPreview({ deviz, onClose }) {
               <tbody key={r.id} className="deviz-lucrare">
                 <tr className="deviz-lucrare-antet">
                   <td colSpan={4}>
-                    <strong>{r.lucrare?.nr_inregistrare}</strong>
+                    <strong>{r.lucrare?.pacient || '—'}</strong>
                     {antetLucrare(r.lucrare).map((t, i) => (
                       <span key={i}> · {t}</span>
                     ))}

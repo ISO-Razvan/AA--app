@@ -12,11 +12,6 @@ function formatZiLunga(dataStr) {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-function clientLabel(l) {
-  const parts = [l.clinica, l.medic].filter(Boolean)
-  return parts.length > 0 ? parts.join(' — ') : '—'
-}
-
 // Conținutul comun al vederii „sarcinile unui tehnician, pe zi" — calendar
 // lunar + lista zilei + bifare finalizat + print checklist. Reutilizat atât
 // în modalul de manager (TaskuriTehnicianModal), cât și în pagina
@@ -105,15 +100,18 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
                 </label>
                 <button type="button" className="taskuri-sarcina-row" onClick={() => onOpenLucrare(lucrare)}>
                   <div className="taskuri-sarcina-top">
-                    <span className="taskuri-sarcina-nr">{lucrare.nr_inregistrare}</span>
+                    <span className="taskuri-sarcina-pacient rezumat-pacient">{lucrare.pacient || '—'}</span>
                     <div className="taskuri-sarcina-top-badges">
                       {etapa && <span className="badge badge-purple">{etapa.nume}</span>}
                       {alocare.finalizat && <span className="badge badge-success">Finalizat</span>}
                     </div>
                   </div>
-                  <p className="taskuri-sarcina-tip">{lucrare.tip_lucrare}</p>
-                  <p className="taskuri-sarcina-line">Pacient: {lucrare.pacient || '—'}</p>
-                  <p className="taskuri-sarcina-line">{clientLabel(lucrare)}</p>
+                  <p className="taskuri-sarcina-line rezumat-medic">{lucrare.medic || '—'}</p>
+                  <p className="taskuri-sarcina-line rezumat-tip">{lucrare.tip_lucrare}</p>
+                  <p className="taskuri-sarcina-line taskuri-sarcina-meta">
+                    <span className="taskuri-sarcina-nr">{lucrare.nr_inregistrare}</span>
+                    {lucrare.clinica && ` · ${lucrare.clinica}`}
+                  </p>
                 </button>
                 <DeschideFisaButton className="taskuri-sarcina-fisa" onClick={() => onOpenLucrare(lucrare)} />
               </li>

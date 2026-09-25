@@ -78,9 +78,23 @@
   cursor: pointer;
 }
 
+/* Primul rând: Pacient (cel mai proeminent) · Medic · Tip lucrare. */
+.taskuri-zi-sarcina-principal {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.taskuri-zi-pacient {
+  font-size: 1.02rem;
+}
+
 .taskuri-zi-sarcina-nr {
-  font-weight: 700;
-  font-size: 0.9rem;
+  font-weight: 600;
+  font-size: 0.82rem;
   color: var(--color-blue-strong);
 }
 
@@ -104,8 +118,8 @@
   flex-wrap: wrap;
   column-gap: var(--space-4);
   row-gap: var(--space-2);
-  font-size: 0.88rem;
-  color: var(--color-text);
+  font-size: 0.84rem;
+  color: var(--color-text-secondary);
 }
 
 .taskuri-zi-info-label {

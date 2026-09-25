@@ -15,11 +15,6 @@ function formatData(dataStr) {
   return `${zi}.${luna}.${an}`
 }
 
-function clientLabel(l) {
-  const parts = [l.clinica, l.medic].filter(Boolean)
-  return parts.length > 0 ? parts.join(' — ') : '—'
-}
-
 function detaliiLabel(l) {
   const parts = []
   if (l.culoare) parts.push(l.culoare)
@@ -112,8 +107,10 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
     switch (field) {
       case 'nr_inregistrare':
         return l.nr_inregistrare || ''
-      case 'client':
-        return clientLabel(l)
+      case 'medic':
+        return l.medic || ''
+      case 'clinica':
+        return l.clinica || ''
       case 'pacient':
         return l.pacient || ''
       case 'data_intrare':
@@ -380,13 +377,14 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
             <table className="lucrari-table">
               <thead>
                 <tr>
-                  {renderTh('nr_inregistrare', 'Nr. înreg.')}
-                  {renderTh('client', 'Client')}
                   {renderTh('pacient', 'Pacient')}
+                  {renderTh('medic', 'Medic')}
+                  {renderTh('tip_lucrare', 'Tip lucrare')}
+                  {renderTh('nr_inregistrare', 'Nr. înreg.')}
+                  {renderTh('clinica', 'Clinică', 'lucrari-col-optional')}
                   {renderTh('data_intrare', 'Data intrare', 'lucrari-col-optional')}
                   {renderTh('termen_predare', 'Termene')}
                   {renderTh('status', 'Status')}
-                  {renderTh('tip_lucrare', 'Tip lucrare')}
                   <th className="lucrari-col-optional lucrari-th-plain">Detalii</th>
                   <th className="lucrari-col-optional lucrari-th-plain">Notă</th>
                   <th className="lucrari-th-plain" aria-label="Acțiuni" />
@@ -397,9 +395,11 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                   const status = statusPentru(l.id)
                   return (
                     <tr key={l.id} className="lucrari-table-row" onClick={() => onRowClick(l)} tabIndex={0}>
+                      <td className="rezumat-pacient">{l.pacient || '—'}</td>
+                      <td className="rezumat-medic">{l.medic || '—'}</td>
+                      <td className="rezumat-tip">{l.tip_lucrare}</td>
                       <td className="lucrari-table-nr">{l.nr_inregistrare}</td>
-                      <td>{clientLabel(l)}</td>
-                      <td>{l.pacient || '—'}</td>
+                      <td className="lucrari-col-optional">{l.clinica || '—'}</td>
                       <td className="lucrari-col-optional">{formatData(l.data_intrare)}</td>
                       <td className="lucrari-table-livrare">
                         <span className="lucrari-termene-row">
@@ -412,7 +412,6 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                         </span>
                       </td>
                       <td><span className={`badge ${status.badgeClass}`}>{status.label}</span></td>
-                      <td>{l.tip_lucrare}</td>
                       <td className="lucrari-col-optional"><span className="badge badge-neutral">{detaliiLabel(l)}</span></td>
                       <td className="lucrari-col-optional lucrari-table-nota">{l.nota || '—'}</td>
                       <td>
@@ -453,9 +452,8 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
               return (
               <li key={l.id} className="card lucrare-card" onClick={() => onRowClick(l)}>
                 <div className="lucrare-card-top">
-                  <span className="lucrare-card-nr">{l.nr_inregistrare}</span>
+                  <h3 className="lucrare-card-pacient rezumat-pacient">{l.pacient || '—'}</h3>
                   <div className="lucrare-card-top-right">
-                    <span className="lucrare-card-livrare">Termen: {formatData(l.termen_predare)}</span>
                     {l.arhivat ? (
                       <button
                         type="button"
@@ -481,9 +479,13 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                     )}
                   </div>
                 </div>
-                <h3 className="lucrare-card-tip">{l.tip_lucrare}</h3>
-                <p className="lucrare-card-line">{clientLabel(l)}</p>
-                <p className="lucrare-card-line">Pacient: {l.pacient || '—'}</p>
+                <p className="lucrare-card-line rezumat-medic">{l.medic || '—'}</p>
+                <p className="lucrare-card-line rezumat-tip">{l.tip_lucrare}</p>
+                <p className="lucrare-card-meta">
+                  <span className="lucrare-card-nr">{l.nr_inregistrare}</span>
+                  <span className="lucrare-card-livrare">Termen: {formatData(l.termen_predare)}</span>
+                </p>
+                {l.clinica && <p className="lucrare-card-line">{l.clinica}</p>}
                 <div className="lucrare-badges">
                   <span className={`badge ${status.badgeClass}`}>{status.label}</span>
                   <span className="badge badge-neutral">{detaliiLabel(l)}</span>

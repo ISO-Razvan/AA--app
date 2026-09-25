@@ -9,6 +9,7 @@ import {
   getEtapeProductie,
   getProductieLucrare,
   getExtraUri,
+  recalculeazaLucrare,
 } from '../services/dataService'
 import { MODEL_OPTIONS } from '../data/configDefaults'
 import { calculeazaDinti, dinDintiSalvati, toggleImplant, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
@@ -86,6 +87,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
 
   const [savedAt, setSavedAt] = useState(null)
   const [statusLucrare, setStatusLucrare] = useState(null)
+  const [recalculare, setRecalculare] = useState(null) // null | 'ruleaza' | 'gata' | mesaj de eroare
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -174,6 +176,27 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
     await onUpdated?.()
   }
 
+  // Reface încasarea/costul/comisioanele acestei lucrări cu numărul de
+  // elemente actual și prețurile curente din Setup (ex. după corectarea
+  // numărului de elemente) — fără să atingă celelalte lucrări.
+  const handleRecalculeaza = async () => {
+    const ok = await confirm(
+      `Se recalculează încasarea, costul și comisioanele lucrării ${lucrare.nr_inregistrare} cu numărul de elemente actual (${nrElemente}) și prețurile curente din Setup. Devizele deja generate nu se modifică.`,
+      { title: 'Recalculezi valorile financiare?', confirmLabel: 'Recalculează' }
+    )
+    if (!ok) return
+    setRecalculare('ruleaza')
+    try {
+      // Numărul afișat poate fi tastat dar încă nesalvat (se salvează la blur).
+      await updateLucrare(lucrare.id, { nr_elemente: nrElemente })
+      await recalculeazaLucrare(lucrare.id)
+      setRecalculare('gata')
+      await onUpdated?.()
+    } catch (err) {
+      setRecalculare(err.message || 'Recalcularea a eșuat.')
+    }
+  }
+
   const handleDelete = async () => {
     if (readOnly) return
     const ok = await confirm(
@@ -243,12 +266,17 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
         <header className="detail-panel-header">
           <div className="detail-panel-title">
             <div className="detail-panel-title-row">
-              <h2>{lucrare.tip_lucrare || 'Lucrare'}</h2>
+              <h2>{pacient || 'Pacient necompletat'}</h2>
               {statusLucrare && (
                 <span className={`badge ${statusLucrare.badgeClass}`}>{statusLucrare.label}</span>
               )}
               {lucrare.arhivat && <span className="badge badge-neutral">Arhivată</span>}
             </div>
+            <p className="detail-panel-subtitlu">
+              <span className="rezumat-medic">{medic || 'Medic necompletat'}</span>
+              <span className="detail-panel-subtitlu-sep" aria-hidden="true">·</span>
+              <span className="rezumat-tip">{tipLucrare || '—'}</span>
+            </p>
             <p>{lucrare.nr_inregistrare}</p>
             {lucrare.arhivat && (
               <p className="detail-panel-arhivat-hint">
@@ -263,10 +291,27 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
           </div>
 
           <div className="detail-panel-header-actions">
+            {esteAdmin && !readOnly && (
+              <div className="detail-recalculare">
+                <button
+                  type="button"
+                  className="btn btn-secondary detail-recalculare-btn"
+                  onClick={handleRecalculeaza}
+                  disabled={recalculare === 'ruleaza'}
+                  title="Reface încasarea, costul și comisioanele acestei lucrări cu numărul de elemente actual și prețurile curente din Setup"
+                >
+                  {recalculare === 'ruleaza' ? 'Se recalculează…' : 'Recalculează valorile'}
+                </button>
+                {recalculare === 'gata' && <span className="detail-recalculare-ok">✓ Valori recalculate</span>}
+                {recalculare && recalculare !== 'ruleaza' && recalculare !== 'gata' && (
+                  <span className="detail-recalculare-eroare">{recalculare}</span>
+                )}
+              </div>
+            )}
             {esteAdmin && (
               <button
                 type="button"
-                className="btn btn-ghost detail-panel-delete"
+                className="btn btn-outline-danger detail-panel-delete"
                 onClick={handleDelete}
                 disabled={readOnly}
                 title={readOnly ? 'Lucrare arhivată — needitabilă' : undefined}

@@ -130,9 +130,17 @@
 }
 
 .kanban-card-nr {
-  font-weight: 700;
-  font-size: 0.85rem;
+  font-weight: 600;
+  font-size: 0.75rem;
   color: var(--color-blue-strong);
+}
+
+.kanban-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: 2px;
 }
 
 .kanban-card-tehnician {
@@ -149,15 +157,14 @@
   font-weight: 700;
 }
 
-.kanban-card-tip {
-  font-weight: 600;
-  font-size: 0.88rem;
-  color: var(--color-text);
+.kanban-card-pacient {
+  font-size: 0.9rem;
+  min-width: 0;
 }
 
-.kanban-card-pacient {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
+.kanban-card-medic,
+.kanban-card-tip {
+  font-size: 0.82rem;
 }
 
 .kanban-card-termen {

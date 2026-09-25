@@ -14,11 +14,6 @@ function lunaCurenta() {
   return { an: Number(an), luna: Number(luna) }
 }
 
-function clientLabel(l) {
-  const parts = [l.clinica, l.medic].filter(Boolean)
-  return parts.length > 0 ? parts.join(' — ') : '—'
-}
-
 export default function FinanciarPrezentare({ onOpenLucrare }) {
   const [lucrari, setLucrari] = useState([])
   const [loading, setLoading] = useState(true)
@@ -142,20 +137,22 @@ export default function FinanciarPrezentare({ onOpenLucrare }) {
             <table className="financiar-table">
               <thead>
                 <tr>
-                  <th>Nr. înreg.</th>
                   <th>Pacient</th>
+                  <th>Medic</th>
                   <th>Tip lucrare</th>
-                  <th>Clinică / Medic</th>
+                  <th>Nr. înreg.</th>
+                  <th>Clinică</th>
                   <th>Valoare</th>
                 </tr>
               </thead>
               <tbody>
                 {top10.map((l) => (
                   <tr key={l.id} className="financiar-table-row" onClick={() => onOpenLucrare?.(l)} tabIndex={0}>
+                    <td className="rezumat-pacient">{l.pacient || '—'}</td>
+                    <td className="rezumat-medic">{l.medic || '—'}</td>
+                    <td className="rezumat-tip">{l.tip_lucrare}</td>
                     <td className="financiar-table-nr">{l.nr_inregistrare}</td>
-                    <td>{l.pacient || '—'}</td>
-                    <td>{l.tip_lucrare}</td>
-                    <td>{clientLabel(l)}</td>
+                    <td>{l.clinica || '—'}</td>
                     <td className="financiar-table-suma">{formatSuma(l.incasare)}</td>
                   </tr>
                 ))}

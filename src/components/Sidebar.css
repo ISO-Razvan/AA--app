@@ -135,6 +135,7 @@
 }
 
 .sidebar-account-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -155,20 +156,26 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar-account-actions {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
+  gap: var(--space-1);
 }
 
-.sidebar-signout-btn {
+/* .btn.… — stilul general .btn (index.css, încărcat după acest fișier)
+   ar impune altfel înălțimea și fontul mare al butoanelor obișnuite. */
+.btn.sidebar-signout-btn {
   flex-shrink: 0;
-  min-height: 36px;
-  padding: 0 var(--space-3);
-  font-size: 0.8rem;
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  font-size: 0.72rem;
 }
 
 /* Bara compactă (siglă + hamburger) — singura parte a navigării vizibilă

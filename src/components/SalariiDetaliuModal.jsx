@@ -107,8 +107,8 @@ export function SalariuDetaliuContinut({ randuri, onOpenLucrare }) {
                 <table className="salarii-detaliu-tabel salarii-detaliu-tabel-lucrari">
                   <thead>
                     <tr>
-                      <th>Medic</th>
                       <th>Pacient</th>
+                      <th>Medic</th>
                       <th>Tip lucrare</th>
                       <th className="salarii-detaliu-num">Nr. elemente</th>
                     </tr>
@@ -123,9 +123,9 @@ export function SalariuDetaliuContinut({ randuri, onOpenLucrare }) {
                         onKeyDown={(e) => { if (e.key === 'Enter') handleRowClick(l) }}
                         title={`${l.nr_inregistrare} — deschide fișa`}
                       >
-                        <td>{l.medic || '—'}</td>
-                        <td>{l.pacient || '—'}</td>
-                        <td>{l.tip_lucrare || '—'}</td>
+                        <td className="rezumat-pacient">{l.pacient || '—'}</td>
+                        <td className="rezumat-medic">{l.medic || '—'}</td>
+                        <td className="rezumat-tip">{l.tip_lucrare || '—'}</td>
                         <td className="salarii-detaliu-num">{l.nr_elemente ?? 0}</td>
                       </tr>
                     ))}

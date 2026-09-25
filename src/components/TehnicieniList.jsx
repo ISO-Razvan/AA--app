@@ -151,7 +151,7 @@ export default function TehnicieniList({ etapeRefreshSignal, esteAdmin = false }
                 </button>
                 <button
                   type="button"
-                  className="btn btn-ghost tehnicieni-delete-btn"
+                  className="btn btn-outline-danger tehnicieni-delete-btn"
                   onClick={() => handleDelete(t.id)}
                 >
                   Șterge

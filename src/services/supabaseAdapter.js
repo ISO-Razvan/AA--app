@@ -444,15 +444,43 @@ async function importLucrari(rows) {
   return { importate: deInserat.length, sarite: erori.length, erori }
 }
 
+// Instantaneul financiar al unei lucrări refăcut cu nr_elemente/dinții
+// actuali și TOATE prețurile curente din Setup (dinți, comisioane, extra-uri,
+// Try-in) — comun pentru recalcularea tuturor lucrărilor și a uneia singure.
+function instantaneuCuPreturiCurente(l, perElement, extraSetup) {
+  const extra_uri = construiesteExtraUri({
+    selectie: selectieDinExtraUri(l.extra_uri, extraSetup),
+    existente: l.extra_uri,
+    tryIn: l.try_in,
+    extraSetup,
+    preturiCurente: true,
+  })
+  return { extra_uri, ...calculeazaInstantaneu(perElement, l.nr_elemente, l.dinti, extra_uri) }
+}
+
+const COLOANE_RECALCULARE = 'id, nr_inregistrare, tip_lucrare, nr_elemente, dinti, try_in, extra_uri'
+
+// Recalculează instantaneul financiar al UNEI lucrări (butonul din fișă,
+// admin) — la fel ca butonul global din Setup, dar fără să le atingă pe
+// celelalte. Devizele deja generate nu se modifică.
+async function recalculeazaLucrare(id) {
+  const { data: l, error: e0 } = await supabase.from('lucrari').select(COLOANE_RECALCULARE).eq('id', id).single()
+  fail(e0, 'Nu s-a putut citi lucrarea')
+  const { data: tip, error: e1 } = await supabase.from('tipuri_lucrare').select('id').eq('nume', l.tip_lucrare).maybeSingle()
+  fail(e1, 'Nu s-a putut verifica tipul de lucrare')
+  if (!tip) throw new Error(`Tipul de lucrare „${l.tip_lucrare}” nu mai există în Setup — valorile nu pot fi recalculate.`)
+  const [perElement, extraSetup] = await Promise.all([getSnapshotPerElement(l.tip_lucrare), getExtraSetup()])
+  const { error } = await supabase.from('lucrari').update(instantaneuCuPreturiCurente(l, perElement, extraSetup)).eq('id', id)
+  fail(error, `Nu s-a putut actualiza lucrarea ${l.nr_inregistrare}`)
+}
+
 // Recalculează instantaneul financiar (cost_laborator/incasare/comisioane,
 // inclusiv extra-urile și Try-in-ul) pentru TOATE lucrările existente, cu
 // prețurile curente din Setup — doar la cerere explicită (butonul din Setup →
 // Tipuri de lucrare). Comportamentul implicit (instantaneu la înregistrare)
 // nu se schimbă.
 async function recalculeazaValoriFinanciare() {
-  const { data: toateLucrarile, error: e0 } = await supabase
-    .from('lucrari')
-    .select('id, nr_inregistrare, tip_lucrare, nr_elemente, dinti, try_in, extra_uri')
+  const { data: toateLucrarile, error: e0 } = await supabase.from('lucrari').select(COLOANE_RECALCULARE)
   fail(e0, 'Nu s-au putut citi lucrările')
   const extraSetup = await getExtraSetup()
 
@@ -474,15 +502,7 @@ async function recalculeazaValoriFinanciare() {
       continue
     }
     const perElement = await perElementPentru(l.tip_lucrare)
-    const extra_uri = construiesteExtraUri({
-      selectie: selectieDinExtraUri(l.extra_uri, extraSetup),
-      existente: l.extra_uri,
-      tryIn: l.try_in,
-      extraSetup,
-      preturiCurente: true,
-    })
-    const snapshot = calculeazaInstantaneu(perElement, l.nr_elemente, l.dinti, extra_uri)
-    const { error } = await supabase.from('lucrari').update({ extra_uri, ...snapshot }).eq('id', l.id)
+    const { error } = await supabase.from('lucrari').update(instantaneuCuPreturiCurente(l, perElement, extraSetup)).eq('id', l.id)
     fail(error, `Nu s-a putut actualiza lucrarea ${l.nr_inregistrare}`)
     actualizate++
   }
@@ -982,6 +1002,7 @@ export const supabaseAdapter = {
   generateNrInregistrare,
   importLucrari,
   recalculeazaValoriFinanciare,
+  recalculeazaLucrare,
   getEtapeProductie,
   addEtapaProductie,
   deleteEtapaProductie,

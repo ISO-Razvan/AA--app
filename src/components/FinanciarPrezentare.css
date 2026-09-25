@@ -148,7 +148,8 @@
 }
 
 .financiar-table-nr {
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--color-blue-strong);
   white-space: nowrap;
 }

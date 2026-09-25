@@ -109,10 +109,11 @@ function DraggableTaskCard({ dragId, data, disabled, dragDisabled, onOpen, class
 
 function titluCard(lucrare) {
   return [
-    lucrare.nr_inregistrare,
     `Pacient: ${lucrare.pacient || '—'}`,
-    `Clinică: ${lucrare.clinica || '—'}`,
     `Medic: ${lucrare.medic || '—'}`,
+    `Tip lucrare: ${lucrare.tip_lucrare || '—'}`,
+    `Clinică: ${lucrare.clinica || '—'}`,
+    lucrare.nr_inregistrare,
   ].join('\n')
 }
 
@@ -433,14 +434,15 @@ export default function TaskuriPage() {
                             title={titluCard(lucrare)}
                             className="taskuri-task-card taskuri-neplanificat-item"
                           >
+                            <span className="taskuri-task-pacient rezumat-pacient">{lucrare.pacient || '—'}</span>
+                            <span className="taskuri-task-rand rezumat-medic">{lucrare.medic || '—'}</span>
+                            <span className="taskuri-task-rand rezumat-tip">{lucrare.tip_lucrare}</span>
                             <span className="taskuri-task-top">
                               <span className="taskuri-task-nr">{lucrare.nr_inregistrare}</span>
                               <span className="taskuri-task-etapa-badge">
                                 {etapeGrup.map((e) => e.nume).join(' + ')}
                               </span>
                             </span>
-                            <span className="taskuri-task-pacient">{lucrare.pacient || '—'}</span>
-                            <span className="taskuri-task-tip">{lucrare.tip_lucrare}</span>
                           </DraggableTaskCard>
                         )
                       })
@@ -545,10 +547,12 @@ export default function TaskuriPage() {
                                 title={titluCard(grup.lucrare)}
                                 className="taskuri-task-card taskuri-day-card"
                               >
-                                <span className="taskuri-day-card-pacient">{grup.lucrare.pacient || '—'}</span>
-                                <span className="taskuri-day-card-client">
-                                  {[grup.lucrare.clinica, grup.lucrare.medic].filter(Boolean).join(' · ') || '—'}
-                                </span>
+                                <span className="taskuri-day-card-rand rezumat-pacient">{grup.lucrare.pacient || '—'}</span>
+                                <span className="taskuri-day-card-rand rezumat-medic">{grup.lucrare.medic || '—'}</span>
+                                <span className="taskuri-day-card-rand rezumat-tip">{grup.lucrare.tip_lucrare}</span>
+                                {grup.lucrare.clinica && (
+                                  <span className="taskuri-day-card-rand taskuri-day-card-clinica">{grup.lucrare.clinica}</span>
+                                )}
                               </DraggableTaskCard>
                             ))}
                           </div>

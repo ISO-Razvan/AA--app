@@ -16,11 +16,6 @@ function formatDataScurta(dataStr) {
   return `${zi}.${luna}.${an}`
 }
 
-function clientLabel(l) {
-  const parts = [l.clinica, l.medic].filter(Boolean)
-  return parts.length > 0 ? parts.join(' — ') : '—'
-}
-
 // Previzualizare + descărcare pentru task-urile unui tehnician într-o zi —
 // același tipar folosit la checklist-ul de task-uri (PrintChecklist) și la
 // devize (DevizPreview): overlay peste toată pagina, Închide/Descarcă/Printează.
@@ -30,10 +25,11 @@ export default function TaskuriZiPrint({ tehnician, zi, sarcini, onClose }) {
       .map(({ lucrare, finalizat }) => {
         const termen = termenPentru(lucrare)
         return `<tr>
-          <td>${lucrare.nr_inregistrare}</td>
-          <td>${lucrare.pacient || '—'}</td>
-          <td>${clientLabel(lucrare)}</td>
+          <td><strong>${lucrare.pacient || '—'}</strong></td>
+          <td>${lucrare.medic || '—'}</td>
           <td>${lucrare.tip_lucrare}</td>
+          <td>${lucrare.nr_inregistrare}</td>
+          <td>${lucrare.clinica || '—'}</td>
           <td>${lucrare.nr_elemente}</td>
           <td>${formatDataScurta(termen.data)}${termen.eticheta ? ` (${termen.eticheta})` : ''}</td>
           <td>${finalizat ? 'Da' : 'Nu'}</td>
@@ -47,7 +43,7 @@ export default function TaskuriZiPrint({ tehnician, zi, sarcini, onClose }) {
       <h2 style="margin-top:24px;">${tehnician.nume}</h2>
       <p>${formatZiLunga(zi)}</p>
       <table>
-        <thead><tr><th>Nr. înreg.</th><th>Pacient</th><th>Medic</th><th>Tip lucrare</th><th>Nr. elemente</th><th>Termen</th><th>Finalizat</th></tr></thead>
+        <thead><tr><th>Pacient</th><th>Medic</th><th>Tip lucrare</th><th>Nr. înreg.</th><th>Clinică</th><th>Nr. elemente</th><th>Termen</th><th>Finalizat</th></tr></thead>
         <tbody>${randuriHTML}</tbody>
       </table>`
 
@@ -88,10 +84,11 @@ export default function TaskuriZiPrint({ tehnician, zi, sarcini, onClose }) {
           <table className="taskuri-zi-sheet-table">
             <thead>
               <tr>
-                <th>Nr. înreg.</th>
                 <th>Pacient</th>
                 <th>Medic</th>
                 <th>Tip lucrare</th>
+                <th>Nr. înreg.</th>
+                <th>Clinică</th>
                 <th>Nr. elemente</th>
                 <th>Termen</th>
                 <th>Finalizat</th>
@@ -102,10 +99,11 @@ export default function TaskuriZiPrint({ tehnician, zi, sarcini, onClose }) {
                 const termen = termenPentru(lucrare)
                 return (
                   <tr key={cheie}>
+                    <td className="rezumat-pacient">{lucrare.pacient || '—'}</td>
+                    <td className="rezumat-medic">{lucrare.medic || '—'}</td>
+                    <td className="rezumat-tip">{lucrare.tip_lucrare}</td>
                     <td>{lucrare.nr_inregistrare}</td>
-                    <td>{lucrare.pacient || '—'}</td>
-                    <td>{clientLabel(lucrare)}</td>
-                    <td>{lucrare.tip_lucrare}</td>
+                    <td>{lucrare.clinica || '—'}</td>
                     <td>{lucrare.nr_elemente}</td>
                     <td>
                       {formatDataScurta(termen.data)}

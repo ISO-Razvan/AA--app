@@ -6,10 +6,6 @@ import { etapaCurentaPentru } from '../utils/etapaProductie'
 import { subscribeToTable } from '../services/realtime'
 import './Dashboard.css'
 
-function clientLabel(l) {
-  const parts = [l.clinica, l.medic].filter(Boolean)
-  return parts.length > 0 ? parts.join(' — ') : '—'
-}
 
 function KpiCard({ label, value, tone }) {
   return (
@@ -137,10 +133,11 @@ export default function Dashboard({ lucrari: toateLucrarile, loading, onOpenLucr
               return (
                 <li key={l.id}>
                   <button type="button" className="dashboard-azi-row" onClick={() => onOpenLucrare(l)}>
+                    <span className="dashboard-azi-pacient rezumat-pacient">{l.pacient || '—'}</span>
+                    <span className="rezumat-medic">{l.medic || '—'}</span>
+                    <span className="dashboard-azi-tip rezumat-tip">{l.tip_lucrare}</span>
+                    <span className="dashboard-azi-client">{l.clinica || '—'}</span>
                     <span className="dashboard-azi-nr">{l.nr_inregistrare}</span>
-                    <span className="dashboard-azi-pacient">{l.pacient || '—'}</span>
-                    <span className="dashboard-azi-client">{clientLabel(l)}</span>
-                    <span className="dashboard-azi-tip">{l.tip_lucrare}</span>
                     <span className={`badge ${status.badgeClass}`}>{status.label}</span>
                   </button>
                 </li>

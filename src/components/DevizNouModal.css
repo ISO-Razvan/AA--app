@@ -113,20 +113,35 @@
   min-width: 0;
 }
 
+/* Primul rând: Pacient (cel mai proeminent) · Medic · Tip lucrare. */
+.deviz-nou-item-principal {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: var(--space-3);
+  row-gap: 2px;
+}
+
+.deviz-nou-item-pacient {
+  font-size: 0.98rem;
+}
+
 .deviz-nou-item-top {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-2);
+  margin-top: 4px;
 }
 
 .deviz-nou-item-nr {
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: var(--color-blue-strong);
 }
 
 .deviz-nou-item-sub {
-  margin-top: 2px;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--color-text-secondary);
 }
 

@@ -150,7 +150,7 @@
   width: 100%;
   min-height: var(--tap-min);
   display: grid;
-  grid-template-columns: auto 1fr 1.4fr auto auto;
+  grid-template-columns: 1.2fr 1fr 1fr 0.9fr auto auto;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
@@ -167,14 +167,14 @@
 }
 
 .dashboard-azi-nr {
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--color-blue-strong);
   white-space: nowrap;
 }
 
 .dashboard-azi-pacient {
-  font-weight: 600;
-  color: var(--color-text);
+  font-size: 1rem;
 }
 
 .dashboard-azi-client {
@@ -183,9 +183,11 @@
 }
 
 .dashboard-azi-tip {
-  color: var(--color-text-secondary);
-  font-size: 0.88rem;
+  min-width: 0;
+  max-width: 100%;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 900px) {

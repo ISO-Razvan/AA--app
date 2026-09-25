@@ -63,7 +63,7 @@ export default function TaskuriZiModal({
 
   const optiuniNeplanificate = (lucrariNeplanificate || []).map(({ lucrare, etape }) => ({
     value: `${lucrare.id}|${etape.map((e) => e.id).join(',')}`,
-    label: `${lucrare.nr_inregistrare} — ${lucrare.pacient || '—'} (${etape.map((e) => e.nume).join(' + ')})`,
+    label: `${lucrare.pacient || '—'} · ${lucrare.medic || '—'} · ${lucrare.tip_lucrare} (${lucrare.nr_inregistrare}, ${etape.map((e) => e.nume).join(' + ')})`,
   }))
 
   const optiuniZile = (zileSaptamana || []).map((z, i) => ({ value: z, label: numeZile?.[i] || z }))
@@ -138,24 +138,17 @@ export default function TaskuriZiModal({
                   return (
                     <li key={grup.cheie} className="taskuri-zi-sarcina-item">
                       <button type="button" className="taskuri-zi-sarcina-row" onClick={() => onOpenLucrare(lucrare)}>
+                        <div className="taskuri-zi-sarcina-principal">
+                          <span className="taskuri-zi-pacient rezumat-pacient">{lucrare.pacient || '—'}</span>
+                          <span className="rezumat-medic">{lucrare.medic || '—'}</span>
+                          <span className="rezumat-tip">{lucrare.tip_lucrare}</span>
+                        </div>
                         <div className="taskuri-zi-sarcina-info">
                           <span className="taskuri-zi-sarcina-nr">{lucrare.nr_inregistrare}</span>
                           {grup.finalizat && <span className="taskuri-zi-finalizat-badge">Finalizat</span>}
                           <span>
-                            <span className="taskuri-zi-info-label">Pacient</span>
-                            {lucrare.pacient || '—'}
-                          </span>
-                          <span>
                             <span className="taskuri-zi-info-label">Clinică</span>
                             {lucrare.clinica || '—'}
-                          </span>
-                          <span>
-                            <span className="taskuri-zi-info-label">Medic</span>
-                            {lucrare.medic || '—'}
-                          </span>
-                          <span>
-                            <span className="taskuri-zi-info-label">Tip lucrare</span>
-                            {lucrare.tip_lucrare}
                           </span>
                           <span>
                             <span className="taskuri-zi-info-label">Nr. elemente</span>
@@ -189,7 +182,7 @@ export default function TaskuriZiModal({
                             {areEtapeDeScos && (
                               <button
                                 type="button"
-                                className="btn btn-ghost taskuri-zi-elimina-btn"
+                                className="btn btn-outline-danger taskuri-zi-elimina-btn"
                                 onClick={() => onElimina(lucrare.id, grup.etapaIds)}
                               >
                                 Scoate din planificare
