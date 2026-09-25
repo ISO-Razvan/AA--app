@@ -3,7 +3,7 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 600px;
+  max-width: 760px;
   max-height: 88vh;
   display: flex;
   flex-direction: column;
@@ -32,101 +32,103 @@
   text-transform: capitalize;
 }
 
-.salarii-detaliu-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  font-weight: 600;
-}
-
-.salarii-detaliu-total {
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: var(--color-blue-strong);
-}
-
 .salarii-detaliu-body {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-5);
-}
-
-.salarii-detaliu-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-5);
 }
 
-.salarii-detaliu-row {
-  width: 100%;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
-}
-
-.salarii-detaliu-row:hover {
-  border-color: var(--color-blue);
-  box-shadow: var(--shadow-sm);
-}
-
-.salarii-detaliu-row-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.salarii-detaliu-nr {
+.salarii-detaliu-sectiune {
+  margin-bottom: var(--space-2);
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--color-blue-strong);
-}
-
-.salarii-detaliu-tip {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--color-text);
-}
-
-.salarii-detaliu-line {
-  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   color: var(--color-text-secondary);
 }
 
-.salarii-detaliu-row-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  margin-top: var(--space-1);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
+/* Tabele compacte, în stil Excel: o linie per înregistrare, celule
+   mărginite, fără padding de card. */
+.salarii-detaliu-tabel {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
 }
 
-.salarii-detaliu-data {
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
+.salarii-detaliu-tabel th,
+.salarii-detaliu-tabel td {
+  padding: 5px var(--space-2);
+  border: 1px solid var(--color-border);
+  text-align: left;
+  white-space: nowrap;
 }
 
-.salarii-detaliu-suma {
+.salarii-detaliu-tabel th {
+  background: var(--color-surface-header);
+  font-size: 0.72rem;
   font-weight: 700;
-  font-size: 0.92rem;
-  color: var(--color-success-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary);
+}
+
+.salarii-detaliu-tabel td:first-child {
+  white-space: normal;
+}
+
+.salarii-detaliu-num,
+.salarii-detaliu-tabel th.salarii-detaliu-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Secțiune per etapă: titlu, tipurile de lucrare (indentate), subtotal. */
+.salarii-detaliu-etapa-titlu td {
+  background: var(--color-purple-soft);
+  color: var(--color-purple-dark);
+  font-weight: 800;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.salarii-detaliu-etapa-sectiune + .salarii-detaliu-etapa-sectiune .salarii-detaliu-etapa-titlu td {
+  border-top: 2px solid var(--color-purple);
+}
+
+.salarii-detaliu-tabel td.salarii-detaliu-tip {
+  padding-left: var(--space-5);
+}
+
+.salarii-detaliu-subtotal td {
+  background: var(--color-surface-alt);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.salarii-detaliu-total-row td {
+  background: var(--color-blue-soft);
+  font-weight: 800;
+  color: var(--color-blue-dark);
+}
+
+.salarii-detaliu-rand-lucrare {
+  cursor: pointer;
+}
+
+.salarii-detaliu-rand-lucrare:nth-child(even) td {
+  background: var(--color-surface-alt);
+}
+
+.salarii-detaliu-rand-lucrare:hover td {
+  background: var(--color-blue-light);
+}
+
+.salarii-detaliu-tabel-lucrari td {
+  white-space: normal;
 }
 
 @media (max-width: 560px) {

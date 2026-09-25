@@ -1,21 +1,57 @@
+import { useMemo } from 'react'
 import { formatSuma } from './SalariiPage.jsx'
 import './modal-base.css'
 import './SalariiDetaliuModal.css'
 
-function formatData(dataStr) {
-  if (!dataStr) return '—'
-  const [an, luna, zi] = dataStr.split('-')
-  if (!an || !luna || !zi) return dataStr
-  return `${zi}.${luna}.${an}`
-}
-
-function clientLabel(l) {
-  const parts = [l.clinica, l.medic].filter(Boolean)
-  return parts.length > 0 ? parts.join(' — ') : '—'
-}
-
+// `randuri` = etapele FINALIZATE ale tehnicianului în luna selectată (filtrate
+// în SalariiPage), sortate descrescător după data finalizării — fiecare cu
+// lucrarea, etapa și suma comisionului din instantaneul lucrării.
 export default function SalariiDetaliuModal({ tehnician, lunaLabel, randuri, onClose, onOpenLucrare }) {
-  const total = randuri.reduce((sum, r) => sum + r.suma, 0)
+  // Sus: o secțiune per etapă (în ordinea din Setup), iar în ea grupuri pe
+  // tip de lucrare. Fiecare rând e o etapă distinctă a unei lucrări, deci
+  // elementele se adună o dată per lucrare în grup.
+  const sectiuni = useMemo(() => {
+    const map = new Map()
+    for (const { lucrare, etapa, suma } of randuri) {
+      const cheieEtapa = etapa?.id ?? ''
+      if (!map.has(cheieEtapa)) {
+        map.set(cheieEtapa, { cheie: cheieEtapa, nume: etapa?.nume || '—', ordine: etapa?.ordine ?? Infinity, tipuri: new Map() })
+      }
+      const tipuri = map.get(cheieEtapa).tipuri
+      const tip = lucrare.tip_lucrare || '—'
+      if (!tipuri.has(tip)) tipuri.set(tip, { tip, elemente: 0, comision: 0 })
+      const g = tipuri.get(tip)
+      g.elemente += Number(lucrare.nr_elemente) || 0
+      g.comision += suma
+    }
+    return [...map.values()]
+      .sort((a, b) => a.ordine - b.ordine)
+      .map((s) => {
+        const tipuri = [...s.tipuri.values()].sort((a, b) => a.tip.localeCompare(b.tip, 'ro'))
+        return {
+          ...s,
+          tipuri,
+          elemente: tipuri.reduce((sum, g) => sum + g.elemente, 0),
+          comision: tipuri.reduce((sum, g) => sum + g.comision, 0),
+        }
+      })
+  }, [randuri])
+
+  const totalElemente = sectiuni.reduce((s, sec) => s + sec.elemente, 0)
+  const totalComision = sectiuni.reduce((s, sec) => s + sec.comision, 0)
+
+  // Jos: o singură linie per lucrare, oricâte etape ar fi finalizat
+  // tehnicianul pe ea în lună; `randuri` vine deja cu cea mai recentă sus.
+  const lucrariUnice = useMemo(() => {
+    const vazute = new Set()
+    const rezultat = []
+    for (const { lucrare } of randuri) {
+      if (vazute.has(lucrare.id)) continue
+      vazute.add(lucrare.id)
+      rezultat.push(lucrare)
+    }
+    return rezultat
+  }, [randuri])
 
   const handleRowClick = (lucrare) => {
     onClose()
@@ -35,34 +71,81 @@ export default function SalariiDetaliuModal({ tehnician, lunaLabel, randuri, onC
           </button>
         </header>
 
-        <div className="salarii-detaliu-summary">
-          <span>{randuri.length} {randuri.length === 1 ? 'etapă finalizată' : 'etape finalizate'}</span>
-          <span className="salarii-detaliu-total">{formatSuma(total)}</span>
-        </div>
-
         <div className="salarii-detaliu-body">
           {randuri.length === 0 ? (
             <p className="salarii-status-text">Nicio etapă finalizată în această lună.</p>
           ) : (
-            <ul className="salarii-detaliu-list">
-              {randuri.map(({ alocare, lucrare, etapa, suma }) => (
-                <li key={alocare.id}>
-                  <button type="button" className="salarii-detaliu-row" onClick={() => handleRowClick(lucrare)}>
-                    <div className="salarii-detaliu-row-top">
-                      <span className="salarii-detaliu-nr">{lucrare.nr_inregistrare}</span>
-                      {etapa && <span className="badge badge-purple">{etapa.nume}</span>}
-                    </div>
-                    <p className="salarii-detaliu-tip">{lucrare.tip_lucrare}</p>
-                    <p className="salarii-detaliu-line">Pacient: {lucrare.pacient || '—'}</p>
-                    <p className="salarii-detaliu-line">{clientLabel(lucrare)}</p>
-                    <div className="salarii-detaliu-row-bottom">
-                      <span className="salarii-detaliu-data">Finalizat: {formatData(alocare.data_finalizare)}</span>
-                      <span className="salarii-detaliu-suma">{formatSuma(suma)}</span>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <section>
+                <h3 className="salarii-detaliu-sectiune">Pe etapă și tip de lucrare</h3>
+                <table className="salarii-detaliu-tabel">
+                  <thead>
+                    <tr>
+                      <th>Tip lucrare</th>
+                      <th className="salarii-detaliu-num">Elemente</th>
+                      <th className="salarii-detaliu-num">Comision</th>
+                    </tr>
+                  </thead>
+                  {sectiuni.map((sec) => (
+                    <tbody key={sec.cheie} className="salarii-detaliu-etapa-sectiune">
+                      <tr className="salarii-detaliu-etapa-titlu">
+                        <td colSpan={3}>{sec.nume}</td>
+                      </tr>
+                      {sec.tipuri.map((g) => (
+                        <tr key={g.tip}>
+                          <td className="salarii-detaliu-tip">{g.tip}</td>
+                          <td className="salarii-detaliu-num">{g.elemente}</td>
+                          <td className="salarii-detaliu-num">{formatSuma(g.comision)}</td>
+                        </tr>
+                      ))}
+                      <tr className="salarii-detaliu-subtotal">
+                        <td>Subtotal {sec.nume}</td>
+                        <td className="salarii-detaliu-num">{sec.elemente}</td>
+                        <td className="salarii-detaliu-num">{formatSuma(sec.comision)}</td>
+                      </tr>
+                    </tbody>
+                  ))}
+                  <tfoot>
+                    <tr className="salarii-detaliu-total-row">
+                      <td>Total</td>
+                      <td className="salarii-detaliu-num">{totalElemente}</td>
+                      <td className="salarii-detaliu-num">{formatSuma(totalComision)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </section>
+
+              <section>
+                <h3 className="salarii-detaliu-sectiune">Lucrări ({lucrariUnice.length})</h3>
+                <table className="salarii-detaliu-tabel salarii-detaliu-tabel-lucrari">
+                  <thead>
+                    <tr>
+                      <th>Medic</th>
+                      <th>Pacient</th>
+                      <th>Tip lucrare</th>
+                      <th className="salarii-detaliu-num">Nr. elemente</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lucrariUnice.map((l) => (
+                      <tr
+                        key={l.id}
+                        className="salarii-detaliu-rand-lucrare"
+                        onClick={() => handleRowClick(l)}
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleRowClick(l) }}
+                        title={`${l.nr_inregistrare} — deschide fișa`}
+                      >
+                        <td>{l.medic || '—'}</td>
+                        <td>{l.pacient || '—'}</td>
+                        <td>{l.tip_lucrare || '—'}</td>
+                        <td className="salarii-detaliu-num">{l.nr_elemente ?? 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            </>
           )}
         </div>
       </div>
