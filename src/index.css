@@ -7,7 +7,7 @@
   --font-display: 'Plus Jakarta Sans', 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  /* Culori — paletă deschisă, accente albastru/mov deschis */
+  /* Culori — paletă deschisă, brand navy/teal/mov */
   --color-bg: #F8F9FD;
   --color-surface: #FFFFFF;
   --color-surface-alt: #F2F4FB;
@@ -18,17 +18,32 @@
   --color-text-secondary: #6B7180;
   --color-text-muted: #9AA0B4;
 
-  --color-blue-light: #EEF3FF;
-  --color-blue: #7C9CF7;
-  --color-blue-soft: #E8EDFE;
-  --color-blue-strong: #5578E8;
-  --color-blue-dark: #35479E;
+  /* Brand — Algorithm Lab (extras din logo). Singurul loc cu hex-uri de brand. */
+  --brand-navy: #062A79;
+  --brand-teal: #0097D6;
+  --brand-teal-dark: #007DB3;
+  --brand-purple: #984A9C;
 
-  --color-purple-light: #F6F1FE;
-  --color-purple: #B79CF7;
-  --color-purple-soft: #F0E9FE;
-  --color-purple-strong: #9573E8;
-  --color-purple-dark: #6C48B8;
+  /* Accent principal (teal) — numele --color-blue-* păstrate: sunt folosite în tot codul */
+  --color-blue-light: #EEF8FD;
+  --color-blue: #4DB8E6;
+  --color-blue-soft: #E1F3FB;
+  --color-blue-strong: var(--brand-teal);
+  --color-blue-dark: var(--brand-navy);
+
+  /* Accent secundar (mov), folosit cu măsură */
+  --color-purple-light: #FAF3FA;
+  --color-purple: #C08BC4;
+  --color-purple-soft: #F4E8F5;
+  --color-purple-strong: var(--brand-purple);
+  --color-purple-dark: #6E3172;
+
+  /* Sidebar (fundal navy) */
+  --sidebar-bg: var(--brand-navy);
+  --sidebar-text: rgba(255, 255, 255, 0.78);
+  --sidebar-text-muted: rgba(255, 255, 255, 0.55);
+  --sidebar-hover: rgba(255, 255, 255, 0.10);
+  --sidebar-border: rgba(255, 255, 255, 0.16);
 
   --color-danger: #E0637A;
   --color-danger-soft: #FBE7EB;
@@ -136,7 +151,7 @@ button {
   color: #fff;
 }
 .btn-primary:hover {
-  background: #4468d6;
+  background: var(--brand-teal-dark);
 }
 
 .btn-secondary {

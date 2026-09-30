@@ -5,8 +5,8 @@
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-5) var(--space-4);
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -19,15 +19,17 @@
   gap: var(--space-3);
 }
 
-.app-logo-dot {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-blue), var(--color-purple));
+.app-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: contain;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
   flex-shrink: 0;
 }
 
 .sidebar-brand-text h1 {
+  color: #fff;
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -36,7 +38,7 @@
 
 .sidebar-brand-text p {
   font-size: 0.78rem;
-  color: var(--color-text-secondary);
+  color: var(--sidebar-text-muted);
   margin-top: 2px;
 }
 
@@ -55,7 +57,7 @@
   border-radius: var(--radius-md);
   border: none;
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--sidebar-text);
   font-weight: 600;
   font-size: 0.92rem;
   text-align: left;
@@ -63,8 +65,8 @@
 }
 
 .sidebar-nav-item:hover {
-  background: var(--color-surface-alt);
-  color: var(--color-text);
+  background: var(--sidebar-hover);
+  color: #fff;
 }
 
 .sidebar-nav-item.active {
@@ -96,7 +98,7 @@
 
 .sidebar-nav-group-arrow {
   font-size: 0.9rem;
-  color: var(--color-text-muted);
+  color: var(--sidebar-text-muted);
   transition: transform 0.15s ease;
   flex-shrink: 0;
 }
@@ -116,7 +118,7 @@
   gap: var(--space-1);
   margin: var(--space-1) 0 var(--space-1) var(--space-3);
   padding-left: var(--space-3);
-  border-left: 2px solid var(--color-border);
+  border-left: 2px solid var(--sidebar-border);
 }
 
 .sidebar-nav-subitem {
@@ -131,7 +133,7 @@
   justify-content: space-between;
   gap: var(--space-2);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--sidebar-border);
 }
 
 .sidebar-account-info {
@@ -144,7 +146,7 @@
 .sidebar-account-name {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: #fff;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -153,7 +155,7 @@
 .sidebar-account-rol {
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--sidebar-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   overflow: hidden;
@@ -204,8 +206,8 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--space-3) var(--space-4);
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--sidebar-bg);
+    border-bottom: 1px solid var(--sidebar-border);
     position: sticky;
     top: 0;
     z-index: 60;
@@ -220,9 +222,9 @@
     width: 44px;
     height: 44px;
     flex-shrink: 0;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--sidebar-border);
     border-radius: var(--radius-md);
-    background: var(--color-surface);
+    background: transparent;
   }
 
   .sidebar-hamburger-btn span {
@@ -230,7 +232,7 @@
     width: 18px;
     height: 2px;
     border-radius: 2px;
-    background: var(--color-text);
+    background: #fff;
   }
 
   .sidebar-backdrop {
@@ -254,7 +256,7 @@
     flex-wrap: nowrap;
     align-items: stretch;
     gap: var(--space-4);
-    border-right: 1px solid var(--color-border);
+    border-right: 1px solid var(--sidebar-border);
     border-bottom: none;
     box-shadow: var(--shadow-lg);
     z-index: 100;
@@ -278,8 +280,8 @@
     height: 36px;
     border: none;
     border-radius: var(--radius-pill);
-    background: var(--color-surface-alt);
-    color: var(--color-text-secondary);
+    background: var(--sidebar-hover);
+    color: #fff;
     font-size: 1rem;
   }
 
@@ -295,7 +297,7 @@
   }
 
   .sidebar-nav-subitem {
-    background: var(--color-surface-alt);
+    background: var(--sidebar-hover);
   }
 
   .sidebar-nav-subitem.active {
@@ -305,6 +307,6 @@
   .sidebar-account {
     margin-top: auto;
     padding-top: var(--space-4);
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--sidebar-border);
   }
 }
