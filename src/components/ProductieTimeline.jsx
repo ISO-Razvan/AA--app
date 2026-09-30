@@ -45,6 +45,7 @@ export default function ProductieTimeline({
   const [tehnicieni, setTehnicieni] = useState([])
   const [randuri, setRanduri] = useState([])
   const [loading, setLoading] = useState(true)
+  const [recuperare, setRecuperare] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -100,6 +101,48 @@ export default function ProductieTimeline({
     })
   }
 
+  // Recuperare: lucrarea a avansat fizic mai mult decât arată aplicația. Bifează
+  // ca finalizate toate etapele dinaintea celei alese (în ordinea din Setup),
+  // cu data de azi. Scrie prin `setProductieAlocare` (upsert doar pe coloanele
+  // date), deci tehnicianul deja alocat rămâne, iar la o etapă fără rând
+  // tehnicianul rămâne necompletat. Etapa aleasă și cele de după nu se ating.
+  // Realtime propagă bifările (Kanban avansează singur), ca la orice bifare.
+  const handleRecuperare = async (etapaIdTinta) => {
+    const indexTinta = etape.findIndex((e) => e.id === etapaIdTinta)
+    if (indexTinta < 0) return
+    const deBifat = etape.slice(0, indexTinta).filter((e) => !randPentru(e.id)?.finalizat)
+    if (deBifat.length === 0) {
+      await confirm(`Toate etapele dinaintea „${etape[indexTinta].nume}” sunt deja finalizate — nu e nimic de bifat.`, {
+        title: 'Nimic de actualizat',
+        confirmLabel: 'Închide',
+        cancelLabel: 'Anulează',
+      })
+      return
+    }
+    const cuTehnician = deBifat.some((e) => randPentru(e.id)?.tehnician_id)
+    const etapaTinta = etape[indexTinta].nume
+    const mesaj = [
+      `Lucrarea este acum la etapa „${etapaTinta}”. Se vor bifa ca finalizate, cu data de azi (${formatData(azi())}):`,
+      ...deBifat.map((e) => `• ${e.nume}`),
+      '',
+      `Etapa „${etapaTinta}” și cele de după rămân neschimbate.`,
+      ...(cuTehnician ? ['Etapele cu tehnician alocat vor conta pentru acesta la Salarii, în luna curentă.'] : []),
+    ].join(String.fromCharCode(10))
+    const ok = await confirm(mesaj, {
+      title: 'Marchezi etapele anterioare ca finalizate?',
+      confirmLabel: 'Bifează etapele',
+    })
+    if (!ok) return
+    setRecuperare(true)
+    try {
+      const data = azi()
+      await Promise.all(deBifat.map((e) => setProductieAlocare(lucrareId, e.id, { finalizat: true, data_finalizare: data })))
+      await reincarcaRanduri()
+    } finally {
+      setRecuperare(false)
+    }
+  }
+
   const toateFinalizate = etape.length > 0 && etape.every((e) => !!randPentru(e.id)?.finalizat)
 
   const handleArhiveaza = async () => {
@@ -141,6 +184,31 @@ export default function ProductieTimeline({
         <div className="productie-status-row">
           <span className="field-label">Status lucrare</span>
           <span className={`badge ${status.badgeClass}`}>{status.label}</span>
+        </div>
+      )}
+
+      {esteAdmin && !arhivat && etape.length > 1 && (
+        <div className="productie-recuperare">
+          <label className="field-label" htmlFor="productie-recuperare-select">
+            Lucrarea este acum la etapa:
+          </label>
+          <select
+            id="productie-recuperare-select"
+            className="productie-recuperare-select"
+            value=""
+            disabled={recuperare}
+            onChange={(e) => {
+              if (e.target.value) handleRecuperare(e.target.value)
+            }}
+          >
+            <option value="">Alege etapa…</option>
+            {etape.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.nume}
+              </option>
+            ))}
+          </select>
+          <p className="productie-hint">Etapele dinaintea celei alese se bifează automat ca finalizate.</p>
         </div>
       )}
 
