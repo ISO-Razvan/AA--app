@@ -1,0 +1,101 @@
+.cautare-globala {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+}
+
+.cautare-globala-input {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.92rem;
+}
+
+.cautare-globala-input:focus {
+  outline: none;
+  border-color: var(--color-blue-strong);
+  box-shadow: 0 0 0 3px var(--color-blue-soft);
+}
+
+.cautare-globala-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  z-index: 80;
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.cautare-globala-gol {
+  padding: var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+}
+
+.cautare-globala-rezultat {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'pacient badges'
+    'detalii badges';
+  column-gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cautare-globala-rezultat.activ {
+  background: var(--color-blue-light);
+}
+
+.cautare-globala-pacient {
+  grid-area: pacient;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cautare-globala-detalii {
+  grid-area: detalii;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cautare-globala-nr {
+  color: var(--color-text-muted);
+}
+
+.cautare-globala-badges {
+  grid-area: badges;
+  display: flex;
+  gap: var(--space-1);
+}
+
+@media (max-width: 880px) {
+  .cautare-globala {
+    max-width: none;
+  }
+}
