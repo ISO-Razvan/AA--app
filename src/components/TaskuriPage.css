@@ -457,3 +457,19 @@
     min-width: 110px;
   }
 }
+
+.taskuri-task-termen {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.taskuri-task-termen-urgent {
+  color: var(--color-warning-strong);
+}
+
+.taskuri-task-termen-depasit {
+  color: var(--color-danger-strong);
+}

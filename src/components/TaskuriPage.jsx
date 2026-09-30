@@ -20,6 +20,7 @@ import {
 } from '../services/dataService'
 import { azi, adaugaZile } from '../utils/date'
 import { configLivrare } from '../utils/etapaProductie'
+import { urgentaTermen, dataScurta } from '../utils/urgenta'
 import { subscribeToTable } from '../services/realtime'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import TaskuriZiModal from './TaskuriZiModal.jsx'
@@ -239,6 +240,16 @@ export default function TaskuriPage() {
         rezultat.push({ lucrare: l, etape: etapeNealocate })
       }
     }
+    // Cele mai urgente (și depășite) primele; fără termen, la coada listei.
+    // Sortarea e stabilă, deci la termen egal rămâne ordinea existentă.
+    rezultat.sort((a, b) => {
+      const ta = a.lucrare.termen_predare
+      const tb = b.lucrare.termen_predare
+      if (ta === tb) return 0
+      if (!ta) return 1
+      if (!tb) return -1
+      return ta < tb ? -1 : 1
+    })
     return rezultat
   }, [lucrari, etape, alocari, tehnicianSelectat, livrareAutoId])
 
@@ -423,6 +434,7 @@ export default function TaskuriPage() {
                       lucrariNeplanificate.map(({ lucrare, etape: etapeGrup }) => {
                         const etapaIds = etapeGrup.map((e) => e.id)
                         const cheieGrup = `${lucrare.id}-${etapaIds.join(',')}`
+                        const urgenta = urgentaTermen(lucrare.termen_predare)
                         return (
                           <DraggableTaskCard
                             key={lucrare.id}
@@ -443,6 +455,15 @@ export default function TaskuriPage() {
                                 {etapeGrup.map((e) => e.nume).join(' + ')}
                               </span>
                             </span>
+                            {lucrare.termen_predare && (
+                              <span
+                                className={`taskuri-task-termen ${urgenta ? `taskuri-task-termen-${urgenta}` : ''}`}
+                                title={`Termen de predare: ${formatData(lucrare.termen_predare)}${urgenta === 'depasit' ? ' (depășit)' : ''}`}
+                              >
+                                Termen: {dataScurta(lucrare.termen_predare)}
+                                {urgenta === 'depasit' && ' · depășit'}
+                              </span>
+                            )}
                           </DraggableTaskCard>
                         )
                       })
