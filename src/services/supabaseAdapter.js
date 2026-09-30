@@ -976,7 +976,34 @@ async function creeazaDeviz({ medic, clinica, lucrari }) {
   const { error: e2 } = await supabase.from('deviz_lucrari').insert(rows)
   fail(e2, 'Devizul a fost creat, dar lucrările nu s-au putut asocia')
 
-  return deviz
+  const lucrariArhivate = await arhiveazaLucrarileFinalizate(lucrari.map((l) => l.id))
+  return { ...deviz, lucrariArhivate }
+}
+
+// Arhivare automată la generarea devizului — doar lucrările FINALIZATE (toate
+// etapele din Setup bifate, același criteriu ca statusul „Finalizat" și ca
+// butonul manual de arhivare). Cele neterminate rămân active, ca producția
+// să poată continua; cele deja arhivate nu se ating (își păstrează data).
+async function arhiveazaLucrarileFinalizate(lucrareIds) {
+  const [{ data: etape, error: e1 }, { data: randuri, error: e2 }] = await Promise.all([
+    supabase.from('etape_productie').select('id'),
+    supabase.from('productie_lucrare').select('lucrare_id, finalizat').in('lucrare_id', lucrareIds),
+  ])
+  fail(e1 || e2, 'Devizul a fost creat, dar starea lucrărilor nu s-a putut verifica pentru arhivare')
+  const totalEtape = (etape || []).length
+  if (totalEtape === 0) return 0
+  const finalizate = lucrareIds.filter(
+    (id) => (randuri || []).filter((r) => r.lucrare_id === id && r.finalizat).length >= totalEtape
+  )
+  if (finalizate.length === 0) return 0
+  const { data, error } = await supabase
+    .from('lucrari')
+    .update({ arhivat: true, data_arhivare: new Date().toISOString() })
+    .in('id', finalizate)
+    .eq('arhivat', false)
+    .select('id')
+  fail(error, 'Devizul a fost creat, dar lucrările finalizate nu s-au putut arhiva')
+  return (data || []).length
 }
 
 // `on delete cascade` pe deviz_lucrari.deviz_id curăță automat rândurile

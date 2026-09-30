@@ -95,7 +95,7 @@ export default function DevizNouModal({ onClose, onGenerated }) {
     const neterminate = lucrariSelectate.filter((l) => l.status.id === 'in_lucru')
     if (neterminate.length > 0) {
       const ok = await confirm(
-        `Devizul include ${neterminate.length} ${neterminate.length === 1 ? 'lucrare neterminată' : 'lucrări neterminate'}. Continui?`,
+        `Devizul include ${neterminate.length} ${neterminate.length === 1 ? 'lucrare neterminată' : 'lucrări neterminate'}. Acestea rămân active (nu se arhivează), ca producția să poată continua. Continui?`,
         { title: 'Lucrări neterminate în deviz', confirmLabel: 'Continuă' }
       )
       if (!ok) return
@@ -185,6 +185,9 @@ export default function DevizNouModal({ onClose, onGenerated }) {
           )}
 
           {error && <p className="lucrare-form-error">{error}</p>}
+          <p className="deviz-nou-nota-arhivare">
+            La generare, lucrările finalizate incluse în deviz se arhivează automat; cele neterminate rămân active.
+          </p>
         </div>
 
         <footer className="modal-footer deviz-nou-footer">

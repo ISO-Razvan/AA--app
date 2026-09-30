@@ -55,6 +55,12 @@
   cursor: pointer;
 }
 
+.deviz-nou-nota-arhivare {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
 .deviz-nou-hint {
   font-size: 0.9rem;
   color: var(--color-text-secondary);

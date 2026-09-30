@@ -9,6 +9,23 @@ const NUME_LUNI = [
   'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie',
 ]
 
+// Valoarea din casetele de sus: rotunjită la leu, cu separator de mii (ex. 44.390).
+function formatValoareCaseta(n) {
+  return Math.round(Number(n) || 0).toLocaleString('ro-RO')
+}
+
+// Casetă cu o sumă — „RON" mereu pe rândul de sub valoare, oricât de lungă ar fi.
+function CasetaKpi({ eticheta, valoare, nota, loading, className = '' }) {
+  return (
+    <div className={`card financiar-kpi-card ${className}`}>
+      <span className="financiar-kpi-label">{eticheta}</span>
+      <span className="financiar-kpi-value stat-value-lg">{loading ? '—' : formatValoareCaseta(valoare)}</span>
+      <span className="financiar-kpi-moneda">RON</span>
+      <span className="financiar-kpi-nota">{nota}</span>
+    </div>
+  )
+}
+
 function lunaCurenta() {
   const [an, luna] = azi().split('-')
   return { an: Number(an), luna: Number(luna) }
@@ -44,20 +61,34 @@ export default function FinanciarPrezentare({ onOpenLucrare }) {
     })
   }
 
-  // Doar lucrările arhivate contează pentru rapoartele financiare — arhivarea
-  // marchează momentul în care o lucrare e considerată „încheiată" financiar.
-  const lucrariArhivate = useMemo(() => lucrari.filter((l) => l.arhivat && l.data_arhivare), [lucrari])
+  // Toate sumele vin din instantaneul financiar al fiecărei lucrări
+  // (incasare / cost_laborator / comisioane, cu extra-urile și Try-in-ul deja
+  // incluse în incasare și cost_laborator).
+  const suma = (lista, camp) => lista.reduce((s, l) => s + (Number(l[camp]) || 0), 0)
+  const sumaComisioane = (lista) =>
+    lista.reduce((s, l) => s + (l.comisioane || []).reduce((t, c) => t + (Number(c.suma) || 0), 0), 0)
 
-  const lucrariLunaSelectata = useMemo(
-    () => lucrariArhivate.filter((l) => l.data_arhivare.slice(0, 7) === lunaPrefix),
-    [lucrariArhivate, lunaPrefix]
+  // Lucrările intrate în luna selectată (după data intrării) — toate, oricare
+  // le-ar fi statusul sau dacă sunt arhivate.
+  const lucrariIntrateLuna = useMemo(
+    () => lucrari.filter((l) => (l.data_intrare || '').slice(0, 7) === lunaPrefix),
+    [lucrari, lunaPrefix]
+  )
+  // Lucrările arhivate în luna selectată (după data arhivării).
+  const lucrariArhivateLuna = useMemo(
+    () => lucrari.filter((l) => l.arhivat && (l.data_arhivare || '').slice(0, 7) === lunaPrefix),
+    [lucrari, lunaPrefix]
   )
 
-  const totalProdus = useMemo(() => lucrariLunaSelectata.reduce((sum, l) => sum + (Number(l.incasare) || 0), 0), [lucrariLunaSelectata])
-  const totalCheltuit = useMemo(() => lucrariLunaSelectata.reduce((sum, l) => sum + (Number(l.cost_laborator) || 0), 0), [lucrariLunaSelectata])
-  const profit = totalProdus - totalCheltuit
+  const valoareIntrate = suma(lucrariIntrateLuna, 'incasare')
+  const valoareFinalizate = suma(lucrariArhivateLuna, 'incasare')
+  const cheltuieliEstimate = suma(lucrariIntrateLuna, 'cost_laborator')
+  // Toate comisioanele din instantaneu, bifate sau nu — o estimare; suma
+  // reală de plată rămâne cea din Salarii (doar etapele bifate).
+  const salariiEstimate = sumaComisioane(lucrariIntrateLuna)
+  const profitEstimat = valoareIntrate - cheltuieliEstimate - salariiEstimate
 
-  const sursaPerioada = modPerioada === 'luna' ? lucrariLunaSelectata : lucrariArhivate
+  const sursaPerioada = modPerioada === 'luna' ? lucrariIntrateLuna : lucrari
   const perioadaLabel = modPerioada === 'luna' ? lunaLabel : 'tot istoricul'
 
   const top10 = useMemo(
@@ -96,23 +127,44 @@ export default function FinanciarPrezentare({ onOpenLucrare }) {
       </div>
 
       <div className="financiar-kpi-grid">
-        <div className="card financiar-kpi-card">
-          <span className="financiar-kpi-label">Total produs</span>
-          <span className="financiar-kpi-value stat-value-lg">{loading ? '—' : formatSuma(totalProdus)}</span>
-        </div>
-        <div className="card financiar-kpi-card">
-          <span className="financiar-kpi-label">Total cheltuit</span>
-          <span className="financiar-kpi-value stat-value-lg">{loading ? '—' : formatSuma(totalCheltuit)}</span>
-        </div>
-        <div className={`card financiar-kpi-card financiar-kpi-profit ${profit >= 0 ? 'pozitiv' : 'negativ'}`}>
-          <span className="financiar-kpi-label">Profit</span>
-          <span className="financiar-kpi-value stat-value-lg">{loading ? '—' : formatSuma(profit)}</span>
-        </div>
+        <CasetaKpi
+          eticheta="Valoare lucrări intrate"
+          valoare={valoareIntrate}
+          loading={loading}
+          nota={`${lucrariIntrateLuna.length} ${lucrariIntrateLuna.length === 1 ? 'lucrare intrată' : 'lucrări intrate'} în lună`}
+        />
+        <CasetaKpi
+          eticheta="Valoare lucrări finalizate"
+          valoare={valoareFinalizate}
+          loading={loading}
+          nota={`${lucrariArhivateLuna.length} ${lucrariArhivateLuna.length === 1 ? 'lucrare arhivată' : 'lucrări arhivate'} în lună`}
+        />
+        <CasetaKpi
+          eticheta="Cheltuieli estimate"
+          valoare={cheltuieliEstimate}
+          loading={loading}
+          nota="costul de laborator al lucrărilor intrate"
+        />
+        <CasetaKpi
+          eticheta="Salarii estimate"
+          valoare={salariiEstimate}
+          loading={loading}
+          nota="toate comisioanele lucrărilor intrate"
+        />
+        <CasetaKpi
+          eticheta="Profit estimat"
+          valoare={profitEstimat}
+          loading={loading}
+          nota="intrate − cheltuieli − salarii estimate"
+          className={`financiar-kpi-profit ${profitEstimat >= 0 ? 'pozitiv' : 'negativ'}`}
+        />
       </div>
 
-      {!loading && lucrariLunaSelectata.length === 0 && (
-        <p className="financiar-status-text">Nicio lucrare arhivată în {lunaLabel.toLowerCase()}.</p>
-      )}
+      <p className="financiar-status-text">
+        „Estimat" = calculat din lucrările <strong>intrate</strong> în {lunaLabel.toLowerCase()} (după data intrării),
+        nu neapărat finalizate sau plătite. Salariile reale de plată sunt cele din Salarii, unde contează doar etapele
+        bifate. „Finalizate" = lucrările arhivate în lună.
+      </p>
 
       <div className="financiar-section-header">
         <h3>Statistici</h3>
@@ -131,7 +183,7 @@ export default function FinanciarPrezentare({ onOpenLucrare }) {
         {loading ? (
           <p className="financiar-status-text">Se încarcă…</p>
         ) : top10.length === 0 ? (
-          <p className="financiar-status-text">Nicio lucrare arhivată în această perioadă.</p>
+          <p className="financiar-status-text">Nicio lucrare intrată în această perioadă.</p>
         ) : (
           <div className="financiar-table-wrap">
             <table className="financiar-table">
@@ -177,7 +229,7 @@ export default function FinanciarPrezentare({ onOpenLucrare }) {
         {loading ? (
           <p className="financiar-status-text">Se încarcă…</p>
         ) : clasamentClienti.length === 0 ? (
-          <p className="financiar-status-text">Nicio lucrare arhivată în această perioadă.</p>
+          <p className="financiar-status-text">Nicio lucrare intrată în această perioadă.</p>
         ) : (
           <div className="financiar-table-wrap">
             <table className="financiar-table">
