@@ -157,14 +157,19 @@
   font-weight: 700;
 }
 
-.kanban-card-pacient {
-  font-size: 0.9rem;
+/* Pacient > Medic > Tip lucrare. Selectori .kanban-card … ca mărimile de aici
+   să bată mărimile relative (em) din .rezumat-* (index.css, încărcat ultimul). */
+.kanban-card .kanban-card-pacient {
+  font-size: 0.95rem;
   min-width: 0;
 }
 
-.kanban-card-medic,
-.kanban-card-tip {
+.kanban-card .kanban-card-medic {
   font-size: 0.82rem;
+}
+
+.kanban-card .kanban-card-tip {
+  font-size: 0.78rem;
 }
 
 .kanban-card-termen {

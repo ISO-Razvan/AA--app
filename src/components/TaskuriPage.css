@@ -217,6 +217,10 @@
   font-size: 0.82rem;
 }
 
+.taskuri-neplanificat-item .taskuri-task-rand.rezumat-tip {
+  font-size: 0.78rem;
+}
+
 .taskuri-calendar {
   padding: var(--space-4);
   min-width: 0;
