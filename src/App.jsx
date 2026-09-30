@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard.jsx'
 import LucrariList from './components/LucrariList.jsx'
 import LucrareModal from './components/LucrareModal.jsx'
 import LucrareDetailPanel from './components/LucrareDetailPanel.jsx'
+import CautareGlobala from './components/CautareGlobala.jsx'
 import SetupPage from './components/SetupPage.jsx'
 import TaskuriPage from './components/TaskuriPage.jsx'
 import CapacitatePage from './components/CapacitatePage.jsx'
@@ -60,6 +61,14 @@ function AppContent({ profile, onSignOut }) {
       <Sidebar activePage={pagina} onNavigate={setPagina} profile={profile} onSignOut={onSignOut} />
 
       <main className="app-main">
+        {!esteTehnician && (
+          <header className="app-header">
+            <CautareGlobala
+              lucrari={lucrari}
+              onSelect={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
+            />
+          </header>
+        )}
         <div className="app-main-inner">
           {esteTehnician ? (
             pagina === 'salariul-meu' ? (

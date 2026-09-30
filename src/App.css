@@ -9,6 +9,14 @@
   padding: var(--space-5);
 }
 
+.app-header {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto var(--space-4);
+  display: flex;
+  justify-content: flex-end;
+}
+
 .app-main-inner {
   width: 100%;
   max-width: 1400px;
