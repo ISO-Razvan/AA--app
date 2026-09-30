@@ -12,5 +12,13 @@
   // aici: se setează ca secret SUPABASE_SERVICE_ROLE_KEY în Cloudflare.
   "vars": {
     "SUPABASE_URL": "https://kuxcmmrxhppudbwiwmxv.supabase.co"
+  },
+  // Cerut de `wrangler preview` (branch-uri non-production). Secretul de
+  // serviciu nu e setat pentru preview, deci /api răspunde cu eroare de
+  // configurare până când i se dă unul (ideal, al unui proiect Supabase de test).
+  "previews": {
+    "vars": {
+      "SUPABASE_URL": "https://kuxcmmrxhppudbwiwmxv.supabase.co"
+    }
   }
 }
