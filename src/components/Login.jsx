@@ -28,7 +28,7 @@ export default function Login() {
     <div className="login-screen">
       <form className="card login-card" onSubmit={handleSubmit}>
         <div className="login-brand">
-          <span className="app-logo-dot" aria-hidden="true" />
+          <img className="login-logo" src="/logo.png" alt="Algorithm Lab" />
           <div>
             <h1>Algorithm Aesthetics</h1>
             <p>Registru lucrări laborator</p>

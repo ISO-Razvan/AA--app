@@ -65,7 +65,7 @@ export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) 
     <>
       <div className="sidebar-mobile-bar">
         <div className="sidebar-brand">
-          <span className="app-logo-dot" aria-hidden="true" />
+          <img className="app-logo" src="/logo.png" alt="Algorithm Lab" />
           <div className="sidebar-brand-text">
             <h1>Algorithm Aesthetics</h1>
           </div>
@@ -87,7 +87,7 @@ export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) 
 
       <aside className={`sidebar ${mobilDeschis ? 'sidebar-open' : ''}`}>
         <div className="sidebar-brand">
-          <span className="app-logo-dot" aria-hidden="true" />
+          <img className="app-logo" src="/logo.png" alt="Algorithm Lab" />
           <div className="sidebar-brand-text">
             <h1>Algorithm Aesthetics</h1>
             <p>Registru lucrări laborator</p>
