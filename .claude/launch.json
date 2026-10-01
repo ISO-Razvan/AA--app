@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "algorithm-aesthetics",
-      "runtimeExecutable": "C:\\Users\\algor\\.claude\\aplicatie\\dev.cmd",
-      "runtimeArgs": [],
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", ".\\dev.cmd"],
       "port": 5173
     }
   ]
