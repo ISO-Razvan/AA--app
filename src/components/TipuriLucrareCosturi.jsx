@@ -49,6 +49,16 @@ export default function TipuriLucrareCosturi({ onChange }) {
     })
   }
 
+  const handleToggleAllOn = async (tip, valoare) => {
+    handleChange(tip.id, 'all_on', valoare)
+    await updateTipLucrareCosturi(tip.id, {
+      cost_laborator: tip.cost_laborator,
+      incasare: tip.incasare,
+      pret_implant: tip.pret_implant,
+      all_on: valoare,
+    })
+  }
+
   const handleBlurNume = async (tip) => {
     setError('')
     try {
@@ -155,6 +165,7 @@ export default function TipuriLucrareCosturi({ onChange }) {
                 <th>Preț dinte simplu</th>
                 <th>Preț pe implant</th>
                 <th>Profit</th>
+                <th title="Lucrările de acest tip primesc adaosul „thimble” pentru Design">All-on</th>
                 <th></th>
               </tr>
             </thead>
@@ -217,6 +228,15 @@ export default function TipuriLucrareCosturi({ onChange }) {
                           impl. {formatRON(profitImplant)}
                         </span>
                       </div>
+                    </td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="costuri-all-on"
+                        checked={!!tip.all_on}
+                        onChange={(e) => handleToggleAllOn(tip, e.target.checked)}
+                        aria-label={`All-on — ${tip.nume}`}
+                      />
                     </td>
                     <td>
                       <button

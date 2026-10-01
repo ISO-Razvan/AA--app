@@ -151,3 +151,10 @@
     max-width: none;
   }
 }
+
+.costuri-all-on {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-blue-strong);
+  cursor: pointer;
+}

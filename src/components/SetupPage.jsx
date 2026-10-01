@@ -4,6 +4,7 @@ import TehnicieniList from './TehnicieniList.jsx'
 import TipuriLucrareCosturi from './TipuriLucrareCosturi.jsx'
 import ExtraUriSetup from './ExtraUriSetup.jsx'
 import ComisioaneGrid from './ComisioaneGrid.jsx'
+import AdaosuriDesignSetup from './AdaosuriDesignSetup.jsx'
 import DateTestSection from './DateTestSection.jsx'
 import './SetupPage.css'
 
@@ -13,6 +14,7 @@ const SECTIUNI = [
   { id: 'setup-tipuri', label: 'Tipuri de lucrare' },
   { id: 'setup-extra', label: 'Extra-uri' },
   { id: 'setup-comisioane', label: 'Comisioane' },
+  { id: 'setup-adaosuri', label: 'Adaosuri Design' },
 ]
 
 export default function SetupPage({ profile, onDataChanged }) {
@@ -77,6 +79,9 @@ export default function SetupPage({ profile, onDataChanged }) {
       </section>
       <section id="setup-comisioane" className="setup-section">
         <ComisioaneGrid etapeRefreshSignal={etapeRefreshSignal} tipuriRefreshSignal={tipuriRefreshSignal} />
+      </section>
+      <section id="setup-adaosuri" className="setup-section">
+        <AdaosuriDesignSetup />
       </section>
 
       <DateTestSection profile={profile} onDataChanged={onDataChanged} />

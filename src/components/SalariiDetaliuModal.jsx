@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { formatSuma } from './SalariiPage.jsx'
+import { totalAdaosuri } from '../utils/adaosuriDesign'
 import './modal-base.css'
 import './SalariiDetaliuModal.css'
 
@@ -7,7 +8,9 @@ import './SalariiDetaliuModal.css'
 // folosit de fereastra adminului din Salarii și de „Salariul meu".
 // `randuri` = etapele FINALIZATE ale unui tehnician într-o lună, sortate
 // descrescător după data finalizării — fiecare cu lucrarea, etapa și suma
-// comisionului: [{ alocare: { id, data_finalizare }, lucrare, etapa, suma }].
+// comisionului: [{ alocare: { id, data_finalizare }, lucrare, etapa, suma, adaosuri? }].
+// `adaosuri` = adaosurile Design ale acelei etape (vezi utils/adaosuriDesign.js),
+// afișate separat de comisionul de bază.
 export function SalariuDetaliuContinut({ randuri, onOpenLucrare }) {
   // Sus: o secțiune per etapă (în ordinea din Setup), iar în ea grupuri pe
   // tip de lucrare. Fiecare rând e o etapă distinctă a unei lucrări, deci
@@ -55,6 +58,17 @@ export function SalariuDetaliuContinut({ randuri, onOpenLucrare }) {
     return rezultat
   }, [randuri])
 
+  // Adaosuri Design — o listă pe lucrare, cu fiecare adaos separat (tip ×
+  // cantitate = valoare), ca să fie auditabile, nu doar o sumă totală.
+  const adaosuriPeLucrare = useMemo(
+    () =>
+      randuri
+        .filter((r) => r.adaosuri && r.adaosuri.length > 0)
+        .map((r) => ({ lucrare: r.lucrare, adaosuri: r.adaosuri, total: totalAdaosuri(r.adaosuri) })),
+    [randuri]
+  )
+  const totalAdaosuriLuna = adaosuriPeLucrare.reduce((s, r) => s + r.total, 0)
+
   const handleRowClick = onOpenLucrare
 
   if (randuri.length === 0) {
@@ -101,6 +115,44 @@ export function SalariuDetaliuContinut({ randuri, onOpenLucrare }) {
                   </tfoot>
                 </table>
               </section>
+
+              {adaosuriPeLucrare.length > 0 && (
+                <section>
+                  <h3 className="salarii-detaliu-sectiune">Adaosuri Design</h3>
+                  <table className="salarii-detaliu-tabel">
+                    <thead>
+                      <tr>
+                        <th>Lucrare</th>
+                        <th>Adaos</th>
+                        <th className="salarii-detaliu-num">Valoare</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adaosuriPeLucrare.map(({ lucrare, adaosuri }) =>
+                        adaosuri.map((a, i) => (
+                          <tr key={`${lucrare.id}-${a.tip}`}>
+                            <td className="rezumat-pacient">
+                              {i === 0 ? `${lucrare.pacient || '—'} · ${lucrare.nr_inregistrare}` : ''}
+                            </td>
+                            <td>{`${a.eticheta} ×${a.cantitate}`}</td>
+                            <td className="salarii-detaliu-num">{formatSuma(a.total)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr className="salarii-detaliu-subtotal">
+                        <td colSpan={2}>Total adaosuri</td>
+                        <td className="salarii-detaliu-num">{formatSuma(totalAdaosuriLuna)}</td>
+                      </tr>
+                      <tr className="salarii-detaliu-total-row">
+                        <td colSpan={2}>Total comision + adaosuri</td>
+                        <td className="salarii-detaliu-num">{formatSuma(totalComision + totalAdaosuriLuna)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </section>
+              )}
 
               <section>
                 <h3 className="salarii-detaliu-sectiune">Lucrări ({lucrariUnice.length})</h3>
