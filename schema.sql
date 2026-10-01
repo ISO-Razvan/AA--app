@@ -40,6 +40,11 @@ begin
   end if;
 end $$;
 
+-- „All-on" — bifă pe tipul de lucrare (Setup → Tipuri de lucrare). Folosită la
+-- adaosul „thimble" al tehnicianului de Design. Adăugată ulterior: ALTER
+-- idempotent, nu atinge datele existente.
+alter table tipuri_lucrare add column if not exists all_on boolean not null default false;
+
 -- Extra-uri taxabile pe comandă (ex. model printat, bont), configurate din
 -- Setup. `mod_taxare`: 'per_comanda' (cantitate fixă 1) sau 'per_bucata'.
 -- Un extra dezactivat nu mai apare la înregistrare, dar rămâne pe lucrările
@@ -113,6 +118,17 @@ create table if not exists comisioane (
   unique (tip_lucrare, etapa_id)
 );
 
+-- Adaosuri la salariul tehnicianului de Design (Setup → Adaosuri Design) —
+-- un singur rând (id = 1). Valorile curente se copiază ca instantaneu pe
+-- fiecare lucrare (`lucrari.adaosuri_design`), la fel ca sumele din `comisioane`.
+create table if not exists setari_salarii (
+  id smallint primary key default 1 check (id = 1),
+  adaos_implant numeric not null default 5,       -- RON per element simplu pe implant
+  adaos_thimble numeric not null default 20,      -- RON per thimble (1 / element, lucrări All-on)
+  adaos_model_printat numeric not null default 10 -- RON per comandă cu model = 'Print'
+);
+insert into setari_salarii (id) values (1) on conflict do nothing;
+
 -- ---------------------------------------------------------------------------
 -- Tabela principală — lucrări (comenzi)
 -- ---------------------------------------------------------------------------
@@ -181,6 +197,11 @@ alter table lucrari add column if not exists extra_uri jsonb not null default '[
 -- lucrării — necesar pentru defalcarea din deviz. Null la lucrările vechi.
 alter table lucrari add column if not exists pret_dinte_simplu numeric;
 alter table lucrari add column if not exists pret_dinte_implant numeric;
+-- Instantaneul adaosurilor Design: { implant, thimble, model_printat, all_on }
+-- (sumele unitare din setari_salarii + dacă tipul era All-on la momentul
+-- calculului). Null la lucrările vechi = fără adaosuri, până la „Recalculează
+-- valorile financiare" din Setup → Tipuri de lucrare.
+alter table lucrari add column if not exists adaosuri_design jsonb;
 
 -- Programare producție per lucrare — un rând per (lucrare, etapă), cu
 -- tehnicianul alocat, data planificată și starea de finalizare. Afișat ca
@@ -329,6 +350,7 @@ alter table clinici enable row level security;
 alter table etape_productie enable row level security;
 alter table tehnicieni enable row level security;
 alter table comisioane enable row level security;
+alter table setari_salarii enable row level security;
 alter table lucrari enable row level security;
 alter table productie_lucrare enable row level security;
 alter table poze_lucrare enable row level security;
@@ -344,7 +366,7 @@ declare
   t text;
 begin
   for t in
-    select unnest(array['lucrari', 'comisioane', 'extra_uri', 'tipuri_lucrare', 'devize', 'deviz_lucrari'])
+    select unnest(array['lucrari', 'comisioane', 'extra_uri', 'tipuri_lucrare', 'devize', 'deviz_lucrari', 'setari_salarii'])
   loop
     execute format(
       'drop policy if exists "authenticated_all" on %I;
@@ -489,7 +511,8 @@ select
         select 1 from public.extra_uri s where s.id::text = x.e ->> 'extra_id' and s.sistem is not null
       )
     ), '[]'::jsonb)
-  end as extra_uri
+  end as extra_uri,
+  case when r.admin then l.adaosuri_design end as adaosuri_design
 from public.lucrari l
 cross join (select public.este_admin() as admin, public.tehnicianul_meu() as tehnician) r
 where r.admin or r.tehnician is not null;
@@ -501,7 +524,12 @@ grant select on public.lucrari_vizibile to authenticated;
 -- profiles.tehnician_id), din etapele finalizate în luna cerută ('AAAA-LL'),
 -- cu suma etapei respective din instantaneul lucrării. Nimic despre alți
 -- tehnicieni sau alte etape nu iese din funcție.
-create or replace function public.salariul_meu(p_luna text)
+-- DROP necesar: s-au adăugat coloane (dinti, model, adaosuri_design) la
+-- rezultat, iar `create or replace` nu poate schimba tipul întors. Adaosurile
+-- Design se calculează în aplicație (src/utils/adaosuriDesign.js) din aceste
+-- câmpuri, ca să existe o singură implementare a regulilor, la admin și la tehnician.
+drop function if exists public.salariul_meu(text);
+create function public.salariul_meu(p_luna text)
 returns table (
   lucrare_id uuid,
   nr_inregistrare text,
@@ -513,7 +541,10 @@ returns table (
   etapa_nume text,
   etapa_ordine integer,
   data_finalizare date,
-  suma numeric
+  suma numeric,
+  dinti jsonb,
+  model text,
+  adaosuri_design jsonb
 )
 language sql
 stable
@@ -528,7 +559,8 @@ as $$
       from jsonb_array_elements(l.comisioane) c
       where c ->> 'etapa_id' = p.etapa_id::text
       limit 1
-    ), 0)
+    ), 0),
+    l.dinti, l.model, l.adaosuri_design
   from public.productie_lucrare p
   join public.lucrari l on l.id = p.lucrare_id
   left join public.etape_productie e on e.id = p.etapa_id

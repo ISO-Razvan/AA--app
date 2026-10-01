@@ -1,0 +1,62 @@
+.adaosuri-header h3 {
+  margin-bottom: var(--space-1);
+}
+
+.adaosuri-header p {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.adaosuri-campuri {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.adaosuri-camp {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 140px 1fr;
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: var(--space-1);
+}
+
+.adaosuri-eticheta {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.adaosuri-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.adaosuri-input {
+  width: 100px;
+}
+
+.adaosuri-unitate,
+.adaosuri-ajutor {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.adaosuri-salvat {
+  margin-top: var(--space-3);
+  font-size: 0.82rem;
+  color: var(--color-success-strong);
+}
+
+.adaosuri-eroare {
+  margin-top: var(--space-3);
+  font-size: 0.82rem;
+  color: var(--color-danger-strong);
+}
+
+@media (max-width: 760px) {
+  .adaosuri-camp {
+    grid-template-columns: 1fr;
+  }
+}

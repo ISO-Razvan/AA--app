@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSalariulMeu } from '../services/dataService'
 import { azi } from '../utils/date'
+import { adaosuriPentruEtapa, totalAdaosuri } from '../utils/adaosuriDesign'
 import { formatSuma } from './SalariiPage.jsx'
 import { SalariuDetaliuContinut } from './SalariiDetaliuModal.jsx'
 import './SalariiPage.css'
@@ -52,7 +53,9 @@ export default function SalariulMeuPage() {
   // Același format ca în fereastra de detaliu din Salarii.
   const randuriDetaliu = useMemo(
     () =>
-      randuri.map((r) => ({
+      randuri.map((r) => {
+        const etapa = r.etapa_id ? { id: r.etapa_id, nume: r.etapa_nume, ordine: r.etapa_ordine } : null
+        return {
         alocare: { id: `${r.lucrare_id}-${r.etapa_id}`, data_finalizare: r.data_finalizare },
         lucrare: {
           id: r.lucrare_id,
@@ -61,14 +64,22 @@ export default function SalariulMeuPage() {
           pacient: r.pacient,
           tip_lucrare: r.tip_lucrare,
           nr_elemente: r.nr_elemente,
+          dinti: r.dinti,
+          model: r.model,
+          adaosuri_design: r.adaosuri_design,
         },
-        etapa: r.etapa_id ? { id: r.etapa_id, nume: r.etapa_nume, ordine: r.etapa_ordine } : null,
+        etapa,
         suma: Number(r.suma) || 0,
-      })),
+        adaosuri: adaosuriPentruEtapa(
+          { nr_elemente: r.nr_elemente, dinti: r.dinti, model: r.model, adaosuri_design: r.adaosuri_design },
+          etapa
+        ),
+        }
+      }),
     [randuri]
   )
 
-  const total = randuriDetaliu.reduce((s, r) => s + r.suma, 0)
+  const total = randuriDetaliu.reduce((s, r) => s + r.suma + totalAdaosuri(r.adaosuri), 0)
 
   const schimbaLuna = (delta) => {
     setLuna((prev) => {

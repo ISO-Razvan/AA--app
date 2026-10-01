@@ -94,12 +94,14 @@ async function getSnapshotPerElement(tipLucrareNume) {
     { data: tipuri, error: e1 },
     { data: etape, error: e2 },
     { data: comisioaneRaw, error: e3 },
+    { data: setari, error: e4 },
   ] = await Promise.all([
     supabase.from('tipuri_lucrare').select('*').eq('nume', tipLucrareNume).maybeSingle(),
     supabase.from('etape_productie').select('id, nume'),
     supabase.from('comisioane').select('etapa_id, suma').eq('tip_lucrare', tipLucrareNume),
+    supabase.from('setari_salarii').select('*').eq('id', 1).maybeSingle(),
   ])
-  fail(e1 || e2 || e3, 'Nu s-a putut calcula instantaneul financiar')
+  fail(e1 || e2 || e3 || e4, 'Nu s-a putut calcula instantaneul financiar')
 
   const cost_laborator = tipuri ? Number(tipuri.cost_laborator) || 0 : 0
   const incasare = tipuri ? Number(tipuri.incasare) || 0 : 0
@@ -111,7 +113,15 @@ async function getSnapshotPerElement(tipLucrareNume) {
     suma: Number(c.suma) || 0,
   }))
 
-  return { cost_laborator, incasare, pret_implant, comisioane }
+  // Adaosuri Design (Setup → Adaosuri Design): sumele curente + dacă tipul e All-on.
+  const adaosuri_design = {
+    implant: Number(setari?.adaos_implant) || 0,
+    thimble: Number(setari?.adaos_thimble) || 0,
+    model_printat: Number(setari?.adaos_model_printat) || 0,
+    all_on: !!tipuri?.all_on,
+  }
+
+  return { cost_laborator, incasare, pret_implant, comisioane, adaosuri_design }
 }
 
 // Instantaneu financiar final de pe o lucrare.
@@ -139,6 +149,7 @@ function calculeazaInstantaneu(snapshotPerElement, nrElemente, dinti, extraUri) 
     comisioane,
     pret_dinte_simplu: snapshotPerElement.incasare,
     pret_dinte_implant: snapshotPerElement.pret_implant,
+    adaosuri_design: snapshotPerElement.adaosuri_design,
   }
 }
 
@@ -570,8 +581,9 @@ async function getTipuriLucrareDetaliate() {
   return data || []
 }
 
-async function updateTipLucrareCosturi(id, { cost_laborator, incasare, pret_implant }) {
+async function updateTipLucrareCosturi(id, { cost_laborator, incasare, pret_implant, all_on }) {
   const payload = {
+    ...(all_on === undefined ? {} : { all_on: !!all_on }),
     cost_laborator: cost_laborator === '' || cost_laborator == null ? 0 : Number(cost_laborator),
     incasare: incasare === '' || incasare == null ? 0 : Number(incasare),
     pret_implant: pret_implant === '' || pret_implant == null ? 0 : Number(pret_implant),
@@ -579,6 +591,27 @@ async function updateTipLucrareCosturi(id, { cost_laborator, incasare, pret_impl
   const { data, error } = await supabase.from('tipuri_lucrare').update(payload).eq('id', id).select().single()
   fail(error, `Nu s-au putut actualiza costurile tipului de lucrare ${id}`)
   return data
+}
+
+async function getSetariSalarii() {
+  const { data, error } = await supabase.from('setari_salarii').select('*').eq('id', 1).maybeSingle()
+  fail(error, 'Nu s-au putut încărca adaosurile Design')
+  return {
+    adaos_implant: Number(data?.adaos_implant) || 0,
+    adaos_thimble: Number(data?.adaos_thimble) || 0,
+    adaos_model_printat: Number(data?.adaos_model_printat) || 0,
+  }
+}
+
+async function updateSetariSalarii({ adaos_implant, adaos_thimble, adaos_model_printat }) {
+  const row = {
+    id: 1,
+    adaos_implant: Math.max(0, numarSauZero(adaos_implant)),
+    adaos_thimble: Math.max(0, numarSauZero(adaos_thimble)),
+    adaos_model_printat: Math.max(0, numarSauZero(adaos_model_printat)),
+  }
+  const { error } = await supabase.from('setari_salarii').upsert(row, { onConflict: 'id' })
+  fail(error, 'Nu s-au putut salva adaosurile Design')
 }
 
 async function addTipLucrare(nume) {
@@ -1041,6 +1074,8 @@ export const supabaseAdapter = {
   deleteTehnician,
   getTipuriLucrareDetaliate,
   updateTipLucrareCosturi,
+  getSetariSalarii,
+  updateSetariSalarii,
   addTipLucrare,
   renameTipLucrare,
   deleteTipLucrare,

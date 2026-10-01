@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getTehnicieni, getToateAlocarile, getLucrari, getEtapeProductie } from '../services/dataService'
 import { azi } from '../utils/date'
+import { adaosuriPentruEtapa, totalAdaosuri } from '../utils/adaosuriDesign'
 import SalariiDetaliuModal from './SalariiDetaliuModal.jsx'
 import './SalariiPage.css'
 
@@ -68,6 +69,9 @@ export default function SalariiPage({ onOpenLucrare }) {
     return Number(comision?.suma) || 0
   }
 
+  // Comisionul de bază + adaosurile Design (doar pe alocarea Design a lucrării).
+  const adaosuriAlocare = (alocare) => adaosuriPentruEtapa(lucrareById(alocare.lucrare_id), etapaById(alocare.etapa_id))
+
   const alocariLuna = useMemo(
     () => alocari.filter((a) => a.finalizat && a.data_finalizare && a.data_finalizare.startsWith(lunaPrefix)),
     [alocari, lunaPrefix]
@@ -76,11 +80,14 @@ export default function SalariiPage({ onOpenLucrare }) {
   const randuriTehnicieni = useMemo(() => {
     return tehnicieni.map((t) => {
       const alocariTehnician = alocariLuna.filter((a) => a.tehnician_id === t.id)
-      const total = alocariTehnician.reduce((sum, a) => sum + sumaComisionAlocare(a), 0)
+      const total = alocariTehnician.reduce(
+        (sum, a) => sum + sumaComisionAlocare(a) + totalAdaosuri(adaosuriAlocare(a)),
+        0
+      )
       return { tehnician: t, count: alocariTehnician.length, total }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     })
-  }, [tehnicieni, alocariLuna, lucrari])
+  }, [tehnicieni, alocariLuna, lucrari, etape])
 
   const totalGeneral = randuriTehnicieni.reduce((sum, r) => sum + r.total, 0)
 
@@ -93,6 +100,7 @@ export default function SalariiPage({ onOpenLucrare }) {
         lucrare: lucrareById(a.lucrare_id),
         etapa: etapaById(a.etapa_id),
         suma: sumaComisionAlocare(a),
+        adaosuri: adaosuriAlocare(a),
       }))
       .filter((r) => r.lucrare)
       .sort((x, y) => (y.alocare.data_finalizare || '').localeCompare(x.alocare.data_finalizare || ''))
@@ -160,7 +168,7 @@ export default function SalariiPage({ onOpenLucrare }) {
               <tr>
                 <th>Tehnician</th>
                 <th>Etape finalizate</th>
-                <th>Comision total</th>
+                <th>Total (comision + adaosuri)</th>
               </tr>
             </thead>
             <tbody>
