@@ -2,18 +2,19 @@ import { useEffect, useState } from 'react'
 import { addLucrare, updateLucrare, getConfigList } from '../services/dataService'
 import { lucrariDemo } from '../utils/demoData'
 import StergeToateDialog from './StergeToateDialog.jsx'
+import { estePatron } from '../utils/roluri'
 import './DateTestSection.css'
 
 // Generator de lucrări fictive, doar pentru testare — mutat aici (nu mai e
 // vizibil în Listă lucrări) ca să nu fie apăsat din greșeală în timpul
-// folosirii reale a aplicației. Tot aici, doar pentru admin: ștergerea
+// folosirii reale a aplicației. Tot aici, doar pentru patron: ștergerea
 // tuturor lucrărilor.
 export default function DateTestSection({ profile, onDataChanged }) {
   const [tipuriLucrareNume, setTipuriLucrareNume] = useState(null) // null = încă neîncărcat
   const [seeding, setSeeding] = useState(false)
   const [demoMessage, setDemoMessage] = useState('')
   const [stergereDeschisa, setStergereDeschisa] = useState(false)
-  const esteAdmin = profile?.rol === 'admin'
+  const poateStergeTot = estePatron(profile)
 
   const handleStergereGata = async ({ lucrari, devize }) => {
     setStergereDeschisa(false)
@@ -70,7 +71,7 @@ export default function DateTestSection({ profile, onDataChanged }) {
         >
           {seeding ? 'Se adaugă…' : '+ 10 lucrări demo'}
         </button>
-        {esteAdmin && (
+        {poateStergeTot && (
           <button
             type="button"
             className="btn date-test-btn date-test-btn-danger"

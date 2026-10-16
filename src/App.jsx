@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useParams } from 'react-router-dom'
 import { getLucrari } from './services/dataService'
 import { getSession, getProfile, onAuthStateChange, signOut } from './services/auth'
 import { subscribeToTable } from './services/realtime'
+import { esteTehnician as rolTehnician, estePatron } from './utils/roluri'
 import Sidebar from './components/Sidebar.jsx'
 import Login from './components/Login.jsx'
 import Dashboard from './components/Dashboard.jsx'
@@ -22,7 +23,9 @@ import './App.css'
 function AppContent({ profile, onSignOut }) {
   const { nrInregistrare } = useParams()
   const navigate = useNavigate()
-  const esteTehnician = profile.rol === 'tehnician'
+  const esteTehnician = rolTehnician(profile)
+  // Financiar și Salarii — doar patronul (coordonatorul vede restul aplicației).
+  const accesFinanciar = estePatron(profile)
 
   const [pagina, setPagina] = useState(esteTehnician ? 'task-urile-mele' : 'dashboard')
   const [lucrari, setLucrari] = useState([])
@@ -97,12 +100,12 @@ function AppContent({ profile, onSignOut }) {
               {pagina === 'setup' && <SetupPage profile={profile} onDataChanged={refresh} />}
               {pagina === 'taskuri' && <TaskuriPage />}
               {pagina === 'capacitate' && <CapacitatePage />}
-              {pagina === 'salarii' && (
+              {pagina === 'salarii' && accesFinanciar && (
                 <SalariiPage
                   onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
                 />
               )}
-              {pagina === 'financiar-rapoarte' && (
+              {pagina === 'financiar-rapoarte' && accesFinanciar && (
                 <FinanciarPage
                   onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
                 />
@@ -114,6 +117,7 @@ function AppContent({ profile, onSignOut }) {
 
       {!esteTehnician && creating && (
         <LucrareModal
+          profile={profile}
           onClose={() => setCreating(false)}
           onSaved={async () => {
             setCreating(false)

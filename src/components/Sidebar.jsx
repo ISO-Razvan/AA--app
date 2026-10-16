@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import SchimbaParolaDialog from './SchimbaParolaDialog.jsx'
+import { estePatron, esteTehnician as rolTehnician, etichetaRol } from '../utils/roluri'
 import './Sidebar.css'
 
 const NAV_TEHNICIAN = [
@@ -7,7 +8,8 @@ const NAV_TEHNICIAN = [
   { id: 'salariul-meu', label: 'Salariul meu' },
 ]
 
-const NAV_GROUPS_ADMIN = [
+// Patronul vede tot; coordonatorul la fel, fără grupul Financiar.
+const NAV_GROUPS = [
   { id: 'dashboard', label: 'Dashboard' },
   {
     id: 'comenzi',
@@ -21,6 +23,7 @@ const NAV_GROUPS_ADMIN = [
   {
     id: 'financiar',
     label: 'Financiar',
+    doarPatron: true,
     children: [
       { id: 'financiar-rapoarte', label: 'Financiar' },
       { id: 'salarii', label: 'Salarii' },
@@ -30,11 +33,12 @@ const NAV_GROUPS_ADMIN = [
 ]
 
 function grupulPentru(pagina) {
-  return NAV_GROUPS_ADMIN.find((g) => g.children?.some((c) => c.id === pagina))?.id || null
+  return NAV_GROUPS.find((g) => g.children?.some((c) => c.id === pagina))?.id || null
 }
 
 export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) {
-  const esteTehnician = profile?.rol === 'tehnician'
+  const esteTehnician = rolTehnician(profile)
+  const navGroups = NAV_GROUPS.filter((g) => !g.doarPatron || estePatron(profile))
 
   // Grupul care conține pagina curentă e expandat implicit la încărcare;
   // ulterior fiecare grup se extinde/restrânge independent (accordion).
@@ -116,7 +120,7 @@ export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) 
               </button>
             ))
           ) : (
-            NAV_GROUPS_ADMIN.map((item) =>
+            navGroups.map((item) =>
               item.children ? (
                 <div className="sidebar-nav-group" key={item.id}>
                   <button
@@ -166,8 +170,8 @@ export default function Sidebar({ activePage, onNavigate, profile, onSignOut }) 
 
         <div className="sidebar-account">
           <div className="sidebar-account-info">
-            <span className="sidebar-account-name">{profile?.nume || (profile?.rol === 'admin' ? 'Administrator' : 'Tehnician')}</span>
-            <span className="sidebar-account-rol">{profile?.rol === 'admin' ? 'Administrator' : 'Tehnician'}</span>
+            <span className="sidebar-account-name">{profile?.nume || etichetaRol(profile)}</span>
+            <span className="sidebar-account-rol">{etichetaRol(profile)}</span>
           </div>
           <div className="sidebar-account-actions">
             <button type="button" className="btn btn-ghost sidebar-signout-btn" onClick={() => setSchimbaParolaDeschis(true)}>

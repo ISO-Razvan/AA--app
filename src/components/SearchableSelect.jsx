@@ -22,7 +22,8 @@ function calculeazaPozitie(input) {
   }
 }
 
-// Dropdown cu căutare + opțiunea de a adăuga o valoare nouă direct din formular.
+// Dropdown cu căutare + opțiunea de a adăuga o valoare nouă direct din formular
+// (doar dacă există `onAddOption`).
 export default function SearchableSelect({
   label,
   value,
@@ -69,7 +70,7 @@ export default function SearchableSelect({
   }
 
   const handleAddNew = async () => {
-    if (!trimmed || adding) return
+    if (!onAddOption || !trimmed || adding) return
     setAdding(true)
     try {
       const saved = await onAddOption(trimmed)
@@ -135,7 +136,7 @@ export default function SearchableSelect({
                 </button>
               </li>
             ))}
-            {trimmed && !exactMatch && (
+            {onAddOption && trimmed && !exactMatch && (
               <li>
                 <button
                   type="button"

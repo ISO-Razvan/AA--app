@@ -6,18 +6,22 @@ import ExtraUriSetup from './ExtraUriSetup.jsx'
 import ComisioaneGrid from './ComisioaneGrid.jsx'
 import AdaosuriDesignSetup from './AdaosuriDesignSetup.jsx'
 import DateTestSection from './DateTestSection.jsx'
+import { estePatron } from '../utils/roluri'
 import './SetupPage.css'
 
+// Secțiunile cu prețuri și sume (`doarPatron`) nu apar pentru coordonator.
 const SECTIUNI = [
   { id: 'setup-etape', label: 'Etape de producție' },
   { id: 'setup-tehnicieni', label: 'Tehnicieni' },
-  { id: 'setup-tipuri', label: 'Tipuri de lucrare' },
-  { id: 'setup-extra', label: 'Extra-uri' },
-  { id: 'setup-comisioane', label: 'Comisioane' },
-  { id: 'setup-adaosuri', label: 'Adaosuri Design' },
+  { id: 'setup-tipuri', label: 'Tipuri de lucrare', doarPatron: true },
+  { id: 'setup-extra', label: 'Extra-uri', doarPatron: true },
+  { id: 'setup-comisioane', label: 'Comisioane', doarPatron: true },
+  { id: 'setup-adaosuri', label: 'Adaosuri Design', doarPatron: true },
 ]
 
 export default function SetupPage({ profile, onDataChanged }) {
+  const patron = estePatron(profile)
+  const sectiuni = SECTIUNI.filter((s) => patron || !s.doarPatron)
   const [etapeRefreshSignal, setEtapeRefreshSignal] = useState(0)
   const [tipuriRefreshSignal, setTipuriRefreshSignal] = useState(0)
   const [sectiuneActiva, setSectiuneActiva] = useState(SECTIUNI[0].id)
@@ -27,7 +31,7 @@ export default function SetupPage({ profile, onDataChanged }) {
   // la o bandă subțire chiar sub bară, ca să nu rămână „blocată" pe o
   // secțiune care a ieșit deja din ecran).
   useEffect(() => {
-    const elemente = SECTIUNI.map((s) => document.getElementById(s.id)).filter(Boolean)
+    const elemente = sectiuni.map((s) => document.getElementById(s.id)).filter(Boolean)
     if (elemente.length === 0) return
 
     const observer = new IntersectionObserver(
@@ -41,7 +45,8 @@ export default function SetupPage({ profile, onDataChanged }) {
     )
     elemente.forEach((el) => observer.observe(el))
     return () => observer.disconnect()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patron])
 
   const navigheazaLa = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -53,7 +58,7 @@ export default function SetupPage({ profile, onDataChanged }) {
       <p className="setup-page-hint">Configurări generale ale aplicației.</p>
 
       <nav className="setup-subnav" aria-label="Secțiuni Setup">
-        {SECTIUNI.map((s) => (
+        {sectiuni.map((s) => (
           <button
             key={s.id}
             type="button"
@@ -69,20 +74,24 @@ export default function SetupPage({ profile, onDataChanged }) {
         <EtapeProductieList onChange={() => setEtapeRefreshSignal((v) => v + 1)} />
       </section>
       <section id="setup-tehnicieni" className="setup-section">
-        <TehnicieniList etapeRefreshSignal={etapeRefreshSignal} esteAdmin={profile?.rol === 'admin'} />
+        <TehnicieniList etapeRefreshSignal={etapeRefreshSignal} gestioneazaConturi={patron} />
       </section>
-      <section id="setup-tipuri" className="setup-section">
-        <TipuriLucrareCosturi onChange={() => setTipuriRefreshSignal((v) => v + 1)} />
-      </section>
-      <section id="setup-extra" className="setup-section">
-        <ExtraUriSetup />
-      </section>
-      <section id="setup-comisioane" className="setup-section">
-        <ComisioaneGrid etapeRefreshSignal={etapeRefreshSignal} tipuriRefreshSignal={tipuriRefreshSignal} />
-      </section>
-      <section id="setup-adaosuri" className="setup-section">
-        <AdaosuriDesignSetup />
-      </section>
+      {patron && (
+        <>
+          <section id="setup-tipuri" className="setup-section">
+            <TipuriLucrareCosturi onChange={() => setTipuriRefreshSignal((v) => v + 1)} />
+          </section>
+          <section id="setup-extra" className="setup-section">
+            <ExtraUriSetup />
+          </section>
+          <section id="setup-comisioane" className="setup-section">
+            <ComisioaneGrid etapeRefreshSignal={etapeRefreshSignal} tipuriRefreshSignal={tipuriRefreshSignal} />
+          </section>
+          <section id="setup-adaosuri" className="setup-section">
+            <AdaosuriDesignSetup />
+          </section>
+        </>
+      )}
 
       <DateTestSection profile={profile} onDataChanged={onDataChanged} />
     </div>

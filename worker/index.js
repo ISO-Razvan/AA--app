@@ -25,7 +25,8 @@ function slugNume(nume) {
 }
 
 // Creează contul unui tehnician sau, dacă are deja unul, îi resetează parola.
-// Doar pentru un apelant autentificat cu profiles.rol = 'admin'.
+// Doar pentru patron (profiles.rol = 'patron'; 'admin' e valoarea veche a
+// contului principal, de dinainte de rolurile patron/coordonator).
 async function creareContTehnician(request, env) {
   if (request.method !== 'POST') return json({ eroare: 'Metodă nepermisă.' }, 405)
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -43,7 +44,7 @@ async function creareContTehnician(request, env) {
   if (eApelant || !apelant?.user) return json({ eroare: 'Sesiune invalidă sau expirată.' }, 401)
 
   const { data: profilApelant } = await supabase.from('profiles').select('rol').eq('id', apelant.user.id).maybeSingle()
-  if (profilApelant?.rol !== 'admin') return json({ eroare: 'Doar un administrator poate crea conturi.' }, 403)
+  if (!['patron', 'admin'].includes(profilApelant?.rol)) return json({ eroare: 'Doar patronul poate crea conturi.' }, 403)
 
   let body
   try {

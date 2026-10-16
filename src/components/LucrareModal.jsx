@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { addLucrare, getConfigList, addConfigValue, generateNrInregistrare, getExtraUri } from '../services/dataService'
+import { addLucrare, getConfigList, addConfigValue, generateNrInregistrare, getExtraUriNume } from '../services/dataService'
+import { estePatron } from '../utils/roluri'
 import { MODEL_OPTIONS } from '../data/configDefaults'
 import { calculeazaDinti, toggleImplant, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
 import { azi as todayISO } from '../utils/date'
@@ -18,7 +19,9 @@ function formatDataOra(dataStr, oraStr) {
   return oraStr ? `${dataFmt}, ${oraStr}` : dataFmt
 }
 
-export default function LucrareModal({ onClose, onSaved }) {
+export default function LucrareModal({ profile, onClose, onSaved }) {
+  // Tipurile noi de lucrare (cu prețul lor) le adaugă doar patronul, din Setup sau de aici.
+  const poateAdaugaTip = estePatron(profile)
   const [selectateNumere, setSelectateNumere] = useState([])
   const [linkPairs, setLinkPairs] = useState([])
   const [implantNumere, setImplantNumere] = useState([])
@@ -61,7 +64,7 @@ export default function LucrareModal({ onClose, onSaved }) {
         getConfigList('medici'),
         getConfigList('clinici'),
         generateNrInregistrare(),
-        getExtraUri(),
+        getExtraUriNume(),
       ])
       // Try-in rămâne controlat exclusiv de bifa Try-in.
       setExtraOptiuni(extra.filter((e) => e.activ && !e.sistem))
@@ -209,7 +212,7 @@ export default function LucrareModal({ onClose, onSaved }) {
                   value={tipLucrare}
                   onChange={setTipLucrare}
                   options={tipuriOptions}
-                  onAddOption={handleAdd('tipuri_lucrare', setTipuriOptions)}
+                  onAddOption={poateAdaugaTip ? handleAdd('tipuri_lucrare', setTipuriOptions) : undefined}
                   placeholder="ex. Coroană zirconiu"
                 />
 

@@ -115,11 +115,13 @@ Deci suma unui comision **nu vine din grila curentă de Comisioane**, ci din ins
 `src/services/auth.js` (Supabase Auth) + `src/App.jsx`:
 1. La încărcare, `getSession()` + `onAuthStateChange` țin `session` sincronizat (cheie pe `session.user.id`, nu pe obiectul `session` întreg, ca reîmprospătarea automată a token-ului la revenirea pe tab să nu resetăze navigarea — bug reparat anterior).
 2. Cu `session` valid, se citește `profiles` după `id` → `{rol, tehnician_id, nume}`.
-3. `rol === 'admin'` → aplicația completă (sidebar cu toate secțiunile).
-4. `rol === 'tehnician'` → sidebar restrâns (doar „Task-urile mele"), blocat pe `tehnician_id` din profil.
-5. Fără rând `profiles` → ecran „cont fără rol asignat", cu opțiune de deconectare.
+3. Rolul se citește prin `src/utils/roluri.js` (`'admin'` = valoarea veche, tratată ca patron):
+   - `patron` (un singur cont) → aplicația completă, inclusiv Financiar, Salarii, prețurile din Setup, recalcularea valorilor, „Șterge toate lucrările" și conturile de tehnician;
+   - `coordonator` → tot ce ține de comenzi și producție (Dashboard, Listă, Task-uri, Capacitate, Setup: etape și tehnicieni, ștergerea unei lucrări), fără nimic financiar;
+   - `tehnician` → „Task-urile mele" și „Salariul meu", plus fișele (doar citire) lucrărilor în care are o etapă alocată.
+4. Fără rând `profiles` → ecran „cont fără rol asignat", cu opțiune de deconectare.
 
-**Nu există restricții de acces la date financiare pentru tehnician** — un cont tehnician, dacă ar naviga manual la URL-uri din partea de admin, ar avea acces API identic (RLS nu diferențiază pe rol încă). Amânat explicit pentru o rundă viitoare.
+Interfața doar ascunde; regulile reale sunt în baza de date (`schema.sql`, secțiunea Securitate): politici RLS pe rol, view-ul `lucrari_vizibile` (financiarul doar pentru patron, tehnicianul doar lucrările lui), drepturi pe coloane la `lucrari` (cei logați nu pot citi/scrie direct coloanele financiare) și triggerul `lucrari_instantaneu_financiar`, care calculează instantaneul financiar în baza de date.
 
 ## 5. Supabase Realtime — ce e live și ce nu
 

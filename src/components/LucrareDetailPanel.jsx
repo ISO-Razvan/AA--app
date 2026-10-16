@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   updateLucrare,
-  updateLucrareSiRecalculeaza,
   deleteLucrare,
   getConfigList,
   addConfigValue,
   getEtapeProductie,
   getProductieLucrare,
-  getExtraUri,
+  getExtraUriNume,
   recalculeazaLucrare,
 } from '../services/dataService'
+import { areAccesOperational, estePatron } from '../utils/roluri'
 import { MODEL_OPTIONS } from '../data/configDefaults'
 import { calculeazaDinti, dinDintiSalvati, toggleImplant, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
 import { statusDinRanduri } from '../utils/statusLucrare'
@@ -47,10 +47,12 @@ const TABS = [
 ]
 
 export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated }) {
-  const esteAdmin = profile?.rol === 'admin'
-  // Tehnicianul vede fișa doar pentru citire — baza de date îi permite
-  // oricum doar citirea lucrărilor (prin view-ul fără date financiare).
-  const readOnly = !!lucrare.arhivat || !esteAdmin
+  // Patronul și coordonatorul editează fișa; tehnicianul o vede doar pentru
+  // citire (baza de date îi permite oricum doar citirea, prin view-ul fără
+  // date financiare). Recalcularea cu prețurile curente e doar a patronului.
+  const poateEdita = areAccesOperational(profile)
+  const estePatronul = estePatron(profile)
+  const readOnly = !!lucrare.arhivat || !poateEdita
   const { confirm, dialog: confirmDialog } = useConfirm()
   const [tab, setTab] = useState('detalii')
   const initial = dinDintiSalvati(lucrare.dinti)
@@ -105,9 +107,9 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
   }, [lucrare.id])
 
   useEffect(() => {
-    // Listele de sugestii contează doar la editare (admin); tipurile de
-    // lucrare nici nu sunt accesibile unui tehnician.
-    if (!esteAdmin) return
+    // Listele de sugestii contează doar la editare; tipurile de lucrare nici
+    // nu sunt accesibile unui tehnician.
+    if (!poateEdita) return
     async function load() {
       const [tipuri, culori, medici, clinici] = await Promise.all([
         getConfigList('tipuri_lucrare'),
@@ -121,20 +123,20 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
       setCliniciOptions(clinici)
     }
     load()
-  }, [esteAdmin])
+  }, [poateEdita])
 
   useEffect(() => {
     async function loadExtra() {
-      // Pentru tehnician, view-ul întoarce deja extra-urile fără prețuri și
-      // fără Try-in; tabelul `extra_uri` îi e inaccesibil.
-      if (!esteAdmin) {
+      // Pentru tehnician și coordonator, view-ul întoarce deja extra-urile fără
+      // prețuri și fără Try-in; tehnicianul nu are acces la lista din Setup.
+      if (!poateEdita) {
         setExtraSelectie(
           (lucrare.extra_uri || []).map((e) => ({ extra_id: e.extra_id, nume: e.nume, mod_taxare: e.mod_taxare, cantitate: e.cantitate }))
         )
         setExtraToate([])
         return
       }
-      const toate = await getExtraUri()
+      const toate = await getExtraUriNume()
       const tryInId = toate.find((e) => e.sistem === 'try_in')?.id
       setExtraSelectie(
         (lucrare.extra_uri || [])
@@ -148,13 +150,12 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lucrare.id])
 
-  // Extra-urile și bifa Try-in: doar admin, cu recalcularea instantaneului.
-  const poateEditaFinanciar = esteAdmin && !readOnly
-
+  // Extra-urile, Try-in-ul, dinții, tipul și nr. elementelor refac automat
+  // valorile financiare ale lucrării, în baza de date (vezi supabaseAdapter).
   const schimbaExtra = async (noua) => {
-    if (!poateEditaFinanciar) return
+    if (readOnly) return
     setExtraSelectie(noua)
-    await updateLucrareSiRecalculeaza(lucrare.id, {
+    await updateLucrare(lucrare.id, {
       extra_uri: noua.map((s) => ({ extra_id: s.extra_id, cantitate: s.cantitate })),
     })
     setSavedAt(Date.now())
@@ -162,9 +163,9 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
   }
 
   const schimbaTryIn = async (valoare) => {
-    if (!poateEditaFinanciar) return
+    if (readOnly) return
     setTryIn(valoare)
-    await updateLucrareSiRecalculeaza(lucrare.id, { try_in: valoare })
+    await updateLucrare(lucrare.id, { try_in: valoare })
     setSavedAt(Date.now())
     await onUpdated?.()
   }
@@ -210,16 +211,12 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
   }
 
   // Modificarea dinților / marcajelor de implant: câmpul `implant` al lucrării
-  // se derivă automat, iar pentru un admin se recalculează și instantaneul
-  // financiar al acestei lucrări (prețuri curente din Setup). Pentru ceilalți
-  // utilizatori instantaneul rămâne înghețat de la înregistrare.
+  // se derivă automat.
   const persistDinti = async (patch, nextImplant) => {
     if (readOnly) return
     const implantNou = nextImplant.length > 0
     setImplant(implantNou)
-    const complet = { ...patch, implant: implantNou }
-    if (esteAdmin) await updateLucrareSiRecalculeaza(lucrare.id, complet)
-    else await updateLucrare(lucrare.id, complet)
+    await updateLucrare(lucrare.id, { ...patch, implant: implantNou })
     setSavedAt(Date.now())
     await onUpdated?.()
   }
@@ -291,7 +288,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
           </div>
 
           <div className="detail-panel-header-actions">
-            {esteAdmin && !readOnly && (
+            {estePatronul && !readOnly && (
               <div className="detail-recalculare">
                 <button
                   type="button"
@@ -308,7 +305,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                 )}
               </div>
             )}
-            {esteAdmin && (
+            {poateEdita && (
               <button
                 type="button"
                 className="btn btn-outline-danger detail-panel-delete"
@@ -416,7 +413,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                       await persist({ tip_lucrare: v })
                     }}
                     options={tipuriOptions}
-                    onAddOption={handleAdd('tipuri_lucrare', setTipuriOptions)}
+                    onAddOption={estePatronul ? handleAdd('tipuri_lucrare', setTipuriOptions) : undefined}
                     placeholder="ex. Coroană zirconiu"
                     disabled={readOnly}
                   />
@@ -455,7 +452,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                           type="button"
                           className={`segmented-option ${!tryIn ? 'active' : ''}`}
                           onClick={() => schimbaTryIn(false)}
-                          disabled={!poateEditaFinanciar}
+                          disabled={readOnly}
                         >
                           Nu
                         </button>
@@ -463,7 +460,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                           type="button"
                           className={`segmented-option ${tryIn ? 'active' : ''}`}
                           onClick={() => schimbaTryIn(true)}
-                          disabled={!poateEditaFinanciar}
+                          disabled={readOnly}
                         >
                           Da
                         </button>
@@ -491,7 +488,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                   </div>
                   <div>
                     <span className="field-label">Extra-uri</span>
-                    {extraToate === null ? null : poateEditaFinanciar ? (
+                    {extraToate === null ? null : !readOnly ? (
                       <ExtraUriPicker
                         optiuni={extraToate.filter((e) => e.activ && !e.sistem)}
                         selectie={extraSelectie}
@@ -582,7 +579,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
               arhivat={lucrare.arhivat}
               dataArhivare={lucrare.data_arhivare}
               onArhivat={onUpdated}
-              esteAdmin={esteAdmin}
+              esteAdmin={poateEdita}
               tehnicianId={profile?.tehnician_id}
             />
           )}

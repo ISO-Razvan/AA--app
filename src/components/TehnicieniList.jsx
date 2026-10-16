@@ -13,7 +13,8 @@ import './TehnicieniList.css'
 
 const FORM_INIT = { nume: '', roluri: [] }
 
-export default function TehnicieniList({ etapeRefreshSignal, esteAdmin = false }) {
+// `gestioneazaConturi` — doar patronul creează conturi / resetează parole.
+export default function TehnicieniList({ etapeRefreshSignal, gestioneazaConturi = false }) {
   const [tehnicieni, setTehnicieni] = useState([])
   const [cuCont, setCuCont] = useState(new Set())
   const [contDeschis, setContDeschis] = useState(null)
@@ -29,7 +30,7 @@ export default function TehnicieniList({ etapeRefreshSignal, esteAdmin = false }
     const [t, e, conturi] = await Promise.all([
       getTehnicieni(),
       getEtapeProductie(),
-      esteAdmin ? getTehnicieniCuCont() : Promise.resolve(new Set()),
+      gestioneazaConturi ? getTehnicieniCuCont() : Promise.resolve(new Set()),
     ])
     setTehnicieni(t)
     setEtape(e)
@@ -136,7 +137,7 @@ export default function TehnicieniList({ etapeRefreshSignal, esteAdmin = false }
                 </div>
               </div>
               <div className="tehnicieni-actions">
-                {esteAdmin && (
+                {gestioneazaConturi && (
                   <button
                     type="button"
                     className="btn btn-ghost tehnicieni-cont-btn"
