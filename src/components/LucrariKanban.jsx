@@ -13,6 +13,7 @@ import { getEtapeProductie, getToateAlocarile, getTehnicieni, setProductieAlocar
 import { azi, adaugaZile } from '../utils/date'
 import { etapaCurentaPentru } from '../utils/etapaProductie'
 import { subscribeToTable } from '../services/realtime'
+import { IndicatorNoteMedic } from './NoteComanda.jsx'
 import './LucrariKanban.css'
 
 function formatData(dataStr) {
@@ -209,7 +210,10 @@ export default function LucrariKanban({ lucrari, onRowClick }) {
                       onOpen={() => onRowClick(lucrare)}
                     >
                       <div className="kanban-card-top">
-                        <span className="kanban-card-pacient rezumat-pacient">{lucrare.pacient || '—'}</span>
+                        <span className="kanban-card-pacient rezumat-pacient">
+                          {lucrare.pacient || '—'}
+                          <IndicatorNoteMedic nr={lucrare.note_noi_medic} />
+                        </span>
                         {tehnician && (
                           <span className="kanban-card-tehnician" title={tehnician.nume}>
                             {initiale(tehnician.nume)}

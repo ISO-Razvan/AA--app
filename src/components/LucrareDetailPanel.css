@@ -149,6 +149,22 @@
   border-bottom-color: var(--color-blue-strong);
 }
 
+/* Note noi de la medic, necitite încă de laborator. */
+.detail-panel-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-purple);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .detail-panel-body {
   flex: 1;
   overflow-y: auto;
@@ -282,17 +298,6 @@
 .segmented-option:disabled {
   cursor: not-allowed;
   opacity: 0.6;
-}
-
-.detail-tab-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 280px;
-  color: var(--color-text-muted);
-  font-size: 0.95rem;
-  text-align: center;
-  padding: var(--space-6);
 }
 
 @media (max-width: 900px) {

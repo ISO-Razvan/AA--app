@@ -6,6 +6,8 @@ import ExtraUriSetup from './ExtraUriSetup.jsx'
 import ComisioaneGrid from './ComisioaneGrid.jsx'
 import AdaosuriDesignSetup from './AdaosuriDesignSetup.jsx'
 import DateTestSection from './DateTestSection.jsx'
+import MediciSetup from './MediciSetup.jsx'
+import NoteSetup from './NoteSetup.jsx'
 import { estePatron } from '../utils/roluri'
 import './SetupPage.css'
 
@@ -13,6 +15,8 @@ import './SetupPage.css'
 const SECTIUNI = [
   { id: 'setup-etape', label: 'Etape de producție' },
   { id: 'setup-tehnicieni', label: 'Tehnicieni' },
+  { id: 'setup-medici', label: 'Medici' },
+  { id: 'setup-note', label: 'Note' },
   { id: 'setup-tipuri', label: 'Tipuri de lucrare', doarPatron: true },
   { id: 'setup-extra', label: 'Extra-uri', doarPatron: true },
   { id: 'setup-comisioane', label: 'Comisioane', doarPatron: true },
@@ -75,6 +79,12 @@ export default function SetupPage({ profile, onDataChanged }) {
       </section>
       <section id="setup-tehnicieni" className="setup-section">
         <TehnicieniList etapeRefreshSignal={etapeRefreshSignal} gestioneazaConturi={patron} />
+      </section>
+      <section id="setup-medici" className="setup-section">
+        <MediciSetup />
+      </section>
+      <section id="setup-note" className="setup-section">
+        <NoteSetup />
       </section>
       {patron && (
         <>

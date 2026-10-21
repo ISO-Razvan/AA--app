@@ -20,6 +20,29 @@ export async function signIn(emailSauUtilizator, parola, rememberMe = true) {
   return data.session
 }
 
+// Medicii nu au parolă: primesc un cod pe email (Supabase Auth, OTP). Doar
+// conturile create de laborator — un email necunoscut nu primește cod.
+// Sesiunea rămâne salvată pe dispozitiv (localStorage); baza de date cere un
+// cod nou după 90 de zile (vezi sesiune_medic_valida în schema.sql).
+export async function trimiteCodEmail(email) {
+  localStorage.setItem(REMEMBER_ME_KEY, 'true')
+  const { error } = await supabase.auth.signInWithOtp({
+    email: email.trim().toLowerCase(),
+    options: { shouldCreateUser: false },
+  })
+  if (error) throw error
+}
+
+export async function verificaCodEmail(email, cod) {
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: email.trim().toLowerCase(),
+    token: cod.trim(),
+    type: 'email',
+  })
+  if (error) throw error
+  return data.session
+}
+
 export async function schimbaParola(parolaNoua) {
   const { error } = await supabase.auth.updateUser({ password: parolaNoua })
   if (error) throw error
@@ -41,13 +64,13 @@ export function onAuthStateChange(callback) {
   return () => data.subscription.unsubscribe()
 }
 
-// Rolul + (dacă e tehnician) legătura cu rândul lui din `tehnicieni`.
+// Rolul + legătura cu rândul din `tehnicieni` (tehnician) sau `medici` (medic).
 // Rândul din `profiles` e creat manual de administrator — dacă lipsește,
 // contul e autentificat dar nu are încă rol asignat.
 export async function getProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, rol, tehnician_id, nume')
+    .select('id, rol, tehnician_id, medic_id, activ, nume')
     .eq('id', userId)
     .maybeSingle()
   if (error) throw error

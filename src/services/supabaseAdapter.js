@@ -580,18 +580,18 @@ async function getTehnicieniCuCont() {
   return new Set((data || []).map((p) => p.tehnician_id))
 }
 
-// Creează contul tehnicianului sau îi resetează parola — prin funcția de
-// server (Worker), care verifică rolul de admin și folosește cheia de serviciu.
-async function creeazaContTehnician(tehnicianId, parola) {
+// Apel către o funcție de server (Worker, /api/...) cu sesiunea curentă —
+// serverul verifică rolul și folosește cheia de serviciu.
+async function apelServer(ruta, corp) {
   const { data: sesiune } = await supabase.auth.getSession()
   const token = sesiune.session?.access_token
   if (!token) throw new Error('Sesiunea a expirat — autentifică-te din nou.')
   let raspuns
   try {
-    raspuns = await fetch('/api/creare-cont-tehnician', {
+    raspuns = await fetch(ruta, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ tehnician_id: tehnicianId, parola }),
+      body: JSON.stringify(corp),
     })
   } catch {
     throw new Error('Serverul nu a putut fi contactat.')
@@ -599,6 +599,172 @@ async function creeazaContTehnician(tehnicianId, parola) {
   const body = await raspuns.json().catch(() => null)
   if (!raspuns.ok || !body) throw new Error(body?.eroare || `Serverul a răspuns cu eroarea ${raspuns.status}.`)
   return body
+}
+
+// Creează contul tehnicianului sau îi resetează parola (doar patronul).
+async function creeazaContTehnician(tehnicianId, parola) {
+  return apelServer('/api/creare-cont-tehnician', { tehnician_id: tehnicianId, parola })
+}
+
+// ---------------------------------------------------------------------------
+// Medici — date de contact + accesul la pagina medicului
+// ---------------------------------------------------------------------------
+
+async function getMedici() {
+  const { data, error } = await supabase.from('medici').select('*').order('nume')
+  fail(error, 'Nu s-au putut încărca medicii')
+  return data || []
+}
+
+async function updateMedic(id, patch) {
+  const payload = {}
+  if ('email' in patch) payload.email = String(patch.email || '').trim().toLowerCase() || null
+  if ('telefon' in patch) payload.telefon = String(patch.telefon || '').trim() || null
+  const { data, error } = await supabase.from('medici').update(payload).eq('id', id).select().single()
+  fail(error, 'Nu s-au putut salva datele medicului')
+  return data
+}
+
+// medic_id → { activ, cod_acces } pentru medicii care au primit acces.
+async function getAccesMedici() {
+  const { data, error } = await supabase.from('profiles').select('medic_id, activ, cod_acces').eq('rol', 'medic')
+  fail(error, 'Nu s-a putut încărca accesul medicilor')
+  return new Map((data || []).filter((p) => p.medic_id).map((p) => [p.medic_id, p]))
+}
+
+// actiune: 'trimite' | 'link_nou' | 'dezactiveaza' | 'sterge' (vezi worker/index.js).
+async function accesMedic(medicId, actiune) {
+  return apelServer('/api/acces-medic', { medic_id: medicId, actiune })
+}
+
+// ---------------------------------------------------------------------------
+// Note pe comandă — partea laboratorului
+// ---------------------------------------------------------------------------
+
+async function getSubiecteNote() {
+  const { data, error } = await supabase.from('subiecte_note').select('*').order('ordine').order('nume')
+  fail(error, 'Nu s-au putut încărca subiectele notelor')
+  return data || []
+}
+
+async function addSubiectNota(nume) {
+  const valoare = String(nume || '').trim()
+  if (!valoare) throw new Error('Subiectul nu poate fi gol')
+  const lista = await getSubiecteNote()
+  if (lista.some((s) => s.nume.toLowerCase() === valoare.toLowerCase())) throw new Error(`Subiectul „${valoare}” există deja`)
+  const ordine = lista.reduce((max, s) => Math.max(max, s.ordine), 0) + 1
+  const { data, error } = await supabase.from('subiecte_note').insert({ nume: valoare, ordine }).select().single()
+  fail(error, 'Nu s-a putut adăuga subiectul')
+  return data
+}
+
+async function updateSubiectNota(id, patch) {
+  const payload = {}
+  if ('activ' in patch) payload.activ = !!patch.activ
+  if ('nume' in patch) {
+    const valoare = String(patch.nume || '').trim()
+    if (!valoare) throw new Error('Subiectul nu poate fi gol')
+    payload.nume = valoare
+  }
+  const { data, error } = await supabase.from('subiecte_note').update(payload).eq('id', id).select().single()
+  fail(error, 'Nu s-a putut salva subiectul')
+  return data
+}
+
+async function getSetariNote() {
+  const { data, error } = await supabase.from('setari_note').select('*').eq('id', 1).maybeSingle()
+  fail(error, 'Nu s-au putut încărca setările notelor')
+  return { zile_dupa_livrare: data?.zile_dupa_livrare ?? 7 }
+}
+
+async function updateSetariNote({ zile_dupa_livrare }) {
+  const zile = Math.max(0, Math.round(Number(zile_dupa_livrare) || 0))
+  const { error } = await supabase.from('setari_note').upsert({ id: 1, zile_dupa_livrare: zile }, { onConflict: 'id' })
+  fail(error, 'Nu s-au putut salva setările notelor')
+}
+
+async function getNoteComanda(comandaId) {
+  const { data, error } = await supabase
+    .from('note_comanda')
+    .select('*')
+    .eq('comanda_id', comandaId)
+    .order('created_at', { ascending: true })
+  fail(error, 'Nu s-au putut încărca notele')
+  return data || []
+}
+
+// Autorul, rolul, numele subiectului și data le completează baza de date.
+async function addNotaComanda({ comanda_id, subiect_id, text, vizibilitate }) {
+  const valoare = String(text || '').trim()
+  if (!valoare) throw new Error('Scrie textul notei')
+  if (valoare.length > 500) throw new Error('Nota poate avea cel mult 500 de caractere')
+  const { data, error } = await supabase
+    .from('note_comanda')
+    .insert({ comanda_id, subiect_id, subiect: '', text: valoare, vizibilitate: vizibilitate === 'medic' ? 'medic' : 'intern', rol_autor: 'tehnician' })
+    .select()
+    .single()
+  if (error?.code === '42501') throw new Error('Nota nu s-a putut adăuga: comanda e închisă pentru note sau nu ai acces la ea.')
+  fail(error, 'Nu s-a putut adăuga nota')
+  return data
+}
+
+async function noteDeschise(comandaId) {
+  const { data, error } = await supabase.rpc('note_deschise', { p_comanda: comandaId })
+  fail(error, 'Nu s-a putut verifica dacă comanda primește note')
+  return !!data
+}
+
+async function marcheazaNoteCitite(comandaId) {
+  const { error } = await supabase.rpc('marcheaza_note_citite', { p_comanda: comandaId })
+  fail(error, 'Nu s-au putut marca notele ca citite')
+}
+
+// Notele medicilor necitite încă de laborator: [{ comanda_id, subiect, created_at }].
+async function getNoteNoiDeLaMedici() {
+  const { data, error } = await supabase
+    .from('note_comanda')
+    .select('comanda_id, subiect, created_at')
+    .eq('rol_autor', 'medic')
+    .is('citita_de_lab', null)
+    .order('created_at', { ascending: false })
+  fail(error, 'Nu s-au putut încărca notele noi de la medici')
+  return data || []
+}
+
+// ---------------------------------------------------------------------------
+// Pagina medicului — doar prin funcțiile din baza de date (vezi schema.sql)
+// ---------------------------------------------------------------------------
+
+async function getInfoAccesMedic(cod) {
+  const { data, error } = await supabase.rpc('info_acces_medic', { p_cod: cod })
+  fail(error, 'Linkul nu a putut fi verificat')
+  return data?.[0] || null
+}
+
+async function getComenzileMeleMedic() {
+  const { data, error } = await supabase.rpc('comenzile_mele_medic')
+  fail(error, 'Nu s-au putut încărca comenzile')
+  return data || []
+}
+
+async function getComandaMedic(nr) {
+  const { data, error } = await supabase.rpc('comanda_medic', { p_nr: nr })
+  fail(error, 'Nu s-a putut încărca comanda')
+  return data?.[0] || null
+}
+
+async function getNoteleComenziiMedic(comandaId) {
+  const { data, error } = await supabase.rpc('notele_comenzii_medic', { p_comanda: comandaId })
+  fail(error, 'Nu s-au putut încărca notele')
+  return data || []
+}
+
+async function addNotaMedic(comandaId, subiectId, text) {
+  const valoare = String(text || '').trim()
+  if (!valoare) throw new Error('Scrie textul răspunsului')
+  if (valoare.length > 500) throw new Error('Răspunsul poate avea cel mult 500 de caractere')
+  const { error } = await supabase.rpc('adauga_nota_medic', { p_comanda: comandaId, p_subiect: subiectId, p_text: valoare })
+  fail(error, 'Răspunsul nu s-a putut trimite')
 }
 
 async function setProductieAlocare(lucrareId, etapaId, patch) {
@@ -927,6 +1093,25 @@ export const supabaseAdapter = {
   getSalariulMeu,
   getTehnicieniCuCont,
   creeazaContTehnician,
+  getMedici,
+  updateMedic,
+  getAccesMedici,
+  accesMedic,
+  getSubiecteNote,
+  addSubiectNota,
+  updateSubiectNota,
+  getSetariNote,
+  updateSetariNote,
+  getNoteComanda,
+  addNotaComanda,
+  noteDeschise,
+  marcheazaNoteCitite,
+  getNoteNoiDeLaMedici,
+  getInfoAccesMedic,
+  getComenzileMeleMedic,
+  getComandaMedic,
+  getNoteleComenziiMedic,
+  addNotaMedic,
   getPozeLucrare,
   addPozaLucrare,
   deletePozaLucrare,

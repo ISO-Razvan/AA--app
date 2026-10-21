@@ -63,6 +63,10 @@
   gap: var(--space-3);
 }
 
+.dashboard-note-card {
+  border-left: 4px solid var(--brand-purple);
+}
+
 .dashboard-section-title {
   font-size: 1.05rem;
   font-weight: 700;

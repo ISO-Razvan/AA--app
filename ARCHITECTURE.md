@@ -118,8 +118,11 @@ Deci suma unui comision **nu vine din grila curentă de Comisioane**, ci din ins
 3. Rolul se citește prin `src/utils/roluri.js` (`'admin'` = valoarea veche, tratată ca patron):
    - `patron` (un singur cont) → aplicația completă, inclusiv Financiar, Salarii, prețurile din Setup, recalcularea valorilor, „Șterge toate lucrările" și conturile de tehnician;
    - `coordonator` → tot ce ține de comenzi și producție (Dashboard, Listă, Task-uri, Capacitate, Setup: etape și tehnicieni, ștergerea unei lucrări), fără nimic financiar;
-   - `tehnician` → „Task-urile mele" și „Salariul meu", plus fișele (doar citire) lucrărilor în care are o etapă alocată.
+   - `tehnician` → „Task-urile mele" și „Salariul meu", plus fișele (doar citire) lucrărilor în care are o etapă alocată;
+   - `medic` → doar pagina separată `/medic` (`MedicApp.jsx`, fără sidebar): comenzile lui active și notele trimise lui. Se autentifică fără parolă, cu cod OTP pe email (`trimiteCodEmail`/`verificaCodEmail` din `auth.js`); contul îl creează patronul/coordonatorul din Setup → Medici prin `/api/acces-medic` (Worker). Medicul nu are politici pe tabelele laboratorului — citește și scrie doar prin funcțiile `comenzile_mele_medic`, `comanda_medic`, `notele_comenzii_medic`, `adauga_nota_medic`, `marcheaza_note_citite` (verifică rolul, accesul activ, sesiunea de max. 90 de zile și că e comanda lui, după numele medicului de pe comandă).
 4. Fără rând `profiles` → ecran „cont fără rol asignat", cu opțiune de deconectare.
+
+**Note pe comandă** (tabul „Note" din fișă, `NoteComanda.jsx`; tabelul `note_comanda`): subiect din `subiecte_note`, max. 500 de caractere, `intern` sau `medic`, fără editare/ștergere; deschise până la livrare + `setari_note.zile_dupa_livrare`. Notificarea medicului (acum WhatsApp prin wa.me) e doar în `src/services/notificari.js` → `notificaMedic`.
 
 Interfața doar ascunde; regulile reale sunt în baza de date (`schema.sql`, secțiunea Securitate): politici RLS pe rol, view-ul `lucrari_vizibile` (financiarul doar pentru patron, tehnicianul doar lucrările lui), drepturi pe coloane la `lucrari` (cei logați nu pot citi/scrie direct coloanele financiare) și triggerul `lucrari_instantaneu_financiar`, care calculează instantaneul financiar în baza de date.
 

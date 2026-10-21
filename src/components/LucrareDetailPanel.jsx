@@ -20,6 +20,7 @@ import DatePicker from './DatePicker.jsx'
 import TimePicker from './TimePicker.jsx'
 import ProductieTimeline from './ProductieTimeline.jsx'
 import GaleriePoze from './GaleriePoze.jsx'
+import NoteComanda from './NoteComanda.jsx'
 import ExtraUriPicker, { ExtraUriLista } from './ExtraUriPicker.jsx'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import './modal-base.css'
@@ -43,10 +44,11 @@ const TABS = [
   { id: 'detalii', label: 'Detalii comandă' },
   { id: 'productie', label: 'Producție' },
   { id: 'galerie', label: 'Galerie' },
-  { id: 'chat', label: 'Chat' },
+  { id: 'note', label: 'Note' },
 ]
 
-export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated }) {
+// `tabInitial` — ex. 'note', când fișa e deschisă din „Note noi de la medici".
+export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated, tabInitial, onNoteCitite }) {
   // Patronul și coordonatorul editează fișa; tehnicianul o vede doar pentru
   // citire (baza de date îi permite oricum doar citirea, prin view-ul fără
   // date financiare). Recalcularea cu prețurile curente e doar a patronului.
@@ -54,7 +56,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
   const estePatronul = estePatron(profile)
   const readOnly = !!lucrare.arhivat || !poateEdita
   const { confirm, dialog: confirmDialog } = useConfirm()
-  const [tab, setTab] = useState('detalii')
+  const [tab, setTab] = useState(TABS.some((t) => t.id === tabInitial) ? tabInitial : 'detalii')
   const initial = dinDintiSalvati(lucrare.dinti)
 
   const [selectateNumere, setSelectateNumere] = useState(initial.selectateNumere)
@@ -332,6 +334,11 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
               aria-current={tab === t.id ? 'page' : undefined}
             >
               {t.label}
+              {t.id === 'note' && lucrare.note_noi_medic > 0 && (
+                <span className="detail-panel-tab-badge" aria-label={`${lucrare.note_noi_medic} note noi de la medic`}>
+                  {lucrare.note_noi_medic}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -586,11 +593,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
 
           {tab === 'galerie' && <GaleriePoze lucrareId={lucrare.id} readOnly={!!lucrare.arhivat} />}
 
-          {tab === 'chat' && (
-            <div className="detail-tab-placeholder">
-              <p>Chat — disponibil în curând</p>
-            </div>
-          )}
+          {tab === 'note' && <NoteComanda lucrare={lucrare} profile={profile} onCitite={onNoteCitite} />}
         </div>
       </div>
 

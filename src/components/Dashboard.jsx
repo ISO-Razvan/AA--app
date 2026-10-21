@@ -4,8 +4,8 @@ import { azi, adaugaZile } from '../utils/date'
 import { statusDinRanduri } from '../utils/statusLucrare'
 import { etapaCurentaPentru } from '../utils/etapaProductie'
 import { subscribeToTable } from '../services/realtime'
+import { formatDataOraNota } from './NoteComanda.jsx'
 import './Dashboard.css'
-
 
 function KpiCard({ label, value, tone }) {
   return (
@@ -29,7 +29,8 @@ function StatRow({ label, count, max, accent }) {
   )
 }
 
-export default function Dashboard({ lucrari: toateLucrarile, loading, onOpenLucrare }) {
+// `noteNoi` — notele medicilor necitite de laborator (null = rolul nu le vede).
+export default function Dashboard({ lucrari: toateLucrarile, loading, onOpenLucrare, noteNoi = null, onOpenNote }) {
   // O lucrare arhivată dispare din Dashboard (KPI-uri, listă, grafice) — vezi
   // modul „Arhivate" din Listă lucrări pentru consultare ulterioară.
   const lucrari = useMemo(() => toateLucrarile.filter((l) => !l.arhivat), [toateLucrarile])
@@ -104,6 +105,21 @@ export default function Dashboard({ lucrari: toateLucrarile, loading, onOpenLucr
       .sort((a, b) => b.count - a.count)
   }, [lucrari])
 
+  // Câte o intrare pe comandă: nr. notelor noi + subiectul și data celei mai recente.
+  const comenziCuNoteNoi = useMemo(() => {
+    if (!noteNoi) return []
+    const byId = new Map(toateLucrarile.map((l) => [l.id, l]))
+    const grupate = new Map()
+    for (const n of noteNoi) {
+      const lucrare = byId.get(n.comanda_id)
+      if (!lucrare) continue
+      const g = grupate.get(n.comanda_id)
+      if (g) g.nr++
+      else grupate.set(n.comanda_id, { lucrare, nr: 1, subiect: n.subiect, created_at: n.created_at })
+    }
+    return [...grupate.values()]
+  }, [noteNoi, toateLucrarile])
+
   const maxEtapa = Math.max(1, ...etapeStats.map((s) => s.count))
   const maxTip = Math.max(1, ...tipuriStats.map((s) => s.count))
 
@@ -118,6 +134,30 @@ export default function Dashboard({ lucrari: toateLucrarile, loading, onOpenLucr
         <KpiCard label="Se predau azi" value={loading ? '—' : sePredauAzi.length} tone="neutral" />
         <KpiCard label="Întârziate" value={loading ? '—' : intarziateCount} tone="danger" />
       </div>
+
+      {noteNoi && (
+        <section className="card dashboard-azi-card dashboard-note-card">
+          <h3 className="dashboard-section-title">Note noi de la medici</h3>
+          {comenziCuNoteNoi.length === 0 ? (
+            <p className="dashboard-status-text">Nicio notă nouă de la medici.</p>
+          ) : (
+            <ul className="dashboard-azi-list">
+              {comenziCuNoteNoi.map(({ lucrare: l, nr, subiect, created_at }) => (
+                <li key={l.id}>
+                  <button type="button" className="dashboard-azi-row" onClick={() => onOpenNote?.(l)}>
+                    <span className="dashboard-azi-pacient rezumat-pacient">{l.pacient || '—'}</span>
+                    <span className="rezumat-medic">{l.medic || '—'}</span>
+                    <span className="dashboard-azi-tip rezumat-tip">{subiect}</span>
+                    <span className="dashboard-azi-client">{formatDataOraNota(created_at)}</span>
+                    <span className="dashboard-azi-nr">{l.nr_inregistrare}</span>
+                    <span className="badge badge-purple">{nr === 1 ? '1 notă nouă' : `${nr} note noi`}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <section className="card dashboard-azi-card">
         <h3 className="dashboard-section-title">Se predau azi</h3>

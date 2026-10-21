@@ -6,6 +6,7 @@ import { statusDinRanduri, STATUS_LUCRARE } from '../utils/statusLucrare'
 import { subscribeToTable } from '../services/realtime'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import LucrariKanban from './LucrariKanban.jsx'
+import { IndicatorNoteMedic } from './NoteComanda.jsx'
 import './LucrariList.css'
 
 function formatData(dataStr) {
@@ -395,7 +396,10 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                   const status = statusPentru(l.id)
                   return (
                     <tr key={l.id} className="lucrari-table-row" onClick={() => onRowClick(l)} tabIndex={0}>
-                      <td className="rezumat-pacient">{l.pacient || '—'}</td>
+                      <td className="rezumat-pacient">
+                        {l.pacient || '—'}
+                        <IndicatorNoteMedic nr={l.note_noi_medic} />
+                      </td>
                       <td className="rezumat-medic">{l.medic || '—'}</td>
                       <td className="rezumat-tip">{l.tip_lucrare}</td>
                       <td className="lucrari-table-nr">{l.nr_inregistrare}</td>
@@ -452,7 +456,10 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
               return (
               <li key={l.id} className="card lucrare-card" onClick={() => onRowClick(l)}>
                 <div className="lucrare-card-top">
-                  <h3 className="lucrare-card-pacient rezumat-pacient">{l.pacient || '—'}</h3>
+                  <h3 className="lucrare-card-pacient rezumat-pacient">
+                    {l.pacient || '—'}
+                    <IndicatorNoteMedic nr={l.note_noi_medic} />
+                  </h3>
                   <div className="lucrare-card-top-right">
                     {l.arhivat ? (
                       <button

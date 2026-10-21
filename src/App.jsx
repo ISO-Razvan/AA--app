@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Routes, Route, useNavigate, useParams } from 'react-router-dom'
-import { getLucrari } from './services/dataService'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Routes, Route, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { getLucrari, getNoteNoiDeLaMedici } from './services/dataService'
 import { getSession, getProfile, onAuthStateChange, signOut } from './services/auth'
 import { subscribeToTable } from './services/realtime'
-import { esteTehnician as rolTehnician, estePatron } from './utils/roluri'
+import { esteTehnician as rolTehnician, estePatron, esteMedic, areAccesOperational } from './utils/roluri'
 import Sidebar from './components/Sidebar.jsx'
 import Login from './components/Login.jsx'
 import Dashboard from './components/Dashboard.jsx'
@@ -18,10 +18,12 @@ import SalariiPage from './components/SalariiPage.jsx'
 import FinanciarPage from './components/FinanciarPage.jsx'
 import TaskurileMelePage from './components/TaskurileMelePage.jsx'
 import SalariulMeuPage from './components/SalariulMeuPage.jsx'
+import MedicApp from './components/MedicApp.jsx'
 import './App.css'
 
 function AppContent({ profile, onSignOut }) {
   const { nrInregistrare } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const esteTehnician = rolTehnician(profile)
   // Financiar și Salarii — doar patronul (coordonatorul vede restul aplicației).
@@ -31,6 +33,10 @@ function AppContent({ profile, onSignOut }) {
   const [lucrari, setLucrari] = useState([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  // Note de la medici necitite încă de laborator (patron/coordonator) —
+  // indicator pe Listă/Kanban și secțiune pe Dashboard.
+  const [noteNoi, setNoteNoi] = useState([])
+  const vedeNoteNoi = areAccesOperational(profile)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -55,8 +61,26 @@ function AppContent({ profile, onSignOut }) {
     return unsubscribe
   }, [refreshSilent])
 
+  const reincarcaNoteNoi = useCallback(async () => {
+    if (vedeNoteNoi) setNoteNoi(await getNoteNoiDeLaMedici())
+  }, [vedeNoteNoi])
+
+  useEffect(() => {
+    if (!vedeNoteNoi) return undefined
+    reincarcaNoteNoi()
+    return subscribeToTable('note_comanda', () => reincarcaNoteNoi())
+  }, [vedeNoteNoi, reincarcaNoteNoi])
+
+  // Fiecare lucrare primește `note_noi_medic` (numărul notelor necitite).
+  const lucrariCuNote = useMemo(() => {
+    if (noteNoi.length === 0) return lucrari
+    const nr = new Map()
+    for (const n of noteNoi) nr.set(n.comanda_id, (nr.get(n.comanda_id) || 0) + 1)
+    return lucrari.map((l) => (nr.has(l.id) ? { ...l, note_noi_medic: nr.get(l.id) } : l))
+  }, [lucrari, noteNoi])
+
   const editing = nrInregistrare
-    ? lucrari.find((l) => l.nr_inregistrare === nrInregistrare) || null
+    ? lucrariCuNote.find((l) => l.nr_inregistrare === nrInregistrare) || null
     : null
 
   return (
@@ -67,7 +91,7 @@ function AppContent({ profile, onSignOut }) {
         {!esteTehnician && (
           <header className="app-header">
             <CautareGlobala
-              lucrari={lucrari}
+              lucrari={lucrariCuNote}
               onSelect={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
             />
           </header>
@@ -83,14 +107,16 @@ function AppContent({ profile, onSignOut }) {
             <>
               {pagina === 'dashboard' && (
                 <Dashboard
-                  lucrari={lucrari}
+                  lucrari={lucrariCuNote}
                   loading={loading}
+                  noteNoi={vedeNoteNoi ? noteNoi : null}
                   onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
+                  onOpenNote={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}?tab=note`)}
                 />
               )}
               {pagina === 'lista' && (
                 <LucrariList
-                  lucrari={lucrari}
+                  lucrari={lucrariCuNote}
                   loading={loading}
                   onDataChanged={refresh}
                   onRowClick={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
@@ -131,8 +157,10 @@ function AppContent({ profile, onSignOut }) {
           key={editing.id}
           lucrare={editing}
           profile={profile}
+          tabInitial={searchParams.get('tab')}
           onClose={() => navigate('/')}
           onUpdated={refresh}
+          onNoteCitite={reincarcaNoteNoi}
         />
       )}
     </div>
@@ -140,6 +168,8 @@ function AppContent({ profile, onSignOut }) {
 }
 
 export default function App() {
+  const location = useLocation()
+  const paginaMedic = location.pathname === '/medic' || location.pathname.startsWith('/medic/')
   // `undefined` = încă se verifică sesiunea; `null` = neautentificat.
   const [session, setSession] = useState(undefined)
   const [profile, setProfile] = useState(null)
@@ -186,6 +216,10 @@ export default function App() {
     }
   }, [userId])
 
+  // Pagina medicului are propria autentificare (cod pe email) și nu folosește
+  // nimic din interfața laboratorului.
+  if (paginaMedic) return <MedicApp session={session} profile={profile} profileLoading={profileLoading} />
+
   if (session === undefined) {
     return (
       <div className="auth-status-screen">
@@ -222,6 +256,8 @@ export default function App() {
       </div>
     )
   }
+
+  if (esteMedic(profile)) return <Navigate to="/medic" replace />
 
   return (
     <Routes>

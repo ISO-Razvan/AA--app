@@ -1,0 +1,326 @@
+.medic-app {
+  min-height: 100vh;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.medic-antet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--brand-navy);
+  color: #fff;
+}
+
+.medic-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.medic-brand img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+.medic-brand div {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.medic-brand strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.medic-brand span {
+  font-size: 0.75rem;
+  color: var(--sidebar-text);
+}
+
+.medic-cont {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.medic-cont-nume {
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn.medic-iesire {
+  color: #fff;
+  border-color: var(--sidebar-border);
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  min-height: 36px;
+}
+
+.btn.medic-iesire:hover {
+  background: var(--sidebar-hover);
+}
+
+.medic-continut {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.medic-titlu {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-3);
+}
+
+.medic-subtitlu {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: var(--space-2) 0 0;
+}
+
+.medic-gol,
+.medic-inchis {
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+
+.medic-inchis {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+
+.medic-eroare {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-danger-strong);
+}
+
+/* Autentificare */
+.medic-login {
+  width: 100%;
+  max-width: 400px;
+  margin: var(--space-5) auto 0;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.medic-login h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.medic-login-hint,
+.medic-login-motiv {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+}
+
+.medic-login-motiv {
+  color: var(--color-warning-strong);
+}
+
+.medic-cod-input {
+  font-size: 1.4rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+/* Mesaje (cont greșit, acces dezactivat) */
+.medic-mesaj-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.medic-mesaj-card h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.medic-mesaj-actiuni {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Lista comenzilor */
+.medic-comenzi {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.medic-comanda-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.medic-comanda-card:hover {
+  border-color: var(--brand-teal);
+}
+
+.medic-comanda-pacient {
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.medic-comanda-detalii {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+.medic-comanda-card .badge {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.medic-note-noi {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-purple);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* O comandă */
+.btn.medic-inapoi {
+  align-self: flex-start;
+  padding: 6px 10px;
+  min-height: 36px;
+}
+
+.medic-comanda-antet {
+  padding: var(--space-4);
+}
+
+.medic-comanda-antet .medic-titlu {
+  margin-bottom: var(--space-1);
+}
+
+.medic-comanda-antet p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.medic-note {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.medic-nota {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--brand-teal);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.medic-nota-proprie {
+  border-left-color: var(--brand-purple);
+  background: var(--color-purple-light);
+}
+
+.medic-nota-antet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+}
+
+.medic-nota-data {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.medic-nota-text {
+  margin: var(--space-2) 0 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.medic-raspuns {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.medic-raspuns h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.medic-raspuns-text {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.medic-contor {
+  margin: 4px 0 0;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.medic-raspuns .btn-primary {
+  align-self: flex-end;
+}
+
+@media (max-width: 520px) {
+  .medic-cont-nume {
+    display: none;
+  }
+}
