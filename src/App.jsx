@@ -19,6 +19,8 @@ import FinanciarPage from './components/FinanciarPage.jsx'
 import TaskurileMelePage from './components/TaskurileMelePage.jsx'
 import SalariulMeuPage from './components/SalariulMeuPage.jsx'
 import MedicApp from './components/MedicApp.jsx'
+import NeconformitatiPage from './components/NeconformitatiPage.jsx'
+import FurnizoriPage from './components/FurnizoriPage.jsx'
 import './App.css'
 
 function AppContent({ profile, onSignOut }) {
@@ -37,6 +39,21 @@ function AppContent({ profile, onSignOut }) {
   // indicator pe Listă/Kanban și secțiune pe Dashboard.
   const [noteNoi, setNoteNoi] = useState([])
   const vedeNoteNoi = areAccesOperational(profile)
+  // Neconformitate pornită din tabul Note al unei comenzi (mesajul medicului).
+  const [precompletareNc, setPrecompletareNc] = useState(null)
+  const golestePrecompletareNc = useCallback(() => setPrecompletareNc(null), [])
+  const deschideFisa = useCallback(
+    (lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`),
+    [navigate]
+  )
+  const neconformitateDinNota = useCallback(
+    ({ lucrare, nota }) => {
+      setPrecompletareNc({ tip: 'reclamatie_medic', comanda_id: lucrare.id, descriere: nota.text, nota_id: nota.id })
+      setPagina('neconformitati')
+      navigate('/')
+    },
+    [navigate]
+  )
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -100,6 +117,8 @@ function AppContent({ profile, onSignOut }) {
           {esteTehnician ? (
             pagina === 'salariul-meu' ? (
               <SalariulMeuPage />
+            ) : pagina === 'neconformitati' ? (
+              <NeconformitatiPage profile={profile} lucrari={lucrari} onOpenLucrare={deschideFisa} />
             ) : (
               <TaskurileMelePage tehnicianId={profile.tehnician_id} />
             )
@@ -126,6 +145,16 @@ function AppContent({ profile, onSignOut }) {
               {pagina === 'setup' && <SetupPage profile={profile} onDataChanged={refresh} />}
               {pagina === 'taskuri' && <TaskuriPage />}
               {pagina === 'capacitate' && <CapacitatePage />}
+              {pagina === 'neconformitati' && (
+                <NeconformitatiPage
+                  profile={profile}
+                  lucrari={lucrari}
+                  precompletare={precompletareNc}
+                  onPrecompletareFolosita={golestePrecompletareNc}
+                  onOpenLucrare={deschideFisa}
+                />
+              )}
+              {pagina === 'furnizori' && <FurnizoriPage />}
               {pagina === 'salarii' && accesFinanciar && (
                 <SalariiPage
                   onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
@@ -161,6 +190,7 @@ function AppContent({ profile, onSignOut }) {
           onClose={() => navigate('/')}
           onUpdated={refresh}
           onNoteCitite={reincarcaNoteNoi}
+          onNeconformitate={areAccesOperational(profile) ? neconformitateDinNota : undefined}
         />
       )}
     </div>

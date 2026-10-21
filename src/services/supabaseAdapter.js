@@ -747,6 +747,127 @@ async function getNoteNoiDeLaMedici() {
 }
 
 // ---------------------------------------------------------------------------
+// Furnizori — agendă (patron + coordonator modifică; laboratorul citește)
+// ---------------------------------------------------------------------------
+
+const CAMPURI_FURNIZOR = ['nume', 'cui', 'persoana_contact', 'telefon', 'email', 'adresa', 'categorii', 'termen_livrare_zile', 'observatii', 'activ']
+
+function curataFurnizor(date) {
+  const payload = {}
+  for (const camp of CAMPURI_FURNIZOR) {
+    if (!(camp in date)) continue
+    const v = date[camp]
+    if (camp === 'categorii') payload.categorii = Array.isArray(v) ? v : []
+    else if (camp === 'activ') payload.activ = !!v
+    else if (camp === 'termen_livrare_zile') payload.termen_livrare_zile = v === '' || v == null ? null : Math.max(0, Math.round(Number(v) || 0))
+    else payload[camp] = String(v ?? '').trim() || null
+  }
+  if ('nume' in payload && !payload.nume) throw new Error('Numele furnizorului e obligatoriu')
+  return payload
+}
+
+async function getFurnizori() {
+  const { data, error } = await supabase.from('furnizori').select('*').order('nume')
+  fail(error, 'Nu s-au putut încărca furnizorii')
+  return data || []
+}
+
+async function addFurnizor(date) {
+  const { data, error } = await supabase.from('furnizori').insert(curataFurnizor(date)).select().single()
+  if (error?.code === '23505') throw new Error('Există deja un furnizor cu acest nume')
+  fail(error, 'Nu s-a putut adăuga furnizorul')
+  return data
+}
+
+async function updateFurnizor(id, date) {
+  const { data, error } = await supabase.from('furnizori').update(curataFurnizor(date)).eq('id', id).select().single()
+  if (error?.code === '23505') throw new Error('Există deja un furnizor cu acest nume')
+  fail(error, 'Nu s-a putut salva furnizorul')
+  return data
+}
+
+async function deleteFurnizor(id) {
+  const { error } = await supabase.from('furnizori').delete().eq('id', id)
+  fail(error, 'Nu s-a putut șterge furnizorul')
+}
+
+// ---------------------------------------------------------------------------
+// Neconformități — registru. Numărul, cine a raportat, închiderea și
+// instantaneul comenzii le completează baza de date (vezi schema.sql).
+// ---------------------------------------------------------------------------
+
+const CAMPURI_NC = [
+  'data_constatare', 'tip', 'gravitate', 'comanda_id', 'etapa_id', 'tehnician_id', 'furnizor_id', 'nota_id',
+  'descriere', 'actiune_imediata', 'cauza', 'actiune_corectiva', 'responsabil', 'termen', 'status',
+]
+
+function curataNc(date) {
+  const payload = {}
+  for (const camp of CAMPURI_NC) {
+    if (!(camp in date)) continue
+    const v = date[camp]
+    payload[camp] = typeof v === 'string' ? v.trim() || null : v ?? null
+  }
+  if ('descriere' in payload && !payload.descriere) throw new Error('Descrierea e obligatorie')
+  // Fără dată → ziua de azi (valoarea implicită din baza de date).
+  if (payload.data_constatare === null) delete payload.data_constatare
+  return payload
+}
+
+async function getNeconformitati() {
+  const { data, error } = await supabase.from('neconformitati').select('*').order('data_constatare', { ascending: false }).order('created_at', { ascending: false })
+  fail(error, 'Nu s-au putut încărca neconformitățile')
+  return data || []
+}
+
+async function addNeconformitate(date) {
+  const { data, error } = await supabase.from('neconformitati').insert(curataNc(date)).select().single()
+  if (error?.code === '42501') throw new Error('Nu ai acces la această comandă.')
+  fail(error, 'Nu s-a putut înregistra neconformitatea')
+  return data
+}
+
+async function updateNeconformitate(id, date) {
+  const { data, error } = await supabase.from('neconformitati').update(curataNc(date)).eq('id', id).select().single()
+  fail(error, 'Nu s-a putut salva neconformitatea')
+  return data
+}
+
+async function deleteNeconformitate(id) {
+  const { data, error } = await supabase.from('neconformitati').delete().eq('id', id).select('id')
+  fail(error, 'Nu s-a putut șterge neconformitatea')
+  if (!data?.length) throw new Error('Doar patronul poate șterge o neconformitate.')
+}
+
+// Costul — doar patronul (tabel separat, neconformitati_costuri).
+async function getCostNeconformitate(id) {
+  const { data, error } = await supabase.from('neconformitati_costuri').select('*').eq('neconformitate_id', id).maybeSingle()
+  fail(error, 'Nu s-a putut încărca costul')
+  return data || { neconformitate_id: id, cost_material: 0, cost_manopera: 0, observatii: '' }
+}
+
+async function saveCostNeconformitate(id, { cost_material, cost_manopera, observatii }) {
+  const { error } = await supabase.from('neconformitati_costuri').upsert(
+    {
+      neconformitate_id: id,
+      cost_material: Math.max(0, numarSauZero(cost_material)),
+      cost_manopera: Math.max(0, numarSauZero(cost_manopera)),
+      observatii: String(observatii || '').trim() || null,
+    },
+    { onConflict: 'neconformitate_id' }
+  )
+  fail(error, 'Nu s-a putut salva costul')
+}
+
+// Comandă nouă de refacere, legată de comanda inițială și de neconformitate.
+// Întoarce numărul comenzii noi (AA-xxx).
+async function creeazaRefacere(ncId, { facturata, comisioane }) {
+  const { data, error } = await supabase.rpc('creeaza_refacere', { p_nc: ncId, p_facturata: !!facturata, p_comisioane: !!comisioane })
+  fail(error, 'Refacerea nu s-a putut crea')
+  return data
+}
+
+// ---------------------------------------------------------------------------
 // Pagina medicului — doar prin funcțiile din baza de date (vezi schema.sql)
 // ---------------------------------------------------------------------------
 
@@ -1137,6 +1258,17 @@ export const supabaseAdapter = {
   marcheazaNoteCitite,
   marcheazaDiscutieRezolvata,
   getNoteNoiDeLaMedici,
+  getFurnizori,
+  addFurnizor,
+  updateFurnizor,
+  deleteFurnizor,
+  getNeconformitati,
+  addNeconformitate,
+  updateNeconformitate,
+  deleteNeconformitate,
+  getCostNeconformitate,
+  saveCostNeconformitate,
+  creeazaRefacere,
   getInfoAccesMedic,
   getComenzileMeleMedic,
   getFisaComandaMedic,

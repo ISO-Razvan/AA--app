@@ -6,6 +6,7 @@ import './Sidebar.css'
 const NAV_TEHNICIAN = [
   { id: 'task-urile-mele', label: 'Task-urile mele' },
   { id: 'salariul-meu', label: 'Salariul meu' },
+  { id: 'neconformitati', label: 'Neconformități' },
 ]
 
 // Patronul vede tot; coordonatorul la fel, fără grupul Financiar.
@@ -18,6 +19,14 @@ const NAV_GROUPS = [
       { id: 'lista', label: 'Listă lucrări' },
       { id: 'taskuri', label: 'Task-uri' },
       { id: 'capacitate', label: 'Capacitate' },
+    ],
+  },
+  {
+    id: 'calitate',
+    label: 'Calitate',
+    children: [
+      { id: 'neconformitati', label: 'Neconformități' },
+      { id: 'furnizori', label: 'Furnizori' },
     ],
   },
   {

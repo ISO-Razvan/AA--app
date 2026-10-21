@@ -52,10 +52,11 @@ export default function DevizNouModal({ onClose, onGenerated }) {
   // Finalizate sau În lucru (Neînceput rămâne exclus, n-are ce factura încă).
   // Un deviz e legat de o singură clinică — nu de o combinație liberă de
   // lucrări — de-asta clinica e primul pas, iar lista se filtrează după ea.
+  // Refacerile nefacturate (fara_incasare) nu intră în deviz.
   const lucrariClinica = useMemo(() => {
     if (!clinica) return []
     return lucrari
-      .filter((l) => l.clinica === clinica)
+      .filter((l) => l.clinica === clinica && !l.fara_incasare)
       .map((l) => {
         const randuri = alocari.filter((a) => a.lucrare_id === l.id)
         return { ...l, status: statusDinRanduri(etape.length, randuri) }

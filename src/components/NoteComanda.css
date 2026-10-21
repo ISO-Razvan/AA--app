@@ -234,3 +234,7 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.btn.note-nc-btn {
+  margin-top: 6px;
+}

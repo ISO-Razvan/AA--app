@@ -124,6 +124,8 @@ Deci suma unui comision **nu vine din grila curentă de Comisioane**, ci din ins
 
 **Note pe comandă** (tabul „Note" din fișă, `NoteComanda.jsx`; tabelul `note_comanda`): subiect din `subiecte_note`, max. 500 de caractere, `intern` sau `medic`, fără editare/ștergere; deschise până la livrare + `setari_note.zile_dupa_livrare`. Notificarea medicului (acum WhatsApp prin wa.me) e doar în `src/services/notificari.js` → `notificaMedic`.
 
+**Calitate** (meniul „Calitate"): `FurnizoriPage.jsx` (agenda `furnizori`; patron + coordonator modifică, laboratorul citește) și `NeconformitatiPage.jsx` (registrul `neconformitati`, numerotat NC-001… de trigger; tehnicianul raportează doar pe comenzile lui și vede doar ce a raportat; analiza și închiderea — patron + coordonator; costul în `neconformitati_costuri`, doar patronul). Ambele sunt registre simple (`Registru.css`): clic pe rând → fișa coboară sub el. „Creează refacere" (funcția `creeaza_refacere`) face o comandă nouă cu `refacere_pentru`, `fara_incasare` (implicit: nu se facturează → încasare 0 în trigger) și `fara_comisioane`; refacerile nefacturate nu intră în devize.
+
 Interfața doar ascunde; regulile reale sunt în baza de date (`schema.sql`, secțiunea Securitate): politici RLS pe rol, view-ul `lucrari_vizibile` (financiarul doar pentru patron, tehnicianul doar lucrările lui), drepturi pe coloane la `lucrari` (cei logați nu pot citi/scrie direct coloanele financiare) și triggerul `lucrari_instantaneu_financiar`, care calculează instantaneul financiar în baza de date.
 
 ## 5. Supabase Realtime — ce e live și ce nu

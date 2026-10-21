@@ -41,7 +41,7 @@ export function formatDataOraNota(iso) {
 // O discuție: nota inițială + răspunsurile ei, cu „Răspunde" dedesubt.
 // Folosită și în laborator, și în pagina medicului — diferă doar cum se
 // afișează autorul (`autor(n)` → { nume, detaliu, deLaMedic }) și acțiunile.
-export function DiscutieNote({ discutie, autor, detaliuMesaj, etichete, actiuni, poateRaspunde, onRaspunde, textRaspuns = 'Răspunde' }) {
+export function DiscutieNote({ discutie, autor, detaliuMesaj, etichete, actiuni, poateRaspunde, onRaspunde, textRaspuns = 'Răspunde', actiuniMesaj }) {
   const [deschis, setDeschis] = useState(false)
   const [text, setText] = useState('')
   const [trimitere, setTrimitere] = useState(false)
@@ -85,6 +85,7 @@ export function DiscutieNote({ discutie, autor, detaliuMesaj, etichete, actiuni,
               </div>
               <p className="note-item-text">{n.text}</p>
               {detaliuMesaj?.(n)}
+              {actiuniMesaj?.(n)}
             </li>
           )
         })}
@@ -126,7 +127,9 @@ export function DiscutieNote({ discutie, autor, detaliuMesaj, etichete, actiuni,
 // explicită, iar răspunsurile păstrează vizibilitatea discuției. Patronul și
 // coordonatorul marchează notele medicului ca citite la deschidere și pot
 // anunța medicul pe WhatsApp (src/services/notificari.js).
-export default function NoteComanda({ lucrare, profile, onCitite }) {
+// `onNeconformitate({ lucrare, nota })` — dacă e dat, mesajele medicului au
+// butonul „Înregistrează neconformitate".
+export default function NoteComanda({ lucrare, profile, onCitite, onNeconformitate }) {
   const operational = areAccesOperational(profile)
   const [note, setNote] = useState(null)
   const [subiecte, setSubiecte] = useState([])
@@ -260,6 +263,13 @@ export default function NoteComanda({ lucrare, profile, onCitite }) {
                 poateRaspunde={deschise}
                 onRaspunde={(t) => raspunde(d.nota, t)}
                 textRaspuns={cuMedicul ? 'Răspunde (vede și medicul)' : 'Răspunde'}
+                actiuniMesaj={(n) =>
+                  onNeconformitate && n.rol_autor === 'medic' ? (
+                    <button type="button" className="btn btn-ghost note-mic-btn note-nc-btn" onClick={() => onNeconformitate({ lucrare, nota: n })}>
+                      Înregistrează neconformitate
+                    </button>
+                  ) : null
+                }
               />
             )
           })}

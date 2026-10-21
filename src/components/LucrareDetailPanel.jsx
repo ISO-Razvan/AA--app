@@ -48,7 +48,8 @@ const TABS = [
 ]
 
 // `tabInitial` — ex. 'note', când fișa e deschisă din „Note noi de la medici".
-export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated, tabInitial, onNoteCitite }) {
+// `onNeconformitate` — „Înregistrează neconformitate" din tabul Note (patron/coordonator).
+export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated, tabInitial, onNoteCitite, onNeconformitate }) {
   // Patronul și coordonatorul editează fișa; tehnicianul o vede doar pentru
   // citire (baza de date îi permite oricum doar citirea, prin view-ul fără
   // date financiare). Recalcularea cu prețurile curente e doar a patronului.
@@ -270,6 +271,11 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
                 <span className={`badge ${statusLucrare.badgeClass}`}>{statusLucrare.label}</span>
               )}
               {lucrare.arhivat && <span className="badge badge-neutral">Arhivată</span>}
+              {lucrare.refacere_pentru && (
+                <span className="badge badge-purple" title={lucrare.fara_incasare ? 'Nu se facturează medicului' : undefined}>
+                  Refacere{lucrare.fara_incasare ? ' · nefacturată' : ''}
+                </span>
+              )}
             </div>
             <p className="detail-panel-subtitlu">
               <span className="rezumat-medic">{medic || 'Medic necompletat'}</span>
@@ -593,7 +599,9 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
 
           {tab === 'galerie' && <GaleriePoze lucrareId={lucrare.id} readOnly={!!lucrare.arhivat} />}
 
-          {tab === 'note' && <NoteComanda lucrare={lucrare} profile={profile} onCitite={onNoteCitite} />}
+          {tab === 'note' && (
+            <NoteComanda lucrare={lucrare} profile={profile} onCitite={onNoteCitite} onNeconformitate={onNeconformitate} />
+          )}
         </div>
       </div>
 

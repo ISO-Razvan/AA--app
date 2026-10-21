@@ -1,0 +1,298 @@
+/* Registre (Furnizori, Neconformități): tabel simplu; clic pe un rând
+   deschide fișa completă chiar sub el. */
+.registru {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.registru-antet {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.registru-hint {
+  margin-top: var(--space-1);
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.registru-filtre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.registru-filtre .text-input {
+  width: auto;
+  min-width: 180px;
+  flex: 0 1 auto;
+}
+
+.registru-filtre input.text-input {
+  flex: 1 1 240px;
+}
+
+.registru-sumar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.registru-sumar-card {
+  padding: var(--space-3) var(--space-4);
+}
+
+.registru-sumar-card h4 {
+  margin: 0 0 var(--space-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.registru-sumar-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.registru-sumar-card li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.registru-sumar-card li strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.registru-nou {
+  padding: var(--space-4);
+  border-left: 4px solid var(--brand-teal);
+}
+
+.registru-nou h3 {
+  margin: 0 0 var(--space-3);
+  font-size: 1rem;
+}
+
+.registru-tabel-wrap {
+  padding: 0;
+  overflow-x: auto;
+}
+
+.registru-gol {
+  padding: var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.registru-tabel {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.registru-tabel th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-header);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.registru-tabel td {
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.registru-rand {
+  cursor: pointer;
+}
+
+.registru-rand:hover td {
+  background: var(--color-blue-light);
+}
+
+.registru-rand-deschis td {
+  background: var(--color-blue-soft);
+  font-weight: 600;
+}
+
+.registru-rand-inactiv td {
+  color: var(--color-text-muted);
+}
+
+.registru-principal {
+  font-weight: 600;
+}
+
+.registru-descriere {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge.registru-badge-mic {
+  margin-left: 6px;
+  font-size: 0.68rem;
+}
+
+.registru-rand-fisa > td {
+  padding: 0;
+  background: var(--color-surface-alt);
+  border-top: none;
+}
+
+.registru-fisa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.registru-nou .registru-fisa {
+  padding: 0;
+}
+
+.registru-fisa-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+  align-items: start;
+}
+
+.registru-camp-lat {
+  grid-column: 1 / -1;
+}
+
+.registru-camp-2 {
+  grid-column: span 2;
+}
+
+.registru-sectiune {
+  grid-column: 1 / -1;
+  margin: var(--space-2) 0 0;
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.registru-text {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.registru-optiuni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.registru-optiune {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.registru-valoare {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.registru-info {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.registru-fisa-actiuni {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.btn.registru-btn-stanga {
+  margin-right: auto;
+}
+
+.registru-eroare {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-danger-strong);
+}
+
+.registru-ok {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-success-strong);
+}
+
+.registru-cost {
+  grid-column: 1 / -1;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--color-border);
+  background: var(--color-surface);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.registru-refacere {
+  grid-column: 1 / -1;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-blue-light);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+@media (max-width: 900px) {
+  .registru-fisa-grid,
+  .registru-cost {
+    grid-template-columns: 1fr;
+  }
+
+  .registru-camp-2 {
+    grid-column: 1 / -1;
+  }
+
+  .registru-col-optional {
+    display: none;
+  }
+}

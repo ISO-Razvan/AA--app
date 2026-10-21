@@ -202,6 +202,13 @@ alter table lucrari add column if not exists pret_dinte_implant numeric;
 -- calculului). Null la lucrările vechi = fără adaosuri, până la „Recalculează
 -- valorile financiare" din Setup → Tipuri de lucrare.
 alter table lucrari add column if not exists adaosuri_design jsonb;
+-- Refacere (din Neconformități → „Creează refacere"): comanda inițială și
+-- dacă refacerea se facturează medicului / se plătesc comisioanele. Folosite
+-- de triggerul de instantaneu financiar (fara_incasare → încasare 0;
+-- fara_comisioane → fără comisioane și adaosuri Design).
+alter table lucrari add column if not exists refacere_pentru uuid references lucrari (id) on delete set null;
+alter table lucrari add column if not exists fara_incasare boolean not null default false;
+alter table lucrari add column if not exists fara_comisioane boolean not null default false;
 
 -- Programare producție per lucrare — un rând per (lucrare, etapă), cu
 -- tehnicianul alocat, data planificată și starea de finalizare. Afișat ca
@@ -633,7 +640,9 @@ begin
        and new.nr_elemente is not distinct from old.nr_elemente
        and new.dinti is not distinct from old.dinti
        and new.try_in is not distinct from old.try_in
-       and new.extra_uri is not distinct from old.extra_uri then
+       and new.extra_uri is not distinct from old.extra_uri
+       and new.fara_incasare is not distinct from old.fara_incasare
+       and new.fara_comisioane is not distinct from old.fara_comisioane then
       new.cost_laborator := old.cost_laborator;
       new.incasare := old.incasare;
       new.profit := old.profit;
@@ -700,6 +709,18 @@ begin
     'model_printat', coalesce(v_setari.adaos_model_printat, 0),
     'all_on', coalesce(v_tip.all_on, false)
   );
+  -- Refacere nefacturată medicului: fără încasare (costul rămâne, ca să se
+  -- vadă cât a costat); fără comisioane: tehnicienii nu primesc nimic pe ea.
+  if new.fara_incasare then
+    new.incasare := 0;
+    new.pret_dinte_simplu := 0;
+    new.pret_dinte_implant := 0;
+    new.profit := -new.cost_laborator;
+  end if;
+  if new.fara_comisioane then
+    new.comisioane := '[]'::jsonb;
+    new.adaosuri_design := null;
+  end if;
   return new;
 end;
 $$;
@@ -817,7 +838,10 @@ select
       )
     ), '[]'::jsonb)
   end as extra_uri,
-  case when r.patron then l.adaosuri_design end as adaosuri_design
+  case when r.patron then l.adaosuri_design end as adaosuri_design,
+  l.refacere_pentru,
+  l.fara_incasare,
+  l.fara_comisioane
 from public.lucrari l
 cross join (
   select public.este_patron() as patron, public.are_acces_operational() as operational, public.tehnicianul_meu() as tehnician
@@ -863,11 +887,14 @@ revoke select, insert, update, truncate, references, trigger on public.lucrari f
 grant select (
   id, nr_inregistrare, clinica, medic, pacient, tip_lucrare, dinti, nr_elemente,
   culoare, implant, try_in, model, data_intrare, termen_predare, ora_programare,
-  next_date, nota, arhivat, data_arhivare, created_at
+  next_date, nota, arhivat, data_arhivare, created_at,
+  refacere_pentru, fara_incasare, fara_comisioane
 ) on public.lucrari to authenticated;
 
 -- `extra_uri` se scrie ca selecție [{ extra_id, cantitate }]; prețurile le
 -- completează triggerul. Nu se poate citi direct (conține prețuri).
+-- refacere_pentru / fara_incasare / fara_comisioane se stabilesc doar la
+-- creare (funcția creeaza_refacere), nu se mai modifică ulterior.
 grant insert (
   nr_inregistrare, clinica, medic, pacient, tip_lucrare, dinti, nr_elemente,
   culoare, implant, try_in, model, data_intrare, termen_predare, ora_programare,
@@ -1803,3 +1830,230 @@ begin
     execute format('grant execute on function %s to authenticated', f);
   end loop;
 end $$;
+
+-- ===========================================================================
+-- Furnizori + Neconformități + refaceri (pe o bază existentă:
+-- sql/2026-10-22_furnizori_neconformitati.sql)
+-- ===========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Furnizori — agendă (fără prețuri). Patron + coordonator modifică; cei din
+-- laborator citesc (tehnicianul alege furnizorul la o neconformitate).
+-- ---------------------------------------------------------------------------
+create table if not exists furnizori (
+  id uuid primary key default gen_random_uuid(),
+  nume text not null unique,
+  cui text,
+  persoana_contact text,
+  telefon text,
+  email text,
+  adresa text,
+  -- din lista fixă din aplicație (src/utils/calitate.js)
+  categorii text[] not null default '{}',
+  termen_livrare_zile integer check (termen_livrare_zile is null or termen_livrare_zile >= 0),
+  observatii text,
+  activ boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table furnizori enable row level security;
+drop policy if exists "citire_laborator" on furnizori;
+drop policy if exists "operational_all" on furnizori;
+create policy "citire_laborator" on furnizori for select to authenticated using ((select public.este_din_laborator()));
+create policy "operational_all" on furnizori for all to authenticated
+  using ((select public.are_acces_operational())) with check ((select public.are_acces_operational()));
+
+-- ---------------------------------------------------------------------------
+-- Neconformități — registru. Oricine din laborator raportează; tehnicianul
+-- doar pe comenzile lui, vede doar ce a raportat el și nu mai modifică după
+-- trimitere. Patron + coordonator completează analiza și închid; ștergerea e
+-- doar a patronului. Medicul nu are acces. Costul e într-un tabel separat,
+-- doar pentru patron.
+-- ---------------------------------------------------------------------------
+create sequence if not exists neconformitati_nr_seq;
+
+create table if not exists neconformitati (
+  id uuid primary key default gen_random_uuid(),
+  numar text not null unique default '',            -- NC-001…, pus de trigger
+  data_constatare date not null default current_date,
+  tip text not null check (tip in ('productie', 'reclamatie_medic', 'furnizor', 'altele')),
+  gravitate text not null default 'minora' check (gravitate in ('minora', 'majora', 'critica')),
+  comanda_id uuid references lucrari (id) on delete set null,
+  -- instantaneu al comenzii (rămâne și dacă se șterge comanda)
+  comanda_nr text,
+  pacient text,
+  medic text,
+  etapa_id uuid references etape_productie (id) on delete set null,
+  tehnician_id uuid references tehnicieni (id) on delete set null,
+  furnizor_id uuid references furnizori (id) on delete set null,
+  nota_id uuid references note_comanda (id) on delete set null,
+  descriere text not null check (char_length(descriere) between 1 and 2000),
+  actiune_imediata text,
+  cauza text,
+  actiune_corectiva text,
+  responsabil text,
+  termen date,
+  status text not null default 'deschisa' check (status in ('deschisa', 'in_lucru', 'inchisa')),
+  data_inchidere timestamptz,
+  inchisa_de text,
+  refacere_comanda_id uuid references lucrari (id) on delete set null,
+  raportata_de_id uuid references auth.users (id) on delete set null,
+  raportata_de_nume text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists neconformitati_data_idx on neconformitati (data_constatare);
+create index if not exists neconformitati_comanda_idx on neconformitati (comanda_id);
+
+create table if not exists neconformitati_costuri (
+  neconformitate_id uuid primary key references neconformitati (id) on delete cascade,
+  cost_material numeric not null default 0 check (cost_material >= 0),
+  cost_manopera numeric not null default 0 check (cost_manopera >= 0),
+  observatii text
+);
+
+alter table neconformitati enable row level security;
+alter table neconformitati_costuri enable row level security;
+
+drop policy if exists "nc_citire" on neconformitati;
+drop policy if exists "nc_raportare" on neconformitati;
+drop policy if exists "nc_modificare" on neconformitati;
+drop policy if exists "nc_stergere" on neconformitati;
+create policy "nc_citire" on neconformitati for select to authenticated using (
+  (select public.are_acces_operational())
+  or ((select public.tehnicianul_meu()) is not null and raportata_de_id = (select auth.uid()))
+);
+create policy "nc_raportare" on neconformitati for insert to authenticated with check (
+  (select public.are_acces_operational())
+  or (
+    (select public.tehnicianul_meu()) is not null
+    and (comanda_id is null or comanda_id in (select public.lucrarile_mele()))
+  )
+);
+create policy "nc_modificare" on neconformitati for update to authenticated
+  using ((select public.are_acces_operational())) with check ((select public.are_acces_operational()));
+create policy "nc_stergere" on neconformitati for delete to authenticated using ((select public.este_patron()));
+
+drop policy if exists "patron_all" on neconformitati_costuri;
+create policy "patron_all" on neconformitati_costuri for all to authenticated
+  using ((select public.este_patron())) with check ((select public.este_patron()));
+
+-- Numărul, cine a raportat, închiderea și instantaneul comenzii — din baza de
+-- date, nu din aplicație. La un raport de tehnician, starea e „deschisă" și
+-- analiza rămâne goală (o completează patronul / coordonatorul).
+create or replace function public.neconformitati_completeaza()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_rol text := public.rolul_meu();
+  v_nume text := coalesce(nullif((select nume from public.profiles where id = auth.uid()), ''), initcap(coalesce(public.rolul_meu(), '')));
+  v_nr bigint;
+begin
+  if tg_op = 'INSERT' then
+    if auth.uid() is null or v_rol is null or v_rol = 'medic' then
+      raise exception 'Neconformitățile se raportează doar din aplicație, din laborator.' using errcode = '42501';
+    end if;
+    v_nr := nextval('public.neconformitati_nr_seq');
+    new.numar := 'NC-' || lpad(v_nr::text, greatest(3, length(v_nr::text)), '0');
+    new.raportata_de_id := auth.uid();
+    new.raportata_de_nume := v_nume;
+    new.created_at := now();
+    new.refacere_comanda_id := null;
+    if v_rol = 'tehnician' then
+      new.status := 'deschisa';
+      new.cauza := null;
+      new.actiune_corectiva := null;
+      new.responsabil := null;
+      new.termen := null;
+    end if;
+  else
+    new.id := old.id;
+    new.numar := old.numar;
+    new.raportata_de_id := old.raportata_de_id;
+    new.raportata_de_nume := old.raportata_de_nume;
+    new.created_at := old.created_at;
+  end if;
+
+  if new.status = 'inchisa' then
+    if tg_op = 'INSERT' or old.status <> 'inchisa' then
+      new.data_inchidere := now();
+      new.inchisa_de := v_nume;
+    else
+      new.data_inchidere := old.data_inchidere;
+      new.inchisa_de := old.inchisa_de;
+    end if;
+  else
+    new.data_inchidere := null;
+    new.inchisa_de := null;
+  end if;
+
+  if new.comanda_id is not null and (tg_op = 'INSERT' or new.comanda_id is distinct from old.comanda_id) then
+    select l.nr_inregistrare, l.pacient, l.medic into new.comanda_nr, new.pacient, new.medic
+    from public.lucrari l where l.id = new.comanda_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists neconformitati_completeaza on neconformitati;
+create trigger neconformitati_completeaza
+  before insert or update on neconformitati
+  for each row execute function public.neconformitati_completeaza();
+
+-- „Creează refacere": o comandă nouă cu datele comenzii neconforme, legată de
+-- ea și de neconformitate. Patron + coordonator. Întoarce numărul comenzii noi.
+create or replace function public.creeaza_refacere(p_nc uuid, p_facturata boolean, p_comisioane boolean)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_nc public.neconformitati%rowtype;
+  v_l public.lucrari%rowtype;
+  v_max bigint;
+  v_nr text;
+  v_id uuid;
+begin
+  if not public.are_acces_operational() then
+    raise exception 'Doar patronul sau coordonatorul pot crea o refacere.' using errcode = '42501';
+  end if;
+  select * into v_nc from public.neconformitati where id = p_nc for update;
+  if not found then
+    raise exception 'Neconformitatea nu există.';
+  end if;
+  if v_nc.refacere_comanda_id is not null then
+    raise exception 'Refacerea a fost deja creată pentru această neconformitate.';
+  end if;
+  select * into v_l from public.lucrari where id = v_nc.comanda_id;
+  if not found then
+    raise exception 'Neconformitatea nu e legată de o comandă existentă.';
+  end if;
+
+  -- Numărul următor AA-xxx, fără coliziuni cu o înregistrare simultană.
+  perform pg_advisory_xact_lock(hashtext('lucrari.nr_inregistrare'));
+  select coalesce(max(substring(nr_inregistrare from '^AA-(\d+)$')::bigint), 0) + 1 into v_max from public.lucrari;
+  v_nr := 'AA-' || lpad(v_max::text, greatest(3, length(v_max::text)), '0');
+
+  insert into public.lucrari (
+    nr_inregistrare, clinica, medic, pacient, tip_lucrare, dinti, nr_elemente, culoare,
+    implant, try_in, model, data_intrare, nota, extra_uri,
+    refacere_pentru, fara_incasare, fara_comisioane
+  ) values (
+    v_nr, v_l.clinica, v_l.medic, v_l.pacient, v_l.tip_lucrare, v_l.dinti, v_l.nr_elemente, v_l.culoare,
+    v_l.implant, v_l.try_in, v_l.model, current_date,
+    format('Refacere pentru %s (%s)', v_l.nr_inregistrare, v_nc.numar), v_l.extra_uri,
+    v_l.id, not coalesce(p_facturata, false), not coalesce(p_comisioane, true)
+  )
+  returning id into v_id;
+
+  update public.neconformitati set refacere_comanda_id = v_id where id = p_nc;
+  return v_nr;
+end;
+$$;
+
+revoke all on function public.creeaza_refacere(uuid, boolean, boolean) from public, anon;
+grant execute on function public.creeaza_refacere(uuid, boolean, boolean) to authenticated;
