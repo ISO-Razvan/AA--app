@@ -45,7 +45,15 @@ function IconDrive() {
   )
 }
 
-export default function GaleriePoze({ lucrareId, readOnly = false }) {
+// `incarca` (opțional) înlocuiește citirea obișnuită — pagina medicului
+// primește pozele și link-urile printr-o funcție din baza de date.
+// `mesajReadOnly` = textul afișat când galeria e doar de citit (null = nimic).
+export default function GaleriePoze({
+  lucrareId,
+  readOnly = false,
+  incarca,
+  mesajReadOnly = 'Lucrare arhivată — galeria e needitabilă, doar de consultat.',
+}) {
   const [poze, setPoze] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -62,9 +70,15 @@ export default function GaleriePoze({ lucrareId, readOnly = false }) {
 
   const load = async () => {
     setLoading(true)
-    const [pozeData, linkuriData] = await Promise.all([getPozeLucrare(lucrareId), getLinkuriLucrare(lucrareId)])
-    setPoze(pozeData)
-    setLinkuri(linkuriData)
+    if (incarca) {
+      const date = await incarca()
+      setPoze(date.poze)
+      setLinkuri(date.linkuri)
+    } else {
+      const [pozeData, linkuriData] = await Promise.all([getPozeLucrare(lucrareId), getLinkuriLucrare(lucrareId)])
+      setPoze(pozeData)
+      setLinkuri(linkuriData)
+    }
     setLoading(false)
   }
 
@@ -131,9 +145,7 @@ export default function GaleriePoze({ lucrareId, readOnly = false }) {
 
   return (
     <div className="galerie">
-      {readOnly && (
-        <p className="galerie-readonly-hint">Lucrare arhivată — galeria e needitabilă, doar de consultat.</p>
-      )}
+      {readOnly && mesajReadOnly && <p className="galerie-readonly-hint">{mesajReadOnly}</p>}
 
       {!readOnly && (
         <div

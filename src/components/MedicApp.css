@@ -62,6 +62,7 @@
 }
 
 .btn.medic-iesire {
+  background: transparent;
   color: #fff;
   border-color: var(--sidebar-border);
   padding: 6px 12px;
@@ -71,11 +72,13 @@
 
 .btn.medic-iesire:hover {
   background: var(--sidebar-hover);
+  border-color: var(--sidebar-text-muted);
+  color: #fff;
 }
 
 .medic-continut {
   width: 100%;
-  max-width: 760px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: var(--space-5) var(--space-4) var(--space-6);
   display: flex;
@@ -168,6 +171,7 @@
 
 /* Lista comenzilor */
 .medic-comenzi {
+  max-width: 760px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -226,97 +230,28 @@
   font-weight: 700;
 }
 
-/* O comandă */
+/* Fișa unei comenzi (aceleași stiluri ca fișa din laborator, ca pagină) */
+.medic-fisa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .btn.medic-inapoi {
   align-self: flex-start;
   padding: 6px 10px;
   min-height: 36px;
 }
 
-.medic-comanda-antet {
-  padding: var(--space-4);
-}
-
-.medic-comanda-antet .medic-titlu {
-  margin-bottom: var(--space-1);
-}
-
-.medic-comanda-antet p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-}
-
-.medic-note {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.medic-nota {
-  padding: var(--space-3) var(--space-4);
+.detail-panel.medic-fisa-panou {
+  max-height: none;
+  overflow: visible;
+  box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border);
-  border-left: 4px solid var(--brand-teal);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
 }
 
-.medic-nota-proprie {
-  border-left-color: var(--brand-purple);
-  background: var(--color-purple-light);
-}
-
-.medic-nota-antet {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.85rem;
-}
-
-.medic-nota-data {
-  margin-left: auto;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.medic-nota-text {
-  margin: var(--space-2) 0 0;
-  font-size: 0.92rem;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.medic-raspuns {
-  padding: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.medic-raspuns h3 {
-  font-size: 1rem;
-  margin: 0;
-}
-
-.medic-raspuns-text {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.medic-contor {
-  margin: 4px 0 0;
-  text-align: right;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.medic-raspuns .btn-primary {
-  align-self: flex-end;
+.medic-fisa-panou .detail-panel-body {
+  overflow: visible;
 }
 
 @media (max-width: 520px) {

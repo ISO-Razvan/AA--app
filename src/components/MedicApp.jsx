@@ -1,20 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { trimiteCodEmail, verificaCodEmail, signOut } from '../services/auth'
-import {
-  getInfoAccesMedic,
-  getComenzileMeleMedic,
-  getComandaMedic,
-  getNoteleComenziiMedic,
-  addNotaMedic,
-  marcheazaNoteCitite,
-  getSubiecteNote,
-} from '../services/dataService'
+import { getInfoAccesMedic, getComenzileMeleMedic } from '../services/dataService'
 import { esteMedic } from '../utils/roluri'
-import { formatDataOraNota } from './NoteComanda.jsx'
+import FisaComandaMedic from './FisaComandaMedic.jsx'
 import './MedicApp.css'
-
-const MAX_CARACTERE = 500
 
 function formatData(iso) {
   if (!iso) return '—'
@@ -234,135 +224,6 @@ function ListaComenzi({ onDeschide, onExpirat }) {
   )
 }
 
-function ComandaMedic({ nr, onInapoi, onExpirat }) {
-  const [comanda, setComanda] = useState(undefined)
-  const [note, setNote] = useState([])
-  const [subiecte, setSubiecte] = useState([])
-  const [subiectId, setSubiectId] = useState('')
-  const [text, setText] = useState('')
-  const [trimitere, setTrimitere] = useState(false)
-  const [eroare, setEroare] = useState('')
-
-  const load = useCallback(async () => {
-    try {
-      const c = await getComandaMedic(nr)
-      setComanda(c)
-      if (!c) return
-      setNote(await getNoteleComenziiMedic(c.id))
-      await marcheazaNoteCitite(c.id)
-    } catch (err) {
-      if (sesiuneExpirata(err)) onExpirat()
-      else setEroare(err.message)
-    }
-  }, [nr, onExpirat])
-
-  useEffect(() => {
-    load()
-    window.addEventListener('focus', load)
-    return () => window.removeEventListener('focus', load)
-  }, [load])
-
-  useEffect(() => {
-    getSubiecteNote()
-      .then((s) => {
-        const active = s.filter((x) => x.activ)
-        setSubiecte(active)
-        setSubiectId(active.find((x) => x.nume === 'Informație')?.id || active[0]?.id || '')
-      })
-      .catch(() => setSubiecte([]))
-  }, [])
-
-  const trimite = async (e) => {
-    e.preventDefault()
-    setTrimitere(true)
-    setEroare('')
-    try {
-      await addNotaMedic(comanda.id, subiectId, text)
-      setText('')
-      await load()
-    } catch (err) {
-      if (sesiuneExpirata(err)) onExpirat()
-      else setEroare(err.message)
-    } finally {
-      setTrimitere(false)
-    }
-  }
-
-  if (comanda === undefined && !eroare) return <p className="medic-gol">Se încarcă…</p>
-  if (!comanda) {
-    return (
-      <Mesaj titlu="Comanda nu a fost găsită">
-        <p>{eroare || 'Comanda nu există sau nu vă aparține.'}</p>
-        <button type="button" className="btn btn-secondary" onClick={onInapoi}>Înapoi la comenzi</button>
-      </Mesaj>
-    )
-  }
-
-  const deschisa = comanda.deschisa
-
-  return (
-    <section className="medic-comanda">
-      <button type="button" className="btn btn-ghost medic-inapoi" onClick={onInapoi}>‹ Toate comenzile</button>
-      <div className="card medic-comanda-antet">
-        <h1 className="medic-titlu">{comanda.pacient || '—'}</h1>
-        <p>
-          {comanda.nr_inregistrare} · Intrare: {formatData(comanda.data_intrare)} · Termen: {formatData(comanda.termen_predare)}
-        </p>
-      </div>
-
-      <h2 className="medic-subtitlu">Note</h2>
-      {note.length === 0 ? (
-        <p className="medic-gol">Nicio notă încă pe această comandă.</p>
-      ) : (
-        <ul className="medic-note">
-          {note.map((n) => (
-            <li key={n.id} className={`medic-nota ${n.de_la === 'medic' ? 'medic-nota-proprie' : ''}`}>
-              <div className="medic-nota-antet">
-                <span className="badge badge-blue">{n.subiect}</span>
-                <strong>{n.de_la === 'medic' ? 'Dumneavoastră' : 'Algorithm Lab'}</strong>
-                <span className="medic-nota-data">{formatDataOraNota(n.created_at)}</span>
-              </div>
-              <p className="medic-nota-text">{n.text}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {deschisa ? (
-        <form className="card medic-raspuns" onSubmit={trimite}>
-          <h3>Răspuns către laborator</h3>
-          <div>
-            <label className="field-label" htmlFor="medic-subiect">Subiect</label>
-            <select id="medic-subiect" className="text-input" value={subiectId} onChange={(e) => setSubiectId(e.target.value)} required>
-              {subiecte.map((s) => (
-                <option key={s.id} value={s.id}>{s.nume}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="field-label" htmlFor="medic-text">Mesaj</label>
-            <textarea
-              id="medic-text"
-              className="text-input medic-raspuns-text"
-              value={text}
-              maxLength={MAX_CARACTERE}
-              onChange={(e) => setText(e.target.value)}
-              required
-            />
-            <p className="medic-contor">{text.length} / {MAX_CARACTERE}</p>
-          </div>
-          {eroare && <p className="medic-eroare">{eroare}</p>}
-          <button type="submit" className="btn btn-primary" disabled={trimitere || !text.trim() || !subiectId}>
-            {trimitere ? 'Se trimite…' : 'Trimite'}
-          </button>
-        </form>
-      ) : (
-        <p className="medic-inchis">Comanda a fost livrată și nu mai primește note noi.</p>
-      )}
-    </section>
-  )
-}
-
 // Pagina medicului — separată de interfața laboratorului (fără sidebar).
 // Datele vin doar prin funcțiile din baza de date care verifică medicul logat.
 export default function MedicApp({ session, profile, profileLoading }) {
@@ -417,7 +278,14 @@ export default function MedicApp({ session, profile, profileLoading }) {
   return (
     <Cadru nume={profile.nume} onSignOut={iesire}>
       {nr ? (
-        <ComandaMedic nr={nr} onInapoi={() => navigate('/medic')} onExpirat={expirat} />
+        <FisaComandaMedic
+          key={nr}
+          nr={nr}
+          tabInitial={new URLSearchParams(location.search).get('tab')}
+          onInapoi={() => navigate('/medic')}
+          onExpirat={expirat}
+          esteExpirata={sesiuneExpirata}
+        />
       ) : (
         <ListaComenzi onDeschide={(n) => navigate(`/medic/comanda/${encodeURIComponent(n)}`)} onExpirat={expirat} />
       )}

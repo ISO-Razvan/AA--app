@@ -694,18 +694,33 @@ async function getNoteComanda(comandaId) {
 }
 
 // Autorul, rolul, numele subiectului și data le completează baza de date.
-async function addNotaComanda({ comanda_id, subiect_id, text, vizibilitate }) {
+// Cu `raspuns_la` (id-ul notei inițiale), nota e un răspuns în acea discuție:
+// subiectul și vizibilitatea le preia baza de date de la nota inițială.
+async function addNotaComanda({ comanda_id, subiect_id, text, vizibilitate, raspuns_la = null }) {
   const valoare = String(text || '').trim()
   if (!valoare) throw new Error('Scrie textul notei')
   if (valoare.length > 500) throw new Error('Nota poate avea cel mult 500 de caractere')
   const { data, error } = await supabase
     .from('note_comanda')
-    .insert({ comanda_id, subiect_id, subiect: '', text: valoare, vizibilitate: vizibilitate === 'medic' ? 'medic' : 'intern', rol_autor: 'tehnician' })
+    .insert({
+      comanda_id,
+      subiect_id: raspuns_la ? null : subiect_id,
+      subiect: '',
+      text: valoare,
+      vizibilitate: vizibilitate === 'medic' ? 'medic' : 'intern',
+      rol_autor: 'tehnician',
+      raspuns_la,
+    })
     .select()
     .single()
   if (error?.code === '42501') throw new Error('Nota nu s-a putut adăuga: comanda e închisă pentru note sau nu ai acces la ea.')
   fail(error, 'Nu s-a putut adăuga nota')
   return data
+}
+
+async function marcheazaDiscutieRezolvata(notaId, rezolvata) {
+  const { error } = await supabase.rpc('marcheaza_discutie_rezolvata', { p_nota: notaId, p_rezolvata: !!rezolvata })
+  fail(error, 'Nu s-a putut schimba starea discuției')
 }
 
 async function noteDeschise(comandaId) {
@@ -747,10 +762,18 @@ async function getComenzileMeleMedic() {
   return data || []
 }
 
-async function getComandaMedic(nr) {
-  const { data, error } = await supabase.rpc('comanda_medic', { p_nr: nr })
+// Fișa comenzii pentru medic: fără prețuri, etape, tehnicieni, nota internă.
+async function getFisaComandaMedic(nr) {
+  const { data, error } = await supabase.rpc('fisa_comanda_medic', { p_nr: nr })
   fail(error, 'Nu s-a putut încărca comanda')
   return data?.[0] || null
+}
+
+// -> { poze, linkuri }, doar de citit.
+async function getGalerieComandaMedic(comandaId) {
+  const { data, error } = await supabase.rpc('galerie_comanda_medic', { p_comanda: comandaId })
+  fail(error, 'Nu s-a putut încărca galeria')
+  return { poze: data?.poze || [], linkuri: data?.linkuri || [] }
 }
 
 async function getNoteleComenziiMedic(comandaId) {
@@ -759,11 +782,17 @@ async function getNoteleComenziiMedic(comandaId) {
   return data || []
 }
 
-async function addNotaMedic(comandaId, subiectId, text) {
+// Cu `raspunsLa`, mesajul e un răspuns în discuția respectivă.
+async function addNotaMedic(comandaId, subiectId, text, raspunsLa = null) {
   const valoare = String(text || '').trim()
-  if (!valoare) throw new Error('Scrie textul răspunsului')
-  if (valoare.length > 500) throw new Error('Răspunsul poate avea cel mult 500 de caractere')
-  const { error } = await supabase.rpc('adauga_nota_medic', { p_comanda: comandaId, p_subiect: subiectId, p_text: valoare })
+  if (!valoare) throw new Error('Scrie textul mesajului')
+  if (valoare.length > 500) throw new Error('Mesajul poate avea cel mult 500 de caractere')
+  const { error } = await supabase.rpc('adauga_nota_medic', {
+    p_comanda: comandaId,
+    p_subiect: raspunsLa ? null : subiectId,
+    p_text: valoare,
+    p_raspuns_la: raspunsLa,
+  })
   fail(error, 'Răspunsul nu s-a putut trimite')
 }
 
@@ -1106,10 +1135,12 @@ export const supabaseAdapter = {
   addNotaComanda,
   noteDeschise,
   marcheazaNoteCitite,
+  marcheazaDiscutieRezolvata,
   getNoteNoiDeLaMedici,
   getInfoAccesMedic,
   getComenzileMeleMedic,
-  getComandaMedic,
+  getFisaComandaMedic,
+  getGalerieComandaMedic,
   getNoteleComenziiMedic,
   addNotaMedic,
   getPozeLucrare,

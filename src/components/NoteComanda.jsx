@@ -5,14 +5,16 @@ import {
   getSubiecteNote,
   noteDeschise,
   marcheazaNoteCitite,
+  marcheazaDiscutieRezolvata,
   getMedici,
 } from '../services/dataService'
 import { subscribeToTable } from '../services/realtime'
 import { notificaMedic } from '../services/notificari'
 import { areAccesOperational } from '../utils/roluri'
+import { grupeazaDiscutii } from '../utils/discutiiNote'
 import './NoteComanda.css'
 
-const MAX_CARACTERE = 500
+export const MAX_CARACTERE_NOTA = 500
 
 const ETICHETA_ROL = { patron: 'Patron', coordonator: 'Coordonator', tehnician: 'Tehnician', medic: 'Medic' }
 
@@ -36,10 +38,94 @@ export function formatDataOraNota(iso) {
   return d.toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-// Tabul „Note" din fișa comenzii — note scurte cu subiect, fără editare sau
-// ștergere. Implicit interne; „Trimite și medicului" e o alegere explicită.
-// Patronul și coordonatorul marchează notele medicului ca citite la deschidere
-// și pot anunța medicul pe WhatsApp (src/services/notificari.js).
+// O discuție: nota inițială + răspunsurile ei, cu „Răspunde" dedesubt.
+// Folosită și în laborator, și în pagina medicului — diferă doar cum se
+// afișează autorul (`autor(n)` → { nume, detaliu, deLaMedic }) și acțiunile.
+export function DiscutieNote({ discutie, autor, detaliuMesaj, etichete, actiuni, poateRaspunde, onRaspunde, textRaspuns = 'Răspunde' }) {
+  const [deschis, setDeschis] = useState(false)
+  const [text, setText] = useState('')
+  const [trimitere, setTrimitere] = useState(false)
+  const [eroare, setEroare] = useState('')
+  const { nota, raspunsuri, rezolvata } = discutie
+
+  const trimite = async (e) => {
+    e.preventDefault()
+    setTrimitere(true)
+    setEroare('')
+    try {
+      await onRaspunde(text)
+      setText('')
+      setDeschis(false)
+    } catch (err) {
+      setEroare(err.message)
+    } finally {
+      setTrimitere(false)
+    }
+  }
+
+  return (
+    <li className={`note-discutie ${rezolvata ? 'note-discutie-rezolvata' : ''}`}>
+      <div className="note-discutie-antet">
+        <span className="badge badge-blue">{nota.subiect}</span>
+        {etichete}
+        {rezolvata && <span className="badge badge-success">Rezolvată</span>}
+        {actiuni && <div className="note-discutie-actiuni">{actiuni}</div>}
+      </div>
+      <ul className="note-mesaje">
+        {[nota, ...raspunsuri].map((n) => {
+          const a = autor(n)
+          return (
+            <li key={n.id} className={`note-mesaj ${a.deLaMedic ? 'note-mesaj-medic' : ''}`}>
+              <div className="note-mesaj-antet">
+                <span className="note-item-autor">
+                  {a.nume}
+                  {a.detaliu && <span className="note-item-rol"> · {a.detaliu}</span>}
+                </span>
+                <span className="note-item-data">{formatDataOraNota(n.created_at)}</span>
+              </div>
+              <p className="note-item-text">{n.text}</p>
+              {detaliuMesaj?.(n)}
+            </li>
+          )
+        })}
+      </ul>
+      {poateRaspunde &&
+        (deschis ? (
+          <form className="note-raspuns" onSubmit={trimite}>
+            <textarea
+              className="text-input note-raspuns-text"
+              value={text}
+              maxLength={MAX_CARACTERE_NOTA}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Răspunsul tău…"
+              autoFocus
+              required
+            />
+            <div className="note-raspuns-subsol">
+              <span className="note-form-contor">{text.length} / {MAX_CARACTERE_NOTA}</span>
+              <button type="button" className="btn btn-ghost note-mic-btn" onClick={() => setDeschis(false)}>
+                Anulează
+              </button>
+              <button type="submit" className="btn btn-primary note-mic-btn" disabled={trimitere || !text.trim()}>
+                {trimitere ? 'Se trimite…' : 'Trimite răspunsul'}
+              </button>
+            </div>
+            {eroare && <p className="note-eroare">{eroare}</p>}
+          </form>
+        ) : (
+          <button type="button" className="btn btn-ghost note-mic-btn note-raspunde-btn" onClick={() => setDeschis(true)}>
+            {textRaspuns}
+          </button>
+        ))}
+    </li>
+  )
+}
+
+// Tabul „Note" din fișa comenzii — discuții scurte cu subiect, fără editare
+// sau ștergere. Implicit interne; „Trimite și medicului" e o alegere
+// explicită, iar răspunsurile păstrează vizibilitatea discuției. Patronul și
+// coordonatorul marchează notele medicului ca citite la deschidere și pot
+// anunța medicul pe WhatsApp (src/services/notificari.js).
 export default function NoteComanda({ lucrare, profile, onCitite }) {
   const operational = areAccesOperational(profile)
   const [note, setNote] = useState(null)
@@ -102,6 +188,21 @@ export default function NoteComanda({ lucrare, profile, onCitite }) {
     }
   }
 
+  const raspunde = async (nota, textRaspuns) => {
+    await addNotaComanda({ comanda_id: lucrare.id, text: textRaspuns, raspuns_la: nota.id })
+    await reincarca()
+  }
+
+  const comutaRezolvata = async (nota, rezolvata) => {
+    setMesajWhatsApp('')
+    try {
+      await marcheazaDiscutieRezolvata(nota.id, rezolvata)
+      await reincarca()
+    } catch (err) {
+      setMesajWhatsApp(err.message)
+    }
+  }
+
   const trimiteWhatsApp = (nota) => {
     const r = notificaMedic({ nota, comanda: lucrare, medic })
     setMesajWhatsApp(r.ok ? '' : r.motiv)
@@ -109,52 +210,57 @@ export default function NoteComanda({ lucrare, profile, onCitite }) {
 
   if (note === null) return <p className="note-gol">Se încarcă notele…</p>
 
+  const discutii = grupeazaDiscutii(note)
+
   return (
     <div className="note-comanda">
-      {note.length === 0 ? (
+      {discutii.length === 0 ? (
         <p className="note-gol">Nicio notă pe această comandă.</p>
       ) : (
         <ul className="note-lista">
-          {note.map((n) => {
-            const delaMedic = n.rol_autor === 'medic'
-            const catreMedicul = n.vizibilitate === 'medic'
+          {discutii.map((d) => {
+            const cuMedicul = d.nota.vizibilitate === 'medic'
             return (
-              <li key={n.id} className={`note-item ${delaMedic ? 'note-item-medic' : ''} ${catreMedicul && !delaMedic ? 'note-item-extern' : ''}`}>
-                <div className="note-item-antet">
-                  <span className="badge badge-blue">{n.subiect}</span>
-                  <span className="note-item-autor">
-                    {n.autor_nume}
-                    <span className="note-item-rol"> · {ETICHETA_ROL[n.rol_autor] || n.rol_autor}</span>
-                  </span>
-                  <span className="note-item-data">{formatDataOraNota(n.created_at)}</span>
-                </div>
-                <p className="note-item-text">{n.text}</p>
-                <div className="note-item-subsol">
-                  {delaMedic ? (
-                    <span className="badge badge-purple">De la medic</span>
-                  ) : catreMedicul ? (
-                    <span className="badge badge-warning">Trimisă medicului</span>
+              <DiscutieNote
+                key={d.nota.id}
+                discutie={d}
+                autor={(n) => ({ nume: n.autor_nume, detaliu: ETICHETA_ROL[n.rol_autor] || n.rol_autor, deLaMedic: n.rol_autor === 'medic' })}
+                detaliuMesaj={(n) =>
+                  cuMedicul && n.rol_autor !== 'medic' ? (
+                    <p className="note-item-citire">
+                      {n.citita_de_medic ? `Văzută de medic · ${formatDataOraNota(n.citita_de_medic)}` : 'Nevăzută încă de medic'}
+                    </p>
+                  ) : null
+                }
+                etichete={
+                  cuMedicul ? (
+                    <span className="badge badge-warning">Cu medicul</span>
                   ) : (
                     <span className="badge badge-neutral">Internă</span>
-                  )}
-                  {catreMedicul && !delaMedic && (
-                    <span className="note-item-citire">
-                      {n.citita_de_medic ? `Văzută de medic · ${formatDataOraNota(n.citita_de_medic)}` : 'Nevăzută încă de medic'}
-                    </span>
-                  )}
-                  {operational && catreMedicul && !delaMedic && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary note-whatsapp-btn"
-                      onClick={() => trimiteWhatsApp(n)}
-                      disabled={!medic?.telefon}
-                      title={medic?.telefon ? `Deschide WhatsApp către ${medic.nume}` : 'Medicul nu are telefon (Setup → Medici)'}
-                    >
-                      Trimite pe WhatsApp
+                  )
+                }
+                actiuni={
+                  <>
+                    {operational && cuMedicul && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary note-mic-btn"
+                        onClick={() => trimiteWhatsApp(d.nota)}
+                        disabled={!medic?.telefon}
+                        title={medic?.telefon ? `Deschide WhatsApp către ${medic.nume}` : 'Medicul nu are telefon (Setup → Medici)'}
+                      >
+                        Trimite pe WhatsApp
+                      </button>
+                    )}
+                    <button type="button" className="btn btn-ghost note-mic-btn" onClick={() => comutaRezolvata(d.nota, !d.rezolvata)}>
+                      {d.rezolvata ? 'Redeschide' : 'Marchează rezolvată'}
                     </button>
-                  )}
-                </div>
-              </li>
+                  </>
+                }
+                poateRaspunde={deschise}
+                onRaspunde={(t) => raspunde(d.nota, t)}
+                textRaspuns={cuMedicul ? 'Răspunde (vede și medicul)' : 'Răspunde'}
+              />
             )
           })}
         </ul>
@@ -163,6 +269,7 @@ export default function NoteComanda({ lucrare, profile, onCitite }) {
 
       {deschise ? (
         <form className="note-form" onSubmit={handleSubmit}>
+          <h4 className="note-form-titlu">Notă nouă</h4>
           <div className="note-form-rand">
             <div>
               <label className="field-label" htmlFor="nota-subiect">Subiect</label>
@@ -189,12 +296,12 @@ export default function NoteComanda({ lucrare, profile, onCitite }) {
               id="nota-text"
               className="text-input note-form-text"
               value={text}
-              maxLength={MAX_CARACTERE}
+              maxLength={MAX_CARACTERE_NOTA}
               onChange={(e) => setText(e.target.value)}
               placeholder={catreMedic ? 'Mesajul pe care îl va vedea medicul…' : 'Notă internă, vizibilă doar în laborator…'}
               required
             />
-            <p className="note-form-contor">{text.length} / {MAX_CARACTERE}</p>
+            <p className="note-form-contor">{text.length} / {MAX_CARACTERE_NOTA}</p>
           </div>
           {catreMedic && !medic && (
             <p className="note-form-hint">

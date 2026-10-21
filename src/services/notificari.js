@@ -5,9 +5,9 @@
 // automată prin WhatsApp Business API (ex. un apel către /api/...), fără să se
 // schimbe componentele care o folosesc.
 
-// Linkul către comanda respectivă, pe pagina medicului.
+// Linkul către notele comenzii respective, pe pagina medicului.
 export function linkComandaMedic(nrInregistrare) {
-  return `${window.location.origin}/medic/comanda/${encodeURIComponent(nrInregistrare)}`
+  return `${window.location.origin}/medic/comanda/${encodeURIComponent(nrInregistrare)}?tab=note`
 }
 
 // Număr în formatul cerut de wa.me: doar cifre, cu prefixul de țară.
