@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getTehnicieni } from '../services/dataService'
 import TaskuriTehnicianContent from './TaskuriTehnicianContent.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './TaskurileMelePage.css'
 
 // Vederea restrânsă a tehnicianului logat — același conținut (calendar +
@@ -28,7 +29,7 @@ export default function TaskurileMelePage({ tehnicianId }) {
 
   return (
     <div className="taskurile-mele-page">
-      <h2>Task-urile mele</h2>
+      <TitluCuAjutor id="taskurile-mele">Task-urile mele</TitluCuAjutor>
       <p className="taskurile-mele-hint">Sarcinile tale de producție, zi de zi.</p>
 
       {loading ? (

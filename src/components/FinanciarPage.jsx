@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import FinanciarPrezentare from './FinanciarPrezentare.jsx'
 import DevizePage from './DevizePage.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './FinanciarPage.css'
 
 export default function FinanciarPage({ onOpenLucrare }) {
@@ -10,7 +11,7 @@ export default function FinanciarPage({ onOpenLucrare }) {
     <div className="financiar-page">
       <div className="financiar-page-header">
         <div>
-          <h2>Financiar</h2>
+          <TitluCuAjutor id="financiar">Financiar</TitluCuAjutor>
           <p className="financiar-page-hint">Producție, cheltuieli și devize pe medic.</p>
         </div>
         <div className="segmented financiar-view-toggle" role="group" aria-label="Secțiune financiar">

@@ -7,6 +7,7 @@ const NAV_TEHNICIAN = [
   { id: 'task-urile-mele', label: 'Task-urile mele' },
   { id: 'salariul-meu', label: 'Salariul meu' },
   { id: 'neconformitati', label: 'Neconformități' },
+  { id: 'ghid', label: 'Ghid' },
 ]
 
 // Patronul vede tot; coordonatorul la fel, fără grupul Financiar.
@@ -39,6 +40,7 @@ const NAV_GROUPS = [
     ],
   },
   { id: 'setup', label: 'Setup' },
+  { id: 'ghid', label: 'Ghid' },
 ]
 
 function grupulPentru(pagina) {

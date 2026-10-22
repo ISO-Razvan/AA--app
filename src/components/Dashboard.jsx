@@ -5,6 +5,7 @@ import { statusDinRanduri } from '../utils/statusLucrare'
 import { etapaCurentaPentru } from '../utils/etapaProductie'
 import { subscribeToTable } from '../services/realtime'
 import { formatDataOraNota } from './NoteComanda.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './Dashboard.css'
 
 function KpiCard({ label, value, tone }) {
@@ -125,7 +126,7 @@ export default function Dashboard({ lucrari: toateLucrarile, loading, onOpenLucr
 
   return (
     <div className="dashboard">
-      <h2>Dashboard</h2>
+      <TitluCuAjutor id="dashboard">Dashboard</TitluCuAjutor>
       <p className="dashboard-hint">Prezentare generală a lucrărilor din laborator.</p>
 
       <div className="dashboard-kpis">

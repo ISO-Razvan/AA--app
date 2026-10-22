@@ -21,6 +21,7 @@ import TimePicker from './TimePicker.jsx'
 import ProductieTimeline from './ProductieTimeline.jsx'
 import GaleriePoze from './GaleriePoze.jsx'
 import NoteComanda from './NoteComanda.jsx'
+import { AjutorButon } from '../ajutor/Ajutor.jsx'
 import ExtraUriPicker, { ExtraUriLista } from './ExtraUriPicker.jsx'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import './modal-base.css'
@@ -347,6 +348,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
               )}
             </button>
           ))}
+          <AjutorButon id={`fisa-${tab}`} className="detail-panel-ajutor" />
         </nav>
 
         <div className="detail-panel-body">

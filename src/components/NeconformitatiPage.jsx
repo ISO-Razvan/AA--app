@@ -16,6 +16,7 @@ import { areAccesOperational, estePatron } from '../utils/roluri'
 import { azi } from '../utils/date'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import DatePicker from './DatePicker.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './Registru.css'
 
 function formatData(iso) {
@@ -478,7 +479,7 @@ export default function NeconformitatiPage({ profile, lucrari, precompletare, on
     <div className="registru">
       <div className="registru-antet">
         <div>
-          <h2>Neconformități</h2>
+          <TitluCuAjutor id="neconformitati">Neconformități</TitluCuAjutor>
           <p className="registru-hint">
             {operational
               ? 'Registrul problemelor: greșeli în producție, reclamații, materiale defecte.'

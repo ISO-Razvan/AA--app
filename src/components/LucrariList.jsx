@@ -7,6 +7,7 @@ import { subscribeToTable } from '../services/realtime'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import LucrariKanban from './LucrariKanban.jsx'
 import { IndicatorNoteMedic } from './NoteComanda.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './LucrariList.css'
 
 function formatData(dataStr) {
@@ -234,7 +235,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
     <div className="lucrari-list">
       <div className="lucrari-list-toolbar">
         <div>
-          <h2>Lista lucrărilor</h2>
+          <TitluCuAjutor id="lista">Lista lucrărilor</TitluCuAjutor>
           <p className="lucrari-list-count">
             {loading
               ? 'Se încarcă…'

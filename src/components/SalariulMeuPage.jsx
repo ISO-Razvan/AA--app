@@ -5,6 +5,7 @@ import { azi } from '../utils/date'
 import { adaosuriPentruEtapa, totalAdaosuri } from '../utils/adaosuriDesign'
 import { formatSuma } from './SalariiPage.jsx'
 import { SalariuDetaliuContinut } from './SalariiDetaliuModal.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './SalariiPage.css'
 
 const NUME_LUNI = [
@@ -93,7 +94,7 @@ export default function SalariulMeuPage() {
 
   return (
     <div className="salarii-page">
-      <h2>Salariul meu</h2>
+      <TitluCuAjutor id="salariul-meu">Salariul meu</TitluCuAjutor>
       <p className="salarii-page-hint">Comisioanele tale din etapele finalizate, pe lună.</p>
 
       <div className="salarii-luna-nav">

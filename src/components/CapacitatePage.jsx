@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getTehnicieni, getEtapeProductie, getToateAlocarile, getLucrari } from '../services/dataService'
 import { azi, adaugaZile } from '../utils/date'
 import TaskuriTehnicianModal from './TaskuriTehnicianModal.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './CapacitatePage.css'
 
 function zileleSaptamanii(offsetSaptamani) {
@@ -78,7 +79,7 @@ export default function CapacitatePage() {
 
   return (
     <div className="capacitate-page">
-      <h2>Capacitate</h2>
+      <TitluCuAjutor id="capacitate">Capacitate</TitluCuAjutor>
       <p className="capacitate-page-hint">
         Numărul de etape și orele de muncă estimate per tehnician, pe zi (nr. elemente × durata etapei din Setup).
       </p>

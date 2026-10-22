@@ -149,6 +149,11 @@
   border-bottom-color: var(--color-blue-strong);
 }
 
+.ajutor-buton.detail-panel-ajutor {
+  align-self: center;
+  margin-left: auto;
+}
+
 /* Note noi de la medic, necitite încă de laborator. */
 .detail-panel-tab-badge {
   display: inline-flex;

@@ -25,6 +25,7 @@ import { subscribeToTable } from '../services/realtime'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import TaskuriZiModal from './TaskuriZiModal.jsx'
 import DeschideFisaButton from './DeschideFisaButton.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './TaskuriPage.css'
 
 const NEPLANIFICATE_ID = '__neplanificate__'
@@ -385,7 +386,7 @@ export default function TaskuriPage() {
 
   return (
     <div className="taskuri-page">
-      <h2>Task-uri</h2>
+      <TitluCuAjutor id="taskuri">Task-uri</TitluCuAjutor>
       <p className="taskuri-page-hint">
         Alege un tehnician, apoi trage lucrările din „Neplanificate" pe o zi din calendar ca să le aloci.
       </p>

@@ -1,0 +1,127 @@
+/* Butonul „?" de lângă titlul fiecărei pagini + panoul lateral de ajutor. */
+.ajutor-titlu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ajutor-buton {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--brand-teal);
+  background: var(--color-surface);
+  color: var(--brand-teal);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.ajutor-buton:hover,
+.ajutor-buton:focus-visible {
+  background: var(--brand-teal);
+  color: #fff;
+}
+
+.ajutor-fundal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(30, 34, 51, 0.35);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ajutor-panou {
+  width: min(440px, 100%);
+  height: 100%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: ajutor-intra 0.16s ease-out;
+}
+
+@keyframes ajutor-intra {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+.ajutor-panou-antet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-blue-light);
+}
+
+.ajutor-panou-antet h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.btn.ajutor-inchide {
+  min-height: 36px;
+  padding: 4px 10px;
+}
+
+.ajutor-panou-corp {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5) var(--space-6);
+}
+
+.ajutor-continut {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--color-text);
+}
+
+.ajutor-la {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+.ajutor-subtitlu {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brand-teal-dark);
+}
+
+.ajutor-subtitlu-atentie {
+  color: var(--color-warning-strong);
+}
+
+.ajutor-lista {
+  margin: 0;
+  padding-left: 1.3em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ajutor-lista .ajutor-lista {
+  margin-top: 4px;
+  list-style: disc;
+}
+
+@media print {
+  .ajutor-buton {
+    display: none;
+  }
+}

@@ -4,6 +4,7 @@ import { trimiteCodEmail, verificaCodEmail, signOut } from '../services/auth'
 import { getInfoAccesMedic, getComenzileMeleMedic } from '../services/dataService'
 import { esteMedic } from '../utils/roluri'
 import FisaComandaMedic from './FisaComandaMedic.jsx'
+import { AjutorButon } from '../ajutor/Ajutor.jsx'
 import './MedicApp.css'
 
 function formatData(iso) {
@@ -38,6 +39,7 @@ function Cadru({ nume, onSignOut, children }) {
         </div>
         {onSignOut && (
           <div className="medic-cont">
+            <AjutorButon id="medic" rol="medic" />
             {nume && <span className="medic-cont-nume">{nume}</span>}
             <button type="button" className="btn btn-ghost medic-iesire" onClick={onSignOut}>
               Deconectare

@@ -9,6 +9,7 @@ import SearchableSelect from './SearchableSelect.jsx'
 import DatePicker from './DatePicker.jsx'
 import TimePicker from './TimePicker.jsx'
 import ExtraUriPicker from './ExtraUriPicker.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './modal-base.css'
 import './LucrareModal.css'
 
@@ -146,7 +147,7 @@ export default function LucrareModal({ profile, onClose, onSaved }) {
         <form onSubmit={handleSubmit} className="lucrare-form">
           <header className="modal-header">
             <div>
-              <h2>Înregistrare lucrare nouă</h2>
+              <TitluCuAjutor id="lucrare-noua">Înregistrare lucrare nouă</TitluCuAjutor>
               {nrPreview && <p className="modal-header-nr">Nr. înregistrare: {nrPreview}</p>}
             </div>
             <button type="button" className="btn btn-ghost modal-close" onClick={onClose} aria-label="Închide">

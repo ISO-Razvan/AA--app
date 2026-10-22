@@ -21,6 +21,8 @@ import SalariulMeuPage from './components/SalariulMeuPage.jsx'
 import MedicApp from './components/MedicApp.jsx'
 import NeconformitatiPage from './components/NeconformitatiPage.jsx'
 import FurnizoriPage from './components/FurnizoriPage.jsx'
+import GhidPage from './components/GhidPage.jsx'
+import { AjutorProvider } from './ajutor/Ajutor.jsx'
 import './App.css'
 
 function AppContent({ profile, onSignOut }) {
@@ -119,6 +121,8 @@ function AppContent({ profile, onSignOut }) {
               <SalariulMeuPage />
             ) : pagina === 'neconformitati' ? (
               <NeconformitatiPage profile={profile} lucrari={lucrari} onOpenLucrare={deschideFisa} />
+            ) : pagina === 'ghid' ? (
+              <GhidPage />
             ) : (
               <TaskurileMelePage tehnicianId={profile.tehnician_id} />
             )
@@ -155,6 +159,7 @@ function AppContent({ profile, onSignOut }) {
                 />
               )}
               {pagina === 'furnizori' && <FurnizoriPage />}
+              {pagina === 'ghid' && <GhidPage />}
               {pagina === 'salarii' && accesFinanciar && (
                 <SalariiPage
                   onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
@@ -290,9 +295,11 @@ export default function App() {
   if (esteMedic(profile)) return <Navigate to="/medic" replace />
 
   return (
-    <Routes>
-      <Route path="/" element={<AppContent profile={profile} onSignOut={signOut} />} />
-      <Route path="/comanda/:nrInregistrare" element={<AppContent profile={profile} onSignOut={signOut} />} />
-    </Routes>
+    <AjutorProvider profile={profile}>
+      <Routes>
+        <Route path="/" element={<AppContent profile={profile} onSignOut={signOut} />} />
+        <Route path="/comanda/:nrInregistrare" element={<AppContent profile={profile} onSignOut={signOut} />} />
+      </Routes>
+    </AjutorProvider>
   )
 }

@@ -3,6 +3,7 @@ import { getTehnicieni, getToateAlocarile, getLucrari, getEtapeProductie } from 
 import { azi } from '../utils/date'
 import { adaosuriPentruEtapa, totalAdaosuri } from '../utils/adaosuriDesign'
 import SalariiDetaliuModal from './SalariiDetaliuModal.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './SalariiPage.css'
 
 const NUME_LUNI = [
@@ -112,7 +113,7 @@ export default function SalariiPage({ onOpenLucrare }) {
 
   return (
     <div className="salarii-page">
-      <h2>Salarii</h2>
+      <TitluCuAjutor id="salarii">Salarii</TitluCuAjutor>
       <p className="salarii-page-hint">Comisioane câștigate de fiecare tehnician, pe lună.</p>
 
       <div className="salarii-luna-nav">

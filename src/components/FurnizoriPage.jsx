@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { getFurnizori, addFurnizor, updateFurnizor, deleteFurnizor } from '../services/dataService'
 import { CATEGORII_FURNIZORI } from '../utils/calitate'
 import { useConfirm } from '../hooks/useConfirm.jsx'
+import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './Registru.css'
 
 const GOL = {
@@ -160,7 +161,7 @@ export default function FurnizoriPage() {
     <div className="registru">
       <div className="registru-antet">
         <div>
-          <h2>Furnizori</h2>
+          <TitluCuAjutor id="furnizori">Furnizori</TitluCuAjutor>
           <p className="registru-hint">Agenda furnizorilor laboratorului.</p>
         </div>
         <button type="button" className="btn btn-primary" onClick={() => setDeschis('nou')}>
