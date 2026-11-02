@@ -242,7 +242,7 @@ export const AJUTOR_PAGINI = [
     la: 'Planificarea producției pe tehnicieni și zile.',
     pasi: [
       'Alege **tehnicianul** (butoanele de sus). Sub ele e săptămâna lui, iar mai jos **Lucrări neprogramate** — casete mici, cele cu termenul cel mai apropiat primele. Pagina are o singură defilare, iar calendarul rămâne lipit sus cât derulezi.',
-      'Pe casetă vezi nr. comenzii, tipul, numărul de elemente și termenul. Urgența are și text: **roșu** = depășit sau azi, **portocaliu** = mâine sau poimâine.',
+      'Pe casetă vezi **pacientul**, **tipul lucrării** și **numărul de elemente**. Nr. comenzii, medicul, clinica, termenul și etapele apar când ții mouse-ul deasupra sau în fișa lucrării. Urgența are și text: **roșu** = depășit sau azi, **portocaliu** = mâine sau poimâine.',
       '**Filtre rapide** deasupra casetelor: o etapă anume sau **Doar urgente**.',
       '**Trage** o casetă pe o zi din calendar ca s-o programezi (ziua peste care o ții se evidențiază); trage un card din calendar pe altă zi ca s-o muți. Dacă salvarea nu reușește, caseta revine și apare un mesaj.',
       'Bifa de pe o căsuță finalizează etapele din ea.',
