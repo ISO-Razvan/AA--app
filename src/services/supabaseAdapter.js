@@ -564,6 +564,40 @@ async function setFinalizareEtapa(lucrareId, etapaId, finalizat) {
   return data
 }
 
+// Închide retroactiv etape nebifate (Task-uri → „etape de închis"): le marchează
+// finalizate cu data aleasă și, unde e dat, le atribuie tehnicianului. NU atinge
+// data planificată (altfel ar umfla orele din Capacitate pe săptămâni trecute) și
+// nu schimbă tehnicianul unui rând dacă nu e dat unul nou. Reține cine și când.
+// `randuri`: [{ lucrare_id, etapa_id, tehnician_id|null }]. Scrie rând cu rând;
+// la o eroare, cele deja închise rămân (mesajul spune câte).
+async function inchideEtapeRetroactiv(randuri, dataFinalizare) {
+  if (!dataFinalizare) throw new Error('Alege data finalizării')
+  if (dataFinalizare > todayISO()) throw new Error('Data finalizării nu poate fi în viitor')
+  if (!randuri?.length) throw new Error('Nicio etapă de închis')
+  const { data: sesiune } = await supabase.auth.getUser()
+  let de = 'utilizator'
+  if (sesiune?.user) {
+    const { data: profil } = await supabase.from('profiles').select('nume, rol').eq('id', sesiune.user.id).maybeSingle()
+    de = (profil?.nume || '').trim() || profil?.rol || de
+  }
+  const la = new Date().toISOString()
+  let inchise = 0
+  for (const r of randuri) {
+    const patch = { finalizat: true, data_finalizare: dataFinalizare, inchisa_retroactiv_la: la, inchisa_retroactiv_de: de }
+    if (r.tehnician_id) patch.tehnician_id = r.tehnician_id
+    if (r.data_planificata) patch.data_planificata = r.data_planificata
+    try {
+      await setProductieAlocare(r.lucrare_id, r.etapa_id, patch)
+      inchise++
+    } catch (err) {
+      throw new Error(
+        `${err.message}. S-au închis ${inchise} din ${randuri.length} etape — le vezi în listă; repetă pentru restul.`
+      )
+    }
+  }
+  return inchise
+}
+
 // Comisioanele tehnicianului logat pentru luna 'AAAA-LL' — calculate în baza
 // de date (RPC `salariul_meu`), fără acces la datele altor tehnicieni.
 async function getSalariulMeu(luna) {
@@ -1368,6 +1402,7 @@ export const supabaseAdapter = {
   getToateAlocarile,
   setProductieAlocare,
   setFinalizareEtapa,
+  inchideEtapeRetroactiv,
   getSalariulMeu,
   getTehnicieniCuCont,
   creeazaContTehnician,
