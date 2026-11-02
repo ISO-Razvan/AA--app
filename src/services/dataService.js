@@ -48,6 +48,7 @@ export const getProductieTehnician = adapter.getProductieTehnician
 export const getToateAlocarile = adapter.getToateAlocarile
 export const setProductieAlocare = adapter.setProductieAlocare
 export const setFinalizareEtapa = adapter.setFinalizareEtapa
+export const inchideEtapeRetroactiv = adapter.inchideEtapeRetroactiv
 export const getSalariulMeu = adapter.getSalariulMeu
 export const getTehnicieniCuCont = adapter.getTehnicieniCuCont
 export const creeazaContTehnician = adapter.creeazaContTehnician

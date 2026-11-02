@@ -169,7 +169,7 @@ export default function TaskuriZiModal({
                           <span>Finalizat</span>
                         </label>
 
-                        {isMobil && (
+                        {isMobil && !grup.finalizat && (
                           <div className="taskuri-zi-muta">
                             <Dropdown
                               value={zi}

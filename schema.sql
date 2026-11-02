@@ -227,6 +227,12 @@ create table if not exists productie_lucrare (
 
 create index if not exists productie_lucrare_lucrare_idx on productie_lucrare (lucrare_id);
 
+-- Evidența închiderilor retroactive din Task-uri → „etape de închis": o etapă
+-- închisă cu o dată din trecut poate schimba salariul unei luni încheiate.
+-- Rețin ULTIMA închidere retroactivă (nu se șterg la debifare).
+alter table productie_lucrare add column if not exists inchisa_retroactiv_la timestamptz;
+alter table productie_lucrare add column if not exists inchisa_retroactiv_de text;
+
 -- Poze asociate unei lucrări — tab „Galerie". DEOCAMDATĂ `referinta_fisier`
 -- conține imaginea codificată base64 (data URL) direct în coloană — mutarea
 -- în Supabase Storage e o îmbunătățire ulterioară, nu parte din runda asta.
@@ -532,7 +538,9 @@ begin
      or new.etapa_id is distinct from old.etapa_id
      or new.tehnician_id is distinct from old.tehnician_id
      or new.data_planificata is distinct from old.data_planificata
-     or new.created_at is distinct from old.created_at then
+     or new.created_at is distinct from old.created_at
+     or new.inchisa_retroactiv_la is distinct from old.inchisa_retroactiv_la
+     or new.inchisa_retroactiv_de is distinct from old.inchisa_retroactiv_de then
     raise exception 'Un tehnician poate modifica doar bifa Finalizat și data finalizării.' using errcode = '42501';
   end if;
   return new;

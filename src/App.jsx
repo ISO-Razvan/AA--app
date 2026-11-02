@@ -148,7 +148,7 @@ function AppContent({ profile, onSignOut }) {
                 />
               )}
               {pagina === 'setup' && <SetupPage profile={profile} onDataChanged={refresh} />}
-              {pagina === 'taskuri' && <TaskuriPage />}
+              {pagina === 'taskuri' && <TaskuriPage profile={profile} />}
               {pagina === 'capacitate' && <CapacitatePage />}
               {pagina === 'neconformitati' && (
                 <NeconformitatiPage
