@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#062A79" />
+    <title>AA Lab — fără conexiune</title>
+    <!-- Afișată de service worker (public/sw.js) când aplicația instalată se
+         deschide fără internet. Fără fișiere externe: trebuie să meargă offline. -->
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        box-sizing: border-box;
+        background: #f8f9fd;
+        color: #1e2233;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        text-align: center;
+      }
+      .card {
+        max-width: 360px;
+        background: #fff;
+        border: 1px solid #dfe3f1;
+        border-radius: 20px;
+        padding: 32px 24px;
+        box-shadow: 0 6px 20px rgba(30, 34, 51, 0.1);
+      }
+      .semn {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 16px;
+        border-radius: 50%;
+        background: #062a79;
+        color: #4db8e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        font-weight: 800;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.2rem;
+        color: #062a79;
+      }
+      p {
+        margin: 0 0 20px;
+        color: #6b7180;
+        line-height: 1.5;
+      }
+      button {
+        min-height: 44px;
+        padding: 0 22px;
+        border: none;
+        border-radius: 12px;
+        background: #0097d6;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="semn" aria-hidden="true">!</div>
+      <h1>Nu ești conectat la internet</h1>
+      <p>Aplicația are nevoie de internet ca să încarce lucrările. Verifică Wi-Fi-ul sau datele mobile și încearcă din nou.</p>
+      <button type="button" onclick="location.reload()">Încearcă din nou</button>
+    </div>
+  </body>
+</html>

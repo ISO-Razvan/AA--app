@@ -1,0 +1,17 @@
+{
+  "name": "Algorithm Aesthetics — Registru lucrări",
+  "short_name": "AA Lab",
+  "description": "Registrul de lucrări al laboratorului Algorithm Lab",
+  "lang": "ro",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#062A79",
+  "theme_color": "#062A79",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
