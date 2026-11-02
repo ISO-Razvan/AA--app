@@ -2057,3 +2057,747 @@ $$;
 
 revoke all on function public.creeaza_refacere(uuid, boolean, boolean) from public, anon;
 grant execute on function public.creeaza_refacere(uuid, boolean, boolean) to authenticated;
+
+-- ===========================================================================
+-- Obiective (ISO 9001 pct. 6.2 și 9.1) — pe o bază existentă:
+-- sql/2026-11-02_obiective.sql. Doar patronul.
+-- ===========================================================================
+
+-- ---------------------------------------------------------------------------
+-- 1. Tabele
+-- ---------------------------------------------------------------------------
+
+-- Un obiectiv per indicator calculat automat. Ce cere 6.2: ce se face (titlu,
+-- plan de acțiuni), resurse, responsabil, termen, cum se evaluează.
+create table if not exists obiective (
+  id uuid primary key default gen_random_uuid(),
+  -- mai multe obiective pot folosi aceeași metrică
+  indicator text not null check (indicator in ('livrari_la_termen', 'refaceri', 'valoare_intrata')),
+  titlu text not null,
+  categorie text not null,                 -- eticheta de pe card: Livrare / Calitate / Financiar
+  unitate text not null,                   -- '%' sau 'RON'
+  sens text not null check (sens in ('min', 'max')),  -- min: valoarea ≥ țintă; max: valoarea ≤ țintă
+  tinta numeric,                           -- null = țintă nesetată
+  toleranta numeric check (toleranta is null or toleranta >= 0),  -- marja „La risc” (aceeași unitate)
+  perioada text not null check (perioada in ('saptamana', 'luna')),
+  responsabil text,
+  resurse text,
+  evaluare text,
+  termen date,
+  ordine integer not null default 0,
+  activ boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- Obiectivele de pornire — doar într-un tabel gol (o rulare repetată nu le
+-- readaugă după ce au fost modificate sau șterse).
+insert into obiective (indicator, titlu, categorie, unitate, sens, perioada, ordine, evaluare)
+select * from (values
+  ('livrari_la_termen', 'Livrări la termen', 'Livrare', '%', 'min', 'saptamana', 1,
+   'Săptămânal: lucrările finalizate în laborator până la termenul de predare, din cele finalizate în săptămână'),
+  ('refaceri', 'Refaceri și neconformități', 'Calitate', '%', 'max', 'saptamana', 2,
+   'Săptămânal: refacerile înregistrate, raportate la lucrările finalizate în aceeași săptămână'),
+  ('valoare_intrata', 'Valoare comenzi intrate', 'Financiar', 'RON', 'min', 'luna', 3,
+   'Săptămânal: valoarea cumulată a lunii (după data intrării) față de ținta lunară')
+) v (indicator, titlu, categorie, unitate, sens, perioada, ordine, evaluare)
+where not exists (select 1 from obiective);
+
+-- Planul de acțiuni al fiecărui obiectiv.
+create table if not exists obiective_actiuni (
+  id uuid primary key default gen_random_uuid(),
+  obiectiv_id uuid not null references obiective (id) on delete cascade,
+  text text not null check (char_length(text) between 1 and 500),
+  responsabil text,
+  termen date,                             -- null = continuu
+  status text not null default 'de_facut' check (status in ('de_facut', 'in_curs', 'realizat')),
+  data_realizare date,
+  created_at timestamptz not null default now()
+);
+create index if not exists obiective_actiuni_obiectiv_idx on obiective_actiuni (obiectiv_id);
+
+-- Revizuirea săptămânală — înregistrarea monitorizării (9.1). Una pe
+-- săptămână (luni–duminică); nu se mai modifică după confirmare.
+create table if not exists obiective_revizuiri (
+  id uuid primary key default gen_random_uuid(),
+  saptamana date not null unique check (extract(isodow from saptamana) = 1),  -- lunea săptămânii
+  luna date not null,                      -- prima zi a lunii în care cade joia săptămânii
+  observatii text,
+  revizuita_de_id uuid references auth.users (id) on delete set null,
+  revizuita_de text not null default '',
+  created_at timestamptz not null default now()
+);
+
+-- Valorile înghețate la confirmare — nu se mai schimbă dacă datele din
+-- aplicație se modifică ulterior (debifări, ștergeri, recalculări).
+create table if not exists obiective_valori (
+  id uuid primary key default gen_random_uuid(),
+  revizuire_id uuid not null references obiective_revizuiri (id) on delete cascade,
+  obiectiv_id uuid references obiective (id) on delete set null,
+  indicator text not null,
+  titlu text not null,
+  unitate text not null,
+  sens text not null,
+  valoare numeric,
+  numarator numeric,
+  numitor numeric,
+  tinta numeric,
+  tinta_efectiva numeric,                  -- la RON: ținta lunară proporțională cu zilele scurse
+  toleranta numeric,
+  stare text not null,                     -- pe_drum / la_risc / sub_tinta / fara_tinta / fara_date
+  detalii jsonb not null default '{}'::jsonb  -- ce s-a numărat (nr. comenzi), pentru audit
+);
+create index if not exists obiective_valori_revizuire_idx on obiective_valori (revizuire_id);
+
+-- ---------------------------------------------------------------------------
+-- 2. Acces — doar patronul. Revizuirile și valorile se scriu DOAR prin
+-- funcția confirma_revizuire_obiective și nu se pot modifica sau șterge.
+-- ---------------------------------------------------------------------------
+alter table obiective enable row level security;
+alter table obiective_actiuni enable row level security;
+alter table obiective_revizuiri enable row level security;
+alter table obiective_valori enable row level security;
+
+do $$
+declare
+  t text;
+begin
+  for t in select unnest(array['obiective_revizuiri', 'obiective_valori']) loop
+    execute format(
+      'drop policy if exists "patron_citire" on %I;
+       create policy "patron_citire" on %I for select to authenticated using ((select public.este_patron()));',
+      t, t
+    );
+  end loop;
+end $$;
+
+-- Acțiunile: patronul le adaugă, modifică și șterge.
+drop policy if exists "patron_all" on obiective_actiuni;
+create policy "patron_all" on obiective_actiuni for all to authenticated
+  using ((select public.este_patron())) with check ((select public.este_patron()));
+
+-- Obiectivele de pornire nu se adaugă și nu se șterg din aplicație (indicatorii
+-- sunt ficși); se pot doar modifica (țintă, responsabil, resurse, termen…).
+drop policy if exists "patron_all" on obiective;
+drop policy if exists "patron_citire" on obiective;
+drop policy if exists "patron_modificare" on obiective;
+create policy "patron_citire" on obiective for select to authenticated using ((select public.este_patron()));
+create policy "patron_modificare" on obiective for update to authenticated
+  using ((select public.este_patron())) with check ((select public.este_patron()));
+
+-- ---------------------------------------------------------------------------
+-- 3. Calculul indicatorilor
+-- ---------------------------------------------------------------------------
+
+-- Ziua de azi în România (serverul rulează în UTC).
+create or replace function public.azi_romania()
+returns date
+language sql
+stable
+as $$
+  select (now() at time zone 'Europe/Bucharest')::date;
+$$;
+
+-- Starea unui obiectiv față de țintă. sens 'min': valoare ≥ țintă e bine;
+-- 'max': valoare ≤ țintă e bine. „La risc” = în afara țintei, dar în toleranță.
+create or replace function public.stare_obiectiv(p_valoare numeric, p_tinta numeric, p_toleranta numeric, p_sens text)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when p_tinta is null then 'fara_tinta'
+    when p_valoare is null then 'fara_date'
+    when p_sens = 'min' and p_valoare >= p_tinta then 'pe_drum'
+    when p_sens = 'max' and p_valoare <= p_tinta then 'pe_drum'
+    when p_sens = 'min' and p_valoare >= p_tinta - coalesce(p_toleranta, 0) then 'la_risc'
+    when p_sens = 'max' and p_valoare <= p_tinta + coalesce(p_toleranta, 0) then 'la_risc'
+    else 'sub_tinta'
+  end;
+$$;
+
+-- Lucrările finalizate în laborator, cu data finalizării: toate etapele de
+-- producție bifate, FĂRĂ Livrare. Contează doar etapele care existau în Setup
+-- la înregistrarea lucrării (o etapă adăugată ulterior nu „definalizează”
+-- lucrările vechi). Data = cea mai recentă bifă dintre aceste etape.
+-- Refacerile nu intră (au refacere_pentru).
+create or replace function public.lucrari_finalizate_laborator(p_de_la date, p_pana_la date)
+returns table (lucrare_id uuid, nr_inregistrare text, termen_predare date, data_finalizare date)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with necesare as (
+    select l.id as lucrare_id, e.id as etapa_id
+    from public.lucrari l
+    join public.etape_productie e
+      on lower(trim(e.nume)) <> 'livrare' and e.created_at <= l.created_at
+    where l.refacere_pentru is null
+  ),
+  stare as (
+    select n.lucrare_id,
+           count(*) as nr_necesare,
+           count(*) filter (where p.finalizat and p.data_finalizare is not null) as nr_bifate,
+           max(p.data_finalizare) filter (where p.finalizat) as ultima
+    from necesare n
+    left join public.productie_lucrare p on p.lucrare_id = n.lucrare_id and p.etapa_id = n.etapa_id
+    group by n.lucrare_id
+  )
+  select s.lucrare_id, l.nr_inregistrare, l.termen_predare, s.ultima
+  from stare s
+  join public.lucrari l on l.id = s.lucrare_id
+  where public.este_patron()
+    and s.nr_necesare > 0
+    and s.nr_bifate = s.nr_necesare
+    and s.ultima between p_de_la and p_pana_la;
+$$;
+
+-- Indicatorii unei săptămâni (p_luni = lunea ei), câte un obiect per obiectiv
+-- activ, cu valoare, țintă, stare și ce s-a numărat. Doar patronul.
+create or replace function public.obiective_saptamana(p_luni date)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_duminica date := p_luni + 6;
+  v_luna date := date_trunc('month', (p_luni + 3)::timestamp)::date;          -- luna joii
+  v_luna_sfarsit date := (date_trunc('month', (p_luni + 3)::timestamp) + interval '1 month - 1 day')::date;
+  v_pana_la date;                                                 -- capătul cumulului lunar
+  v_fin integer;
+  v_la_termen integer;
+  v_fara_termen integer;
+  v_refaceri integer;
+  v_lista_fin jsonb;
+  v_lista_ref jsonb;
+  v_valoare numeric;
+  v_nr_intrate integer;
+  v_rezultat jsonb := '[]'::jsonb;
+  o public.obiective%rowtype;
+  v_val numeric;
+  v_num numeric;
+  v_den numeric;
+  v_tinta_ef numeric;
+  v_tol numeric;
+  v_det jsonb;
+begin
+  if not public.este_patron() then
+    raise exception 'Doar patronul vede obiectivele.' using errcode = '42501';
+  end if;
+  if extract(isodow from p_luni) <> 1 then
+    raise exception 'Săptămâna trebuie dată prin ziua ei de luni.';
+  end if;
+  v_pana_la := least(v_duminica, v_luna_sfarsit);
+
+  -- 1. Livrări la termen (lucrările fără termen se numără separat).
+  select count(*) filter (where termen_predare is not null),
+         count(*) filter (where termen_predare is not null and data_finalizare <= termen_predare),
+         count(*) filter (where termen_predare is null),
+         coalesce(jsonb_agg(jsonb_build_object('nr', nr_inregistrare, 'finalizata', data_finalizare,
+                  'termen', termen_predare) order by nr_inregistrare), '[]'::jsonb)
+  into v_fin, v_la_termen, v_fara_termen, v_lista_fin
+  from public.lucrari_finalizate_laborator(p_luni, v_duminica);
+
+  -- 2. Refaceri înregistrate în săptămână (data creării, ora României).
+  select count(*), coalesce(jsonb_agg(l.nr_inregistrare order by l.nr_inregistrare), '[]'::jsonb)
+  into v_refaceri, v_lista_ref
+  from public.lucrari l
+  where l.refacere_pentru is not null
+    and (l.created_at at time zone 'Europe/Bucharest')::date between p_luni and v_duminica;
+
+  -- 3. Valoare comenzi intrate în luna joii, de la 1 până la duminică
+  -- (sau la sfârșitul lunii, dacă săptămâna trece în luna următoare).
+  select coalesce(sum(coalesce(l.incasare, 0)), 0), count(*)
+  into v_valoare, v_nr_intrate
+  from public.lucrari l
+  where l.data_intrare between v_luna and v_pana_la;
+
+  for o in select * from public.obiective where activ order by ordine loop
+    v_tinta_ef := o.tinta;
+    v_tol := o.toleranta;
+    if o.indicator = 'livrari_la_termen' then
+      v_num := v_la_termen;
+      v_den := v_fin;
+      v_val := case when v_fin > 0 then round(100.0 * v_la_termen / v_fin, 1) end;
+      v_det := jsonb_build_object('finalizate_cu_termen', v_fin, 'la_termen', v_la_termen,
+                                  'fara_termen', v_fara_termen, 'lucrari', v_lista_fin);
+    elsif o.indicator = 'refaceri' then
+      v_num := v_refaceri;
+      v_den := (select count(*) from public.lucrari_finalizate_laborator(p_luni, v_duminica));
+      v_val := case when v_den > 0 then round(100.0 * v_refaceri / v_den, 1) end;
+      v_det := jsonb_build_object('refaceri', v_refaceri, 'finalizate', v_den, 'lucrari', v_lista_ref);
+    else
+      v_num := v_valoare;
+      v_den := null;
+      v_val := v_valoare;
+      -- Ținta lunară, proporțional cu zilele scurse din lună până la v_pana_la.
+      if o.tinta is not null then
+        v_tinta_ef := round(o.tinta * (v_pana_la - v_luna + 1) / (v_luna_sfarsit - v_luna + 1), 0);
+        v_tol := coalesce(o.toleranta, round(v_tinta_ef * 0.1, 0));
+      end if;
+      v_det := jsonb_build_object('luna', v_luna, 'pana_la', v_pana_la, 'comenzi', v_nr_intrate,
+                                  'tinta_lunara', o.tinta);
+    end if;
+
+    v_rezultat := v_rezultat || jsonb_build_array(jsonb_build_object(
+      'obiectiv_id', o.id, 'indicator', o.indicator, 'titlu', o.titlu, 'unitate', o.unitate,
+      'sens', o.sens, 'valoare', v_val, 'numarator', v_num, 'numitor', v_den,
+      'tinta', o.tinta, 'tinta_efectiva', v_tinta_ef, 'toleranta', v_tol,
+      'stare', public.stare_obiectiv(v_val, v_tinta_ef, v_tol, o.sens), 'detalii', v_det
+    ));
+  end loop;
+
+  return jsonb_build_object('saptamana', p_luni, 'luna', v_luna, 'pana_la', v_pana_la, 'obiective', v_rezultat);
+end;
+$$;
+
+-- Evoluția pentru grafice: ultimele p_nr săptămâni (procente) și ultimele
+-- 6 luni (valoarea întregii luni, iar pentru luna curentă până azi).
+create or replace function public.obiective_evolutie(p_luni date, p_nr integer default 8)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_sapt jsonb := '[]'::jsonb;
+  v_luni jsonb := '[]'::jsonb;
+  v_s date;
+  v_fin integer;
+  v_la integer;
+  v_total integer;
+  v_l date;
+  v_val numeric;
+begin
+  if not public.este_patron() then
+    raise exception 'Doar patronul vede obiectivele.' using errcode = '42501';
+  end if;
+  for i in reverse (p_nr - 1)..0 loop
+    v_s := p_luni - 7 * i;
+    select count(*) filter (where termen_predare is not null),
+           count(*) filter (where termen_predare is not null and data_finalizare <= termen_predare),
+           count(*)
+    into v_fin, v_la, v_total
+    from public.lucrari_finalizate_laborator(v_s, v_s + 6);
+    v_sapt := v_sapt || jsonb_build_array(jsonb_build_object(
+      'saptamana', v_s,
+      'livrari_la_termen', case when v_fin > 0 then round(100.0 * v_la / v_fin, 1) end,
+      'refaceri', case when v_total > 0 then round(100.0 * (
+          select count(*) from public.lucrari l
+          where l.refacere_pentru is not null
+            and (l.created_at at time zone 'Europe/Bucharest')::date between v_s and v_s + 6
+        ) / v_total, 1) end
+    ));
+  end loop;
+  for i in reverse 5..0 loop
+    v_l := (date_trunc('month', (p_luni + 3)::timestamp) - make_interval(months => i))::date;
+    select coalesce(sum(coalesce(incasare, 0)), 0) into v_val
+    from public.lucrari
+    where data_intrare between v_l and (v_l + interval '1 month - 1 day')::date;
+    v_luni := v_luni || jsonb_build_array(jsonb_build_object('luna', v_l, 'valoare_intrata', v_val));
+  end loop;
+  return jsonb_build_object('saptamani', v_sapt, 'luni', v_luni);
+end;
+$$;
+
+-- Confirmarea revizuirii: calculează și îngheață valorile săptămânii, cu
+-- observațiile patronului. O singură dată pe săptămână, doar pentru o
+-- săptămână încheiată.
+create or replace function public.confirma_revizuire_obiective(p_luni date, p_observatii text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_calc jsonb;
+  v_id uuid;
+  v jsonb;
+begin
+  if not public.este_patron() then
+    raise exception 'Doar patronul poate confirma revizuirea.' using errcode = '42501';
+  end if;
+  if p_luni + 6 >= public.azi_romania() then
+    raise exception 'Se pot revizui doar săptămânile încheiate.';
+  end if;
+  if exists (select 1 from public.obiective_revizuiri where saptamana = p_luni) then
+    raise exception 'Săptămâna a fost deja revizuită.';
+  end if;
+  v_calc := public.obiective_saptamana(p_luni);
+  insert into public.obiective_revizuiri (saptamana, luna, observatii, revizuita_de_id, revizuita_de)
+  values (
+    p_luni, (v_calc ->> 'luna')::date, nullif(trim(coalesce(p_observatii, '')), ''), auth.uid(),
+    coalesce(nullif((select nume from public.profiles where id = auth.uid()), ''), 'Patron')
+  )
+  returning id into v_id;
+  for v in select * from jsonb_array_elements(v_calc -> 'obiective') loop
+    insert into public.obiective_valori (
+      revizuire_id, obiectiv_id, indicator, titlu, unitate, sens, valoare, numarator, numitor,
+      tinta, tinta_efectiva, toleranta, stare, detalii
+    ) values (
+      v_id, (v ->> 'obiectiv_id')::uuid, v ->> 'indicator', v ->> 'titlu', v ->> 'unitate', v ->> 'sens',
+      (v ->> 'valoare')::numeric, (v ->> 'numarator')::numeric, (v ->> 'numitor')::numeric,
+      (v ->> 'tinta')::numeric, (v ->> 'tinta_efectiva')::numeric, (v ->> 'toleranta')::numeric,
+      v ->> 'stare', coalesce(v -> 'detalii', '{}'::jsonb)
+    );
+  end loop;
+  return v_id;
+end;
+$$;
+
+do $$
+declare
+  f text;
+begin
+  foreach f in array array[
+    'public.lucrari_finalizate_laborator(date, date)', 'public.obiective_saptamana(date)',
+    'public.obiective_evolutie(date, integer)', 'public.confirma_revizuire_obiective(date, text)'
+  ] loop
+    execute format('revoke all on function %s from public, anon', f);
+    execute format('grant execute on function %s to authenticated', f);
+  end loop;
+end $$;
+
+-- ===========================================================================
+-- Obiective — reguli finale: pragul „La risc” unic (10%) și activarea doar cu
+-- plan complet (pe o bază existentă: sql/2026-11-03_obiective_reguli.sql).
+-- Înlocuiește stare_obiectiv / obiective_saptamana / confirma_revizuire_obiective de mai sus.
+-- ===========================================================================
+
+-- ---------------------------------------------------------------------------
+-- 1. Pragul „La risc” — SINGURUL loc unde e definit: 10% față de țintă.
+--    Aplicația îl primește din calcul (câmpul `prag_risc`), nu îl repetă.
+-- ---------------------------------------------------------------------------
+create or replace function public.prag_risc_obiective()
+returns numeric
+language sql
+immutable
+as $$
+  select 0.10::numeric;
+$$;
+
+-- Starea față de țintă:
+--   sens 'min' (mai mare e mai bine): Pe drum ≥ țintă; La risc ≥ țintă × (1 − 10%);
+--   sens 'max' (mai mic e mai bine):  Pe drum ≤ țintă; La risc ≤ țintă × (1 + 10%);
+--   altfel Sub țintă. Fără țintă → fara_tinta; fără date → fara_date.
+drop function if exists public.stare_obiectiv(numeric, numeric, numeric, text);
+create or replace function public.stare_obiectiv(p_valoare numeric, p_tinta numeric, p_sens text)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when p_tinta is null then 'fara_tinta'
+    when p_valoare is null then 'fara_date'
+    when p_sens = 'min' and p_valoare >= p_tinta then 'pe_drum'
+    when p_sens = 'max' and p_valoare <= p_tinta then 'pe_drum'
+    when p_sens = 'min' and p_valoare >= p_tinta * (1 - public.prag_risc_obiective()) then 'la_risc'
+    when p_sens = 'max' and p_valoare <= p_tinta * (1 + public.prag_risc_obiective()) then 'la_risc'
+    else 'sub_tinta'
+  end;
+$$;
+
+-- Marja pe obiectiv nu mai există (pragul e unic); în instantaneu se păstrează
+-- pragul folosit la acel moment.
+alter table obiective drop column if exists toleranta;
+alter table obiective_valori drop column if exists toleranta;
+alter table obiective_valori add column if not exists prag_risc numeric;
+alter table obiective_valori add column if not exists activ boolean not null default true;
+
+-- ---------------------------------------------------------------------------
+-- 2. Activarea — doar cu cel puțin o acțiune, resurse și metodă de evaluare.
+-- ---------------------------------------------------------------------------
+alter table obiective alter column activ set default false;
+
+create or replace function public.obiective_verifica_activare()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.activ then
+    if coalesce(trim(new.resurse), '') = '' then
+      raise exception 'Obiectivul nu se poate activa fără resurse completate.';
+    end if;
+    if coalesce(trim(new.evaluare), '') = '' then
+      raise exception 'Obiectivul nu se poate activa fără metoda de evaluare.';
+    end if;
+    if not exists (select 1 from public.obiective_actiuni where obiectiv_id = new.id) then
+      raise exception 'Obiectivul nu se poate activa fără cel puțin o acțiune în plan.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists obiective_verifica_activare on obiective;
+create trigger obiective_verifica_activare
+  before insert or update on obiective
+  for each row execute function public.obiective_verifica_activare();
+
+-- Ultima acțiune a unui obiectiv activ nu se poate șterge (planul ar rămâne gol).
+create or replace function public.obiective_pastreaza_plan()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if exists (select 1 from public.obiective where id = old.obiectiv_id and activ)
+     and not exists (select 1 from public.obiective_actiuni where obiectiv_id = old.obiectiv_id and id <> old.id) then
+    raise exception 'Este singura acțiune a unui obiectiv activ. Adaugă alta sau dezactivează obiectivul înainte.';
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists obiective_pastreaza_plan on obiective_actiuni;
+create trigger obiective_pastreaza_plan
+  before delete on obiective_actiuni
+  for each row execute function public.obiective_pastreaza_plan();
+
+-- Obiectivele de pornire nu au încă plan → inactive (până le completezi).
+-- Trigger-ul de mai sus nu blochează dezactivarea.
+update obiective o set activ = false
+where o.activ
+  and (coalesce(trim(o.resurse), '') = '' or coalesce(trim(o.evaluare), '') = ''
+       or not exists (select 1 from obiective_actiuni a where a.obiectiv_id = o.id));
+
+-- ---------------------------------------------------------------------------
+-- 3. Calculul — pentru TOATE obiectivele (și cele inactive, ca să le vezi
+--    valoarea cât le completezi planul), cu pragul unic. Definițiile
+--    metricilor nu se schimbă.
+-- ---------------------------------------------------------------------------
+create or replace function public.obiective_saptamana(p_luni date)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_duminica date := p_luni + 6;
+  v_luna date := date_trunc('month', (p_luni + 3)::timestamp)::date;          -- luna joii
+  v_luna_sfarsit date := (date_trunc('month', (p_luni + 3)::timestamp) + interval '1 month - 1 day')::date;
+  v_pana_la date;                                                              -- capătul cumulului lunar
+  v_fin integer;
+  v_la_termen integer;
+  v_fara_termen integer;
+  v_total integer;
+  v_refaceri integer;
+  v_lista_fin jsonb;
+  v_lista_ref jsonb;
+  v_valoare numeric;
+  v_nr_intrate integer;
+  v_rezultat jsonb := '[]'::jsonb;
+  o public.obiective%rowtype;
+  v_val numeric;
+  v_num numeric;
+  v_den numeric;
+  v_tinta_ef numeric;
+  v_det jsonb;
+begin
+  if not public.este_patron() then
+    raise exception 'Doar patronul vede obiectivele.' using errcode = '42501';
+  end if;
+  if extract(isodow from p_luni) <> 1 then
+    raise exception 'Săptămâna trebuie dată prin ziua ei de luni.';
+  end if;
+  v_pana_la := least(v_duminica, v_luna_sfarsit);
+
+  -- 1. Livrări la termen: lucrările finalizate în laborator în săptămână (fără
+  -- etapa Livrare, fără refaceri); cele fără termen se numără separat.
+  select count(*) filter (where termen_predare is not null),
+         count(*) filter (where termen_predare is not null and data_finalizare <= termen_predare),
+         count(*) filter (where termen_predare is null),
+         count(*),
+         coalesce(jsonb_agg(jsonb_build_object('nr', nr_inregistrare, 'finalizata', data_finalizare,
+                  'termen', termen_predare) order by nr_inregistrare), '[]'::jsonb)
+  into v_fin, v_la_termen, v_fara_termen, v_total, v_lista_fin
+  from public.lucrari_finalizate_laborator(p_luni, v_duminica);
+
+  -- 2. Refaceri create în săptămână (ora României).
+  select count(*), coalesce(jsonb_agg(l.nr_inregistrare order by l.nr_inregistrare), '[]'::jsonb)
+  into v_refaceri, v_lista_ref
+  from public.lucrari l
+  where l.refacere_pentru is not null
+    and (l.created_at at time zone 'Europe/Bucharest')::date between p_luni and v_duminica;
+
+  -- 3. Valoare comenzi intrate în luna joii, de la 1 până la duminică (sau la
+  -- sfârșitul lunii, dacă săptămâna trece în luna următoare).
+  select coalesce(sum(coalesce(l.incasare, 0)), 0), count(*)
+  into v_valoare, v_nr_intrate
+  from public.lucrari l
+  where l.data_intrare between v_luna and v_pana_la;
+
+  for o in select * from public.obiective order by ordine loop
+    v_tinta_ef := o.tinta;
+    if o.indicator = 'livrari_la_termen' then
+      v_num := v_la_termen;
+      v_den := v_fin;
+      v_val := case when v_fin > 0 then round(100.0 * v_la_termen / v_fin, 1) end;
+      v_det := jsonb_build_object('finalizate_cu_termen', v_fin, 'la_termen', v_la_termen,
+                                  'fara_termen', v_fara_termen, 'lucrari', v_lista_fin);
+    elsif o.indicator = 'refaceri' then
+      v_num := v_refaceri;
+      v_den := v_total;
+      v_val := case when v_total > 0 then round(100.0 * v_refaceri / v_total, 1) end;
+      v_det := jsonb_build_object('refaceri', v_refaceri, 'finalizate', v_total, 'lucrari', v_lista_ref);
+    else
+      v_num := v_valoare;
+      v_den := null;
+      v_val := v_valoare;
+      -- Ținta lunară, proporțional cu zilele scurse din lună până la v_pana_la.
+      if o.tinta is not null then
+        v_tinta_ef := round(o.tinta * (v_pana_la - v_luna + 1) / (v_luna_sfarsit - v_luna + 1), 0);
+      end if;
+      v_det := jsonb_build_object('luna', v_luna, 'pana_la', v_pana_la, 'comenzi', v_nr_intrate,
+                                  'tinta_lunara', o.tinta);
+    end if;
+
+    v_rezultat := v_rezultat || jsonb_build_array(jsonb_build_object(
+      'obiectiv_id', o.id, 'indicator', o.indicator, 'titlu', o.titlu, 'unitate', o.unitate,
+      'sens', o.sens, 'activ', o.activ, 'valoare', v_val, 'numarator', v_num, 'numitor', v_den,
+      'tinta', o.tinta, 'tinta_efectiva', v_tinta_ef, 'prag_risc', public.prag_risc_obiective(),
+      'stare', public.stare_obiectiv(v_val, v_tinta_ef, o.sens), 'detalii', v_det
+    ));
+  end loop;
+
+  return jsonb_build_object('saptamana', p_luni, 'luna', v_luna, 'pana_la', v_pana_la,
+                            'prag_risc', public.prag_risc_obiective(), 'obiective', v_rezultat);
+end;
+$$;
+
+-- Confirmarea revizuirii: îngheață valorile obiectivelor ACTIVE. O singură
+-- dată pe săptămână, doar pentru o săptămână încheiată.
+create or replace function public.confirma_revizuire_obiective(p_luni date, p_observatii text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_calc jsonb;
+  v_id uuid;
+  v jsonb;
+begin
+  if not public.este_patron() then
+    raise exception 'Doar patronul poate confirma revizuirea.' using errcode = '42501';
+  end if;
+  if p_luni + 6 >= public.azi_romania() then
+    raise exception 'Se pot revizui doar săptămânile încheiate.';
+  end if;
+  if exists (select 1 from public.obiective_revizuiri where saptamana = p_luni) then
+    raise exception 'Săptămâna a fost deja revizuită.';
+  end if;
+  if not exists (select 1 from public.obiective where activ) then
+    raise exception 'Niciun obiectiv activ — activează cel puțin un obiectiv înainte de revizuire.';
+  end if;
+  v_calc := public.obiective_saptamana(p_luni);
+  insert into public.obiective_revizuiri (saptamana, luna, observatii, revizuita_de_id, revizuita_de)
+  values (
+    p_luni, (v_calc ->> 'luna')::date, nullif(trim(coalesce(p_observatii, '')), ''), auth.uid(),
+    coalesce(nullif((select nume from public.profiles where id = auth.uid()), ''), 'Patron')
+  )
+  returning id into v_id;
+  for v in select * from jsonb_array_elements(v_calc -> 'obiective') loop
+    continue when not coalesce((v ->> 'activ')::boolean, false);
+    insert into public.obiective_valori (
+      revizuire_id, obiectiv_id, indicator, titlu, unitate, sens, activ, valoare, numarator, numitor,
+      tinta, tinta_efectiva, prag_risc, stare, detalii
+    ) values (
+      v_id, (v ->> 'obiectiv_id')::uuid, v ->> 'indicator', v ->> 'titlu', v ->> 'unitate', v ->> 'sens', true,
+      (v ->> 'valoare')::numeric, (v ->> 'numarator')::numeric, (v ->> 'numitor')::numeric,
+      (v ->> 'tinta')::numeric, (v ->> 'tinta_efectiva')::numeric, (v ->> 'prag_risc')::numeric,
+      v ->> 'stare', coalesce(v -> 'detalii', '{}'::jsonb)
+    );
+  end loop;
+  return v_id;
+end;
+$$;
+
+-- ===========================================================================
+-- Obiective — crearea din aplicație (pe o bază existentă:
+-- sql/2026-11-03_obiective_creare.sql)
+-- ===========================================================================
+
+-- Pot exista mai multe obiective pe aceeași metrică (ex. alte ținte sau alți
+-- responsabili); fiecare obiectiv are propriile valori în revizuire.
+alter table obiective drop constraint if exists obiective_indicator_key;
+
+-- Un obiectiv INACTIV se poate șterge (ex. unul creat din greșeală). Valorile
+-- lui din revizuirile deja confirmate rămân (obiectiv_id devine gol).
+drop policy if exists "patron_stergere_inactive" on obiective;
+create policy "patron_stergere_inactive" on obiective for delete to authenticated
+  using ((select public.este_patron()) and not activ);
+
+-- Crearea: obiectivul, prima acțiune din plan și activarea, într-un singur pas
+-- (planul e obligatoriu — fără acțiune, resurse și evaluare nu se creează nimic).
+-- Categoria, unitatea, sensul și perioada vin din metrică.
+create or replace function public.creeaza_obiectiv(
+  p_indicator text,
+  p_titlu text,
+  p_tinta numeric,
+  p_responsabil text,
+  p_termen date,
+  p_resurse text,
+  p_evaluare text,
+  p_actiune text,
+  p_actiune_responsabil text,
+  p_actiune_termen date
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_categorie text;
+  v_unitate text;
+  v_sens text;
+  v_perioada text;
+  v_id uuid;
+begin
+  if not public.este_patron() then
+    raise exception 'Doar patronul poate crea obiective.' using errcode = '42501';
+  end if;
+  case p_indicator
+    when 'livrari_la_termen' then v_categorie := 'Livrare'; v_unitate := '%'; v_sens := 'min'; v_perioada := 'saptamana';
+    when 'refaceri' then v_categorie := 'Calitate'; v_unitate := '%'; v_sens := 'max'; v_perioada := 'saptamana';
+    when 'valoare_intrata' then v_categorie := 'Financiar'; v_unitate := 'RON'; v_sens := 'min'; v_perioada := 'luna';
+    else raise exception 'Alege una dintre cele 3 metrici.';
+  end case;
+  if coalesce(trim(p_titlu), '') = '' then
+    raise exception 'Completează titlul obiectivului.';
+  end if;
+  if p_tinta is null or p_tinta < 0 then
+    raise exception 'Completează ținta obiectivului.';
+  end if;
+  if coalesce(trim(p_actiune), '') = '' then
+    raise exception 'Planul de acțiuni e obligatoriu: adaugă cel puțin o acțiune.';
+  end if;
+
+  insert into public.obiective (indicator, titlu, categorie, unitate, sens, perioada, tinta,
+                                responsabil, termen, resurse, evaluare, ordine, activ)
+  values (p_indicator, trim(p_titlu), v_categorie, v_unitate, v_sens, v_perioada, p_tinta,
+          nullif(trim(coalesce(p_responsabil, '')), ''), p_termen,
+          nullif(trim(coalesce(p_resurse, '')), ''), nullif(trim(coalesce(p_evaluare, '')), ''),
+          coalesce((select max(ordine) from public.obiective), 0) + 1, false)
+  returning id into v_id;
+
+  insert into public.obiective_actiuni (obiectiv_id, text, responsabil, termen)
+  values (v_id, trim(p_actiune), nullif(trim(coalesce(p_actiune_responsabil, '')), ''), p_actiune_termen);
+
+  -- Activarea trece prin verificarea din obiective_verifica_activare
+  -- (resurse + evaluare + acțiune); dacă lipsește ceva, nu rămâne nimic salvat.
+  update public.obiective set activ = true where id = v_id;
+  return v_id;
+end;
+$$;
+
+revoke all on function public.creeaza_obiectiv(text, text, numeric, text, date, text, text, text, text, date) from public, anon;
+grant execute on function public.creeaza_obiectiv(text, text, numeric, text, date, text, text, text, text, date) to authenticated;

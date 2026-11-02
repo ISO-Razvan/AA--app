@@ -868,6 +868,134 @@ async function creeazaRefacere(ncId, { facturata, comisioane }) {
 }
 
 // ---------------------------------------------------------------------------
+// Obiective (ISO 9001 6.2 / 9.1) — doar patronul. Indicatorii se calculează în
+// baza de date; revizuirea îngheață valorile săptămânii (vezi schema.sql).
+// ---------------------------------------------------------------------------
+
+// Toate obiectivele, și cele inactive (se activează după completarea planului).
+async function getObiective() {
+  const { data, error } = await supabase.from('obiective').select('*').order('ordine')
+  fail(error, 'Nu s-au putut încărca obiectivele')
+  return data || []
+}
+
+async function updateObiectiv(id, patch) {
+  const numar = (v) => (v === '' || v == null ? null : Number(v))
+  const text = (v) => String(v ?? '').trim() || null
+  const payload = {}
+  if ('tinta' in patch) payload.tinta = numar(patch.tinta)
+  if ('titlu' in patch) {
+    payload.titlu = text(patch.titlu)
+    if (!payload.titlu) throw new Error('Completează titlul obiectivului')
+  }
+  for (const camp of ['responsabil', 'resurse', 'evaluare']) if (camp in patch) payload[camp] = text(patch[camp])
+  if ('termen' in patch) payload.termen = patch.termen || null
+  // Activarea o verifică baza de date (acțiune + resurse + evaluare).
+  if ('activ' in patch) payload.activ = !!patch.activ
+  const { data, error } = await supabase.from('obiective').update(payload).eq('id', id).select().single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+// Obiectiv nou: obiectivul, prima acțiune și activarea, într-un singur pas
+// (funcția creeaza_obiectiv — planul e obligatoriu).
+async function creeazaObiectiv(d) {
+  const { data, error } = await supabase.rpc('creeaza_obiectiv', {
+    p_indicator: d.indicator,
+    p_titlu: d.titlu,
+    p_tinta: d.tinta === '' || d.tinta == null ? null : Number(d.tinta),
+    p_responsabil: d.responsabil || null,
+    p_termen: d.termen || null,
+    p_resurse: d.resurse || null,
+    p_evaluare: d.evaluare || null,
+    p_actiune: d.actiune || null,
+    p_actiune_responsabil: d.actiuneResponsabil || null,
+    p_actiune_termen: d.actiuneTermen || null,
+  })
+  if (error) throw new Error(error.message)
+  return data
+}
+
+// Doar un obiectiv inactiv se poate șterge (regula din baza de date).
+async function deleteObiectiv(id) {
+  const { data, error } = await supabase.from('obiective').delete().eq('id', id).select('id')
+  fail(error, 'Nu s-a putut șterge obiectivul')
+  if (!data?.length) throw new Error('Doar un obiectiv inactiv se poate șterge. Dezactivează-l întâi.')
+}
+
+// Indicatorii săptămânii (luni = 'AAAA-LL-ZZ', o zi de luni).
+async function getObiectiveSaptamana(luni) {
+  const { data, error } = await supabase.rpc('obiective_saptamana', { p_luni: luni })
+  fail(error, 'Nu s-au putut calcula obiectivele')
+  return data
+}
+
+// Evoluția: ultimele 8 săptămâni (procente) și ultimele 6 luni (RON).
+async function getObiectiveEvolutie(luni) {
+  const { data, error } = await supabase.rpc('obiective_evolutie', { p_luni: luni, p_nr: 8 })
+  fail(error, 'Nu s-a putut încărca evoluția obiectivelor')
+  return data || { saptamani: [], luni: [] }
+}
+
+async function getActiuniObiective() {
+  const { data, error } = await supabase.from('obiective_actiuni').select('*').order('created_at')
+  fail(error, 'Nu s-a putut încărca planul de acțiuni')
+  return data || []
+}
+
+function curataActiune(date) {
+  const payload = {}
+  if ('text' in date) {
+    payload.text = String(date.text || '').trim()
+    if (!payload.text) throw new Error('Scrie acțiunea')
+  }
+  if ('responsabil' in date) payload.responsabil = String(date.responsabil || '').trim() || null
+  if ('termen' in date) payload.termen = date.termen || null
+  if ('status' in date) {
+    payload.status = date.status
+    payload.data_realizare = date.status === 'realizat' ? todayISO() : null
+  }
+  return payload
+}
+
+async function addActiuneObiectiv(obiectivId, date) {
+  const { data, error } = await supabase
+    .from('obiective_actiuni')
+    .insert({ obiectiv_id: obiectivId, ...curataActiune(date) })
+    .select()
+    .single()
+  fail(error, 'Nu s-a putut adăuga acțiunea')
+  return data
+}
+
+async function updateActiuneObiectiv(id, date) {
+  const { data, error } = await supabase.from('obiective_actiuni').update(curataActiune(date)).eq('id', id).select().single()
+  fail(error, 'Nu s-a putut salva acțiunea')
+  return data
+}
+
+async function deleteActiuneObiectiv(id) {
+  const { error } = await supabase.from('obiective_actiuni').delete().eq('id', id)
+  // Mesajul bazei de date e deja pe înțeles (ex. ultima acțiune a unui obiectiv activ).
+  if (error) throw new Error(error.message)
+}
+
+// Revizuirile, cu valorile înghețate ale fiecăreia.
+async function getRevizuiriObiective() {
+  const { data, error } = await supabase
+    .from('obiective_revizuiri')
+    .select('*, valori:obiective_valori(*)')
+    .order('saptamana', { ascending: false })
+  fail(error, 'Nu s-a putut încărca istoricul revizuirilor')
+  return data || []
+}
+
+async function confirmaRevizuireObiective(luni, observatii) {
+  const { error } = await supabase.rpc('confirma_revizuire_obiective', { p_luni: luni, p_observatii: observatii || '' })
+  fail(error, 'Revizuirea nu s-a putut confirma')
+}
+
+// ---------------------------------------------------------------------------
 // Pagina medicului — doar prin funcțiile din baza de date (vezi schema.sql)
 // ---------------------------------------------------------------------------
 
@@ -1269,6 +1397,18 @@ export const supabaseAdapter = {
   getCostNeconformitate,
   saveCostNeconformitate,
   creeazaRefacere,
+  getObiective,
+  updateObiectiv,
+  creeazaObiectiv,
+  deleteObiectiv,
+  getObiectiveSaptamana,
+  getObiectiveEvolutie,
+  getActiuniObiective,
+  addActiuneObiectiv,
+  updateActiuneObiectiv,
+  deleteActiuneObiectiv,
+  getRevizuiriObiective,
+  confirmaRevizuireObiective,
   getInfoAccesMedic,
   getComenzileMeleMedic,
   getFisaComandaMedic,

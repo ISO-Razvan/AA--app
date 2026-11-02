@@ -1,0 +1,676 @@
+/* Obiective — după mock-ul „Obiective”, cu fonturile și culorile aplicației
+   (index.css). Stările: verde = pe drum, chihlimbar = la risc, roșu = sub țintă. */
+.ob-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.ob-antet {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.ob-antet-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ob-chip-patron {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ob-hint {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+}
+
+.ob-saptamana {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.ob-sageata {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  color: var(--brand-navy);
+  cursor: pointer;
+}
+
+.ob-sageata:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ob-saptamana-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 var(--space-2);
+}
+
+.ob-saptamana-text span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.ob-saptamana-text strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.ob-eroare {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-danger-strong);
+}
+
+.btn.ob-buton-nou {
+  align-self: flex-start;
+}
+
+/* Formularul de obiectiv nou */
+.ob-nou {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-left: 4px solid var(--brand-teal);
+}
+
+.ob-nou-sectiune {
+  margin: var(--space-2) 0 0;
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+/* Cardurile obiectivelor */
+.ob-carduri {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.ob-card {
+  flex: 1 1 300px;
+  min-width: 0;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ob-card-antet {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ob-tag {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ob-tag-teal {
+  background: var(--color-blue-soft);
+  color: var(--brand-teal-dark);
+}
+
+.ob-tag-mov {
+  background: var(--color-purple-soft);
+  color: var(--color-purple-dark);
+}
+
+.ob-tag-navy {
+  background: var(--color-neutral-soft);
+  color: var(--brand-navy);
+}
+
+.ob-stare {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.ob-stare-ok {
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+}
+
+.ob-stare-risc {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-strong);
+}
+
+.ob-stare-rau {
+  background: var(--color-danger-soft);
+  color: var(--color-danger-strong);
+}
+
+.ob-stare-neutru {
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+}
+
+.ob-card-titlu {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  line-height: 1.2;
+  color: var(--brand-navy);
+}
+
+.ob-masura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ob-valoare-rand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.ob-valoare {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ob-unitate {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.ob-tinta-text {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+.ob-bara {
+  position: relative;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-soft);
+}
+
+.ob-bara-umplere {
+  height: 100%;
+  border-radius: var(--radius-pill);
+}
+
+/* Bara folosește culoarea plină a stării (nu fundalul pal al etichetei). */
+.ob-bara-umplere.ob-stare-ok {
+  background: var(--color-success);
+}
+
+.ob-bara-umplere.ob-stare-risc {
+  background: var(--color-warning);
+}
+
+.ob-bara-umplere.ob-stare-rau {
+  background: var(--color-danger);
+}
+
+.ob-bara-umplere.ob-stare-neutru {
+  background: var(--color-text-muted);
+}
+
+.ob-bara-tinta {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-text);
+}
+
+.ob-detaliu {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+.ob-sursa {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--brand-teal-dark);
+}
+
+.ob-tendinta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.ob-grafic {
+  flex-shrink: 0;
+}
+
+.ob-grafic-tinta {
+  stroke: var(--color-text-muted);
+}
+
+.ob-grafic-linie {
+  stroke: var(--brand-navy);
+}
+
+.ob-grafic-punct {
+  fill: var(--brand-teal);
+  stroke: var(--color-surface);
+}
+
+.ob-grafic-gol {
+  flex-shrink: 0;
+  width: 132px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.ob-tendinta-text {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.ob-tendinta-text strong {
+  display: block;
+  color: var(--color-text);
+}
+
+/* Planul de acțiuni */
+.ob-plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.ob-plan-antet {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.ob-plan-antet h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+}
+
+.ob-plan-antet span {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.ob-actiuni {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ob-actiune {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+}
+
+.ob-actiune-rand {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.ob-actiune-text {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.ob-actiune-status {
+  flex-shrink: 0;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ob-act-de_facut {
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+}
+
+.ob-act-in_curs {
+  background: var(--color-blue-soft);
+  color: var(--brand-teal-dark);
+}
+
+.ob-act-realizat {
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+}
+
+.ob-actiune-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px var(--space-2);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.ob-actiune-butoane {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.ob-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brand-teal-dark);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ob-link-pericol {
+  color: var(--color-danger-strong);
+}
+
+.ob-adauga {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  border: 1.5px dashed var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--brand-navy);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ob-adauga:hover {
+  border-color: var(--brand-teal);
+}
+
+.ob-form-actiune,
+.ob-form-obiectiv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+}
+
+.ob-form-obiectiv {
+  border-top: 1px solid var(--color-border);
+}
+
+.ob-form-rand {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.ob-form-actiuni {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.btn.ob-btn-mic {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+}
+
+.ob-textarea-mic {
+  min-height: 60px;
+  resize: vertical;
+}
+
+/* Subsolul cardului */
+.ob-subsol {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.ob-subsol strong {
+  color: var(--color-text);
+}
+
+.ob-subsol-rand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ob-subsol-butoane {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ob-card-inactiv {
+  border-style: dashed;
+}
+
+.ob-activare {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-soft);
+  color: var(--color-warning-strong);
+  font-size: 0.85rem;
+}
+
+.ob-activare p {
+  margin: 0;
+}
+
+/* Revizuirea săptămânală */
+.ob-revizuire {
+  padding: var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+
+.ob-revizuire-stanga {
+  flex: 1 1 360px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ob-revizuire-stanga h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--brand-navy);
+}
+
+.ob-textarea {
+  resize: vertical;
+}
+
+.ob-revizuire-actiuni {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ob-revizuita {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+  font-weight: 600;
+}
+
+.ob-observatii {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ob-revizuire-dreapta {
+  flex: 1 1 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ob-revizuire-dreapta h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.ob-istoric {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ob-istoric-rand {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ob-istoric-rand:hover {
+  border-color: var(--brand-teal);
+}
+
+.ob-istoric-activ {
+  border-color: var(--brand-teal);
+  background: var(--color-blue-light);
+}
+
+.ob-istoric-stare {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+}
+
+@media (max-width: 640px) {
+  .ob-form-rand {
+    grid-template-columns: 1fr;
+  }
+
+  .ob-valoare {
+    font-size: 2rem;
+  }
+}

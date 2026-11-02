@@ -22,6 +22,7 @@ import MedicApp from './components/MedicApp.jsx'
 import NeconformitatiPage from './components/NeconformitatiPage.jsx'
 import FurnizoriPage from './components/FurnizoriPage.jsx'
 import GhidPage from './components/GhidPage.jsx'
+import ObiectivePage from './components/ObiectivePage.jsx'
 import { AjutorProvider } from './ajutor/Ajutor.jsx'
 import './App.css'
 
@@ -160,6 +161,7 @@ function AppContent({ profile, onSignOut }) {
               )}
               {pagina === 'furnizori' && <FurnizoriPage />}
               {pagina === 'ghid' && <GhidPage />}
+              {pagina === 'obiective' && accesFinanciar && <ObiectivePage />}
               {pagina === 'salarii' && accesFinanciar && (
                 <SalariiPage
                   onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
