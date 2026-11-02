@@ -136,37 +136,41 @@ function IconUrgenta({ nivel }) {
   )
 }
 
-// Ce se vede pe o casetă „neprogramată": nr. comandă, tip lucrare, nr. elemente,
-// termen. Urgența are mereu text (și icoană), nu doar culoare.
-function CasetaContinut({ lucrare, etapeGrup, urgenta }) {
+// Ce se vede pe o casetă „neprogramată": pacientul, tipul lucrării și numărul de
+// elemente — ce urmărești la programare. Restul (nr. comandă, medic, clinică,
+// termen, etape) e în titlul de la hover și în fișa lucrării. Urgența are text și
+// icoană (nu doar culoare) și apare doar pentru termenele apropiate sau depășite.
+function CasetaContinut({ lucrare, urgenta }) {
   return (
     <>
-      <span className="taskuri-caseta-top">
-        <span className="taskuri-caseta-nr">{lucrare.nr_inregistrare}</span>
-        {urgenta.eticheta && (
+      <span className="taskuri-caseta-pacient">{lucrare.pacient || '—'}</span>
+      <span className="taskuri-caseta-tip">{lucrare.tip_lucrare || '—'}</span>
+      <span className="taskuri-caseta-jos">
+        <span className="taskuri-caseta-meta">{lucrare.nr_elemente ?? 0} elem.</span>
+        {urgenta.nivel !== 'neutru' && (
           <span className={`taskuri-caseta-urg taskuri-caseta-urg-${urgenta.nivel}`}>
-            {urgenta.nivel !== 'neutru' && <IconUrgenta nivel={urgenta.nivel} />}
+            <IconUrgenta nivel={urgenta.nivel} />
             {urgenta.eticheta}
           </span>
         )}
       </span>
-      <span className="taskuri-caseta-tip">{lucrare.tip_lucrare || '—'}</span>
-      <span className="taskuri-caseta-meta">
-        {lucrare.nr_elemente ?? 0} elem.{lucrare.termen_predare ? ` · Termen ${dataScurta(lucrare.termen_predare)}` : ''}
-      </span>
-      <span className="taskuri-caseta-etape">{etapeGrup.map((e) => e.nume).join(' + ')}</span>
     </>
   )
 }
 
-function titluCard(lucrare) {
+function titluCard(lucrare, etapeGrup) {
   return [
     `Pacient: ${lucrare.pacient || '—'}`,
     `Medic: ${lucrare.medic || '—'}`,
     `Tip lucrare: ${lucrare.tip_lucrare || '—'}`,
     `Clinică: ${lucrare.clinica || '—'}`,
+    `Nr. elemente: ${lucrare.nr_elemente ?? 0}`,
+    `Termen de predare: ${formatData(lucrare.termen_predare)}`,
+    etapeGrup && etapeGrup.length > 0 ? `Etape: ${etapeGrup.map((e) => e.nume).join(' + ')}` : null,
     lucrare.nr_inregistrare,
-  ].join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 }
 
 export default function TaskuriPage({ profile }) {
@@ -454,21 +458,20 @@ export default function TaskuriPage({ profile }) {
 
   return (
     <div className="taskuri-page">
-      <TitluCuAjutor id="taskuri">Task-uri</TitluCuAjutor>
-      <p className="taskuri-page-hint">
-        Alege un tehnician, apoi trage o casetă din „Lucrări neprogramate" pe o zi din calendar ca s-o programezi.
-      </p>
+      <div className="taskuri-antet">
+        <TitluCuAjutor id="taskuri">Task-uri</TitluCuAjutor>
 
-      {!loading && restante.length > 0 && (
-        <button type="button" className="taskuri-alerta-btn" onClick={() => setAlertaDeschisa(true)}>
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M8 2.2L14.4 13.4H1.6L8 2.2z" />
-            <path d="M8 6.6v3.2M8 11.6v.1" />
-          </svg>
-          <span className="taskuri-alerta-nr">{restante.length}</span>
-          <span>{restante.length === 1 ? 'lucrare restantă de închis' : 'lucrări restante de închis'}</span>
-        </button>
-      )}
+        {!loading && restante.length > 0 && (
+          <button type="button" className="taskuri-alerta-btn" onClick={() => setAlertaDeschisa(true)}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 2.2L14.4 13.4H1.6L8 2.2z" />
+              <path d="M8 6.6v3.2M8 11.6v.1" />
+            </svg>
+            <span className="taskuri-alerta-nr">{restante.length}</span>
+            <span>{restante.length === 1 ? 'lucrare restantă de închis' : 'lucrări restante de închis'}</span>
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <p className="taskuri-loading">Se încarcă…</p>
@@ -583,7 +586,12 @@ export default function TaskuriPage({ profile }) {
                             aria-label={`Vezi detaliile zilei de ${NUME_ZILE[i]}`}
                           >
                             <span className="taskuri-day-nume">{NUME_ZILE[i]}</span>
-                            <span className="taskuri-day-data">{formatZiScurt(zi)}</span>
+                            <span className="taskuri-day-data">
+                              {formatZiScurt(zi)}
+                              {(taskuriPeZi[zi] || []).length > 0 && (
+                                <span className="taskuri-day-nr" title="Lucrări în această zi">{taskuriPeZi[zi].length}</span>
+                              )}
+                            </span>
                           </button>
                           <div className="taskuri-day-body">
                             {(taskuriPeZi[zi] || []).length === 0 && <p className="taskuri-day-empty">—</p>}
@@ -595,15 +603,11 @@ export default function TaskuriPage({ profile }) {
                                 disabled={!!mutandKey && mutandKey.startsWith(`${grup.lucrare.id}-`)}
                                 dragDisabled={isMobil || grup.finalizat}
                                 onOpen={() => deschideLucrarea(grup.lucrare)}
-                                title={titluCard(grup.lucrare)}
+                                title={titluCard(grup.lucrare, grup.etapaIds.map((id) => etapaById(id)).filter(Boolean))}
                                 className="taskuri-task-card taskuri-day-card"
                               >
                                 <span className="taskuri-day-card-rand rezumat-pacient">{grup.lucrare.pacient || '—'}</span>
-                                <span className="taskuri-day-card-rand rezumat-medic">{grup.lucrare.medic || '—'}</span>
-                                <span className="taskuri-day-card-rand rezumat-tip">{grup.lucrare.tip_lucrare}</span>
-                                {grup.lucrare.clinica && (
-                                  <span className="taskuri-day-card-rand taskuri-day-card-clinica">{grup.lucrare.clinica}</span>
-                                )}
+                                <span className="taskuri-day-card-rand taskuri-day-card-tip">{grup.lucrare.tip_lucrare}</span>
                               </DraggableTaskCard>
                             ))}
                           </div>
@@ -685,10 +689,10 @@ export default function TaskuriPage({ profile }) {
                           disabled={mutandKey === cheieGrup}
                           dragDisabled={isMobil}
                           onOpen={() => deschideLucrarea(lucrare)}
-                          title={titluCard(lucrare)}
+                          title={titluCard(lucrare, etapeGrup)}
                           className={`taskuri-task-card taskuri-caseta taskuri-caseta-${urgenta.nivel}`}
                         >
-                          <CasetaContinut lucrare={lucrare} etapeGrup={etapeGrup} urgenta={urgenta} />
+                          <CasetaContinut lucrare={lucrare} urgenta={urgenta} />
                         </DraggableTaskCard>
                       )
                     })
@@ -703,7 +707,7 @@ export default function TaskuriPage({ profile }) {
               (activ.source === 'neplanificate' ? (
                 <div className={`taskuri-task-card taskuri-caseta taskuri-caseta-${urgentaCaseta(activ.lucrare.termen_predare, astazi).nivel} taskuri-overlay`}>
                   <span className="taskuri-task-open">
-                    <CasetaContinut lucrare={activ.lucrare} etapeGrup={activ.etapeGrup} urgenta={urgentaCaseta(activ.lucrare.termen_predare, astazi)} />
+                    <CasetaContinut lucrare={activ.lucrare} urgenta={urgentaCaseta(activ.lucrare.termen_predare, astazi)} />
                   </span>
                 </div>
               ) : (
