@@ -39,6 +39,7 @@ const NAV_GROUPS = [
       { id: 'salarii', label: 'Salarii' },
     ],
   },
+  { id: 'obiective', label: 'Obiective', doarPatron: true },
   { id: 'setup', label: 'Setup' },
   { id: 'ghid', label: 'Ghid' },
 ]
