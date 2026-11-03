@@ -1,0 +1,111 @@
+/* Clopoțelul „informații lipsă" din header + panoul de notificări. */
+.notificari {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.notificari-clopot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background-color 0.12s ease;
+}
+
+.notificari-clopot:hover,
+.notificari-clopot.activ {
+  border-color: var(--brand-teal);
+  color: var(--brand-teal-dark);
+  background: var(--color-blue-light);
+}
+
+/* Badge roșu cu număr (fără număr = fără badge). */
+.notificari-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid var(--color-bg);
+  border-radius: var(--radius-pill);
+  background: var(--color-danger-strong);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.notificari-panou {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 60;
+  width: min(460px, calc(100vw - 2 * var(--space-3)));
+  max-height: min(70vh, 480px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.notificari-antet {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-navy);
+}
+
+.notificari-gol {
+  margin: 0;
+  padding: var(--space-4);
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+}
+
+.notificari-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.notificari-lista li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.notificari-rand {
+  display: block;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-left: 4px solid var(--color-danger);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notificari-rand:hover,
+.notificari-rand:focus-visible {
+  background: var(--color-danger-soft);
+}

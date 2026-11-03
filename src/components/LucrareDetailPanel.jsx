@@ -15,6 +15,8 @@ import { MODEL_OPTIONS } from '../data/configDefaults'
 import { calculeazaDinti, dinDintiSalvati, toggleImplant, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
 import { statusDinRanduri } from '../utils/statusLucrare'
 import { bazaCaz, lucrariDinCaz, incasareCaz } from '../utils/caz'
+import { campuriLipsa } from '../utils/informatiiLipsa'
+import CampLipsa from './CampLipsa.jsx'
 import DentalChart from './DentalChart.jsx'
 import SearchableSelect from './SearchableSelect.jsx'
 import DatePicker from './DatePicker.jsx'
@@ -292,6 +294,23 @@ export default function LucrareDetailPanel({
 
   const qrUrl = `${window.location.origin}/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`
 
+  // Câmpuri obligatorii goale (utils/informatiiLipsa.js), din valorile curente din
+  // fișă — marcajul dispare imediat ce câmpul se completează. Doar la lucrările
+  // nefinalizate și nearhivate, ca în notificările din clopoțel.
+  const arataLipsa = !!statusLucrare && statusLucrare.id !== 'finalizat' && !lucrare.arhivat
+  const lipsa = new Set(
+    arataLipsa
+      ? campuriLipsa({
+          clinica,
+          medic,
+          pacient,
+          tip_lucrare: tipLucrare,
+          termen_predare: termenPredare,
+          dinti: selectateNumere,
+        }).map((c) => c.cheie)
+      : []
+  )
+
   // Cazul: mai multe lucrări legate (același pacient). Bara apare doar cu cel puțin 2.
   const bazaCazului = bazaCaz(lucrare)
   const membriCaz = lucrariDinCaz(lucrariToate, bazaCazului)
@@ -430,22 +449,24 @@ export default function LucrareDetailPanel({
           {tab === 'detalii' && (
             <div className="detail-tab-detalii">
               <div className="detail-chart-col">
-                <DentalChart
-                  selectateNumere={selectateNumere}
-                  linkPairs={linkPairs}
-                  implantNumere={implantNumere}
-                  onToggleTooth={toggleTooth}
-                  onToggleLink={toggleLink}
-                  onToggleImplant={toggleImplantDinte}
-                  culoare={culoare}
-                  culoriOptions={culoriOptions}
-                  onCuloareChange={async (v) => {
-                    setCuloare(v)
-                    await persist({ culoare: v })
-                  }}
-                  onAddCuloare={handleAdd('culori', setCuloriOptions)}
-                  readOnly={readOnly}
-                />
+                <CampLipsa lipsa={lipsa.has('dinti')}>
+                  <DentalChart
+                    selectateNumere={selectateNumere}
+                    linkPairs={linkPairs}
+                    implantNumere={implantNumere}
+                    onToggleTooth={toggleTooth}
+                    onToggleLink={toggleLink}
+                    onToggleImplant={toggleImplantDinte}
+                    culoare={culoare}
+                    culoriOptions={culoriOptions}
+                    onCuloareChange={async (v) => {
+                      setCuloare(v)
+                      await persist({ culoare: v })
+                    }}
+                    onAddCuloare={handleAdd('culori', setCuloriOptions)}
+                    readOnly={readOnly}
+                  />
+                </CampLipsa>
                 {savedAt && <p className="detail-saved-hint">Salvat automat</p>}
               </div>
 
@@ -453,31 +474,35 @@ export default function LucrareDetailPanel({
                 <section className="detail-section">
                   <h3 className="detail-section-title">Client</h3>
                   <div className="detail-section-grid">
-                    <SearchableSelect
-                      label="Clinică"
-                      value={clinica}
-                      onChange={async (v) => {
-                        setClinica(v)
-                        await persist({ clinica: v })
-                      }}
-                      options={cliniciOptions}
-                      onAddOption={handleAdd('clinici', setCliniciOptions)}
-                      placeholder="Numele clinicii"
-                      disabled={readOnly}
-                    />
-                    <SearchableSelect
-                      label="Medic"
-                      value={medic}
-                      onChange={async (v) => {
-                        setMedic(v)
-                        await persist({ medic: v })
-                      }}
-                      options={mediciOptions}
-                      onAddOption={handleAdd('medici', setMediciOptions)}
-                      placeholder="Numele medicului"
-                      disabled={readOnly}
-                    />
-                    <div>
+                    <CampLipsa lipsa={lipsa.has('clinica')}>
+                      <SearchableSelect
+                        label="Clinică"
+                        value={clinica}
+                        onChange={async (v) => {
+                          setClinica(v)
+                          await persist({ clinica: v })
+                        }}
+                        options={cliniciOptions}
+                        onAddOption={handleAdd('clinici', setCliniciOptions)}
+                        placeholder="Numele clinicii"
+                        disabled={readOnly}
+                      />
+                    </CampLipsa>
+                    <CampLipsa lipsa={lipsa.has('medic')}>
+                      <SearchableSelect
+                        label="Medic"
+                        value={medic}
+                        onChange={async (v) => {
+                          setMedic(v)
+                          await persist({ medic: v })
+                        }}
+                        options={mediciOptions}
+                        onAddOption={handleAdd('medici', setMediciOptions)}
+                        placeholder="Numele medicului"
+                        disabled={readOnly}
+                      />
+                    </CampLipsa>
+                    <CampLipsa lipsa={lipsa.has('pacient')}>
                       <label className="field-label">Pacient</label>
                       <input
                         type="text"
@@ -488,25 +513,27 @@ export default function LucrareDetailPanel({
                         placeholder="Nume sau inițiale"
                         disabled={readOnly}
                       />
-                    </div>
+                    </CampLipsa>
                   </div>
                 </section>
 
                 <section className="detail-section">
                   <h3 className="detail-section-title">Lucrare</h3>
-                  <SearchableSelect
-                    label="Tip lucrare"
-                    required
-                    value={tipLucrare}
-                    onChange={async (v) => {
-                      setTipLucrare(v)
-                      await persist({ tip_lucrare: v })
-                    }}
-                    options={tipuriOptions}
-                    onAddOption={estePatronul ? handleAdd('tipuri_lucrare', setTipuriOptions) : undefined}
-                    placeholder="ex. Coroană zirconiu"
-                    disabled={readOnly}
-                  />
+                  <CampLipsa lipsa={lipsa.has('tip_lucrare')}>
+                    <SearchableSelect
+                      label="Tip lucrare"
+                      required
+                      value={tipLucrare}
+                      onChange={async (v) => {
+                        setTipLucrare(v)
+                        await persist({ tip_lucrare: v })
+                      }}
+                      options={tipuriOptions}
+                      onAddOption={estePatronul ? handleAdd('tipuri_lucrare', setTipuriOptions) : undefined}
+                      placeholder="ex. Coroană zirconiu"
+                      disabled={readOnly}
+                    />
+                  </CampLipsa>
                   <div className="detail-field-row">
                     <div>
                       <span className="field-label">Culoare (VITA)</span>
@@ -604,7 +631,7 @@ export default function LucrareDetailPanel({
                         disabled={readOnly}
                       />
                     </div>
-                    <div>
+                    <CampLipsa lipsa={lipsa.has('termen_predare')}>
                       <label className="field-label">Termen predare</label>
                       <DatePicker
                         value={termenPredare}
@@ -614,7 +641,7 @@ export default function LucrareDetailPanel({
                         }}
                         disabled={readOnly}
                       />
-                    </div>
+                    </CampLipsa>
                     <div>
                       <label className="field-label">Ora programare</label>
                       <TimePicker

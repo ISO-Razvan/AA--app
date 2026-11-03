@@ -12,6 +12,7 @@ import LucrariList from './components/LucrariList.jsx'
 import LucrareModal from './components/LucrareModal.jsx'
 import LucrareDetailPanel from './components/LucrareDetailPanel.jsx'
 import CautareGlobala from './components/CautareGlobala.jsx'
+import NotificariLipsuri from './components/NotificariLipsuri.jsx'
 import SetupPage from './components/SetupPage.jsx'
 import TaskuriPage from './components/TaskuriPage.jsx'
 import CapacitatePage from './components/CapacitatePage.jsx'
@@ -170,6 +171,7 @@ function AppContent({ profile, onSignOut }) {
               lucrari={lucrariCuNote}
               onSelect={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
             />
+            <NotificariLipsuri lucrari={lucrari} onOpenLucrare={deschideFisa} />
           </header>
         )}
         <div className="app-main-inner">

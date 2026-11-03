@@ -133,6 +133,7 @@ export const AJUTOR_PAGINI = [
       '**Listă / Kanban** — pe Kanban, fiecare lucrare stă la prima etapă nebifată; poți trage cardul în altă coloană (etapele sărite se bifează sau debifează automat).',
       'Clic pe o lucrare deschide fișa.',
       '**Bulina mov** de lângă pacient = notă nouă de la medic.',
+      '**Clopoțelul** din dreapta sus arată câte lucrări nefinalizate au informații lipsă (clinică, medic, pacient, tip, termen de predare, dinți). Clic pe clopoțel deschide lista; clic pe un rând deschide fișa, unde câmpul lipsă are chenar roșu și textul „Lipsește” — dispare când îl completezi.',
       '**Export CSV** salvează lista (copie de siguranță); **Import CSV** adaugă lucrări dintr-un fișier.',
     ],
     atentie: [
