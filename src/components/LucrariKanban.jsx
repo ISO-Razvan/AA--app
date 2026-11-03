@@ -49,11 +49,12 @@ function KanbanColumn({ coloana, children }) {
 // Cardul — draggable; un click simplu (fără deplasare peste pragul de
 // activare) tot deschide fișa, pentru că dnd-kit nu „fură" evenimentul de
 // click decât dacă tragerea chiar a pornit (vezi activationConstraint).
-function KanbanCard({ lucrare, coloanaId, disabled, onOpen, children }) {
+// `faraTragere` (doar citire): cardul nu se mută, dar rămâne apăsabil.
+function KanbanCard({ lucrare, coloanaId, disabled, faraTragere, onOpen, children }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lucrare.id,
     data: { coloanaId },
-    disabled,
+    disabled: disabled || faraTragere,
   })
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
 
@@ -72,7 +73,7 @@ function KanbanCard({ lucrare, coloanaId, disabled, onOpen, children }) {
   )
 }
 
-export default function LucrariKanban({ lucrari, onRowClick }) {
+export default function LucrariKanban({ lucrari, onRowClick, readOnly = false }) {
   const [etape, setEtape] = useState([])
   const [alocari, setAlocari] = useState([])
   const [tehnicieni, setTehnicieni] = useState([])
@@ -207,6 +208,7 @@ export default function LucrariKanban({ lucrari, onRowClick }) {
                       lucrare={lucrare}
                       coloanaId={coloana.id}
                       disabled={mutandId === lucrare.id}
+                      faraTragere={readOnly}
                       onOpen={() => onRowClick(lucrare)}
                     >
                       <div className="kanban-card-top">

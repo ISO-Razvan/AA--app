@@ -58,7 +58,24 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
   const estePatronul = estePatron(profile)
   const readOnly = !!lucrare.arhivat || !poateEdita
   const { confirm, dialog: confirmDialog } = useConfirm()
-  const [tab, setTab] = useState(TABS.some((t) => t.id === tabInitial) ? tabInitial : 'detalii')
+  const [tabAles, setTab] = useState(TABS.some((t) => t.id === tabInitial) ? tabInitial : 'detalii')
+  // Tehnicianul poate deschide fișa oricărei lucrări (din Listă/Kanban), dar
+  // Galeria și Notele sunt doar ale lucrărilor în care are o etapă.
+  const [esteLucrareaMea, setEsteLucrareaMea] = useState(poateEdita)
+  useEffect(() => {
+    if (poateEdita || !profile?.tehnician_id) return undefined
+    let activ = true
+    getProductieLucrare(lucrare.id)
+      .then((randuri) => {
+        if (activ) setEsteLucrareaMea(randuri.some((r) => r.tehnician_id === profile.tehnician_id))
+      })
+      .catch(() => {})
+    return () => {
+      activ = false
+    }
+  }, [poateEdita, profile?.tehnician_id, lucrare.id])
+  const taburi = poateEdita || esteLucrareaMea ? TABS : TABS.filter((t) => t.id === 'detalii' || t.id === 'productie')
+  const tab = taburi.some((t) => t.id === tabAles) ? tabAles : 'detalii'
   const initial = dinDintiSalvati(lucrare.dinti)
 
   const [selectateNumere, setSelectateNumere] = useState(initial.selectateNumere)
@@ -332,7 +349,7 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
         </header>
 
         <nav className="detail-panel-tabs" aria-label="Secțiuni lucrare">
-          {TABS.map((t) => (
+          {taburi.map((t) => (
             <button
               key={t.id}
               type="button"

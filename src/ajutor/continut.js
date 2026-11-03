@@ -110,6 +110,21 @@ export const AJUTOR_PAGINI = [
   {
     id: 'lista',
     titlu: 'Listă lucrări',
+    roluri: ['tehnician'],
+    la: 'Toate comenzile laboratorului, doar pentru citire — ca tabel sau pe Kanban.',
+    pasi: [
+      'Caută după nr., pacient, medic, clinică, tip sau notă.',
+      '**Active / Arhivate / Toate** — ce lucrări vezi.',
+      '**Listă / Kanban** — pe Kanban, fiecare lucrare stă la prima etapă nebifată (cardurile nu se pot muta).',
+      'Clic pe o lucrare deschide fișa. Etapele tale le bifezi tot din fișă sau din *Task-urile mele*.',
+    ],
+    atentie: [
+      'Galeria și Notele se văd doar la lucrările în care ai o etapă. Nu vezi sume sau prețuri.',
+    ],
+  },
+  {
+    id: 'lista',
+    titlu: 'Listă lucrări',
     roluri: LAB_ADMIN,
     la: 'Toate comenzile, ca tabel sau pe Kanban (coloane pe etape).',
     pasi: [

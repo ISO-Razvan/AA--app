@@ -509,7 +509,7 @@ begin
 end $$;
 
 -- Producție — patron + coordonator modifică orice; tehnicianul vede etapele
--- lucrărilor lui și bifează doar rândurile alocate lui.
+-- tuturor lucrărilor (pentru Listă și Kanban) și bifează doar rândurile alocate lui.
 drop policy if exists "authenticated_all" on productie_lucrare;
 drop policy if exists "citire_toti" on productie_lucrare;
 drop policy if exists "admin_all" on productie_lucrare;
@@ -519,7 +519,7 @@ drop policy if exists "tehnician_finalizare" on productie_lucrare;
 create policy "operational_all" on productie_lucrare for all to authenticated
   using ((select public.are_acces_operational())) with check ((select public.are_acces_operational()));
 create policy "tehnician_citire" on productie_lucrare for select to authenticated
-  using (lucrare_id in (select public.lucrarile_mele()));
+  using ((select public.tehnicianul_meu()) is not null);
 create policy "tehnician_finalizare" on productie_lucrare for update to authenticated
   using (tehnician_id = (select public.tehnicianul_meu()))
   with check (tehnician_id = (select public.tehnicianul_meu()));
@@ -800,9 +800,8 @@ grant execute on function public.recalculeaza_lucrare(uuid) to authenticated;
 revoke all on function public.recalculeaza_toate_lucrarile() from public, anon;
 grant execute on function public.recalculeaza_toate_lucrarile() to authenticated;
 
--- Lucrările: toate coloanele pentru patron; coordonatorul le vede pe toate,
--- fără coloanele financiare; tehnicianul doar lucrările în care are o etapă,
--- tot fără financiar. Extra-urile apar fără prețuri și fără Try-in (bifă separată).
+-- Lucrările: toate coloanele pentru patron; coordonatorul și tehnicianul le văd
+-- pe toate (Listă și Kanban), fără coloanele financiare. Extra-urile apar fără prețuri și fără Try-in (bifă separată).
 create or replace view public.lucrari_vizibile
 with (security_barrier = true)
 as
@@ -855,7 +854,7 @@ cross join (
   select public.este_patron() as patron, public.are_acces_operational() as operational, public.tehnicianul_meu() as tehnician
 ) r
 where r.operational
-   or (r.tehnician is not null and l.id in (select public.lucrarile_mele()));
+   or r.tehnician is not null;
 
 revoke all on public.lucrari_vizibile from anon, authenticated;
 grant select on public.lucrari_vizibile to authenticated;

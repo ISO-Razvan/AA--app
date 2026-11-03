@@ -5,6 +5,7 @@ import './Sidebar.css'
 
 const NAV_TEHNICIAN = [
   { id: 'task-urile-mele', label: 'Task-urile mele' },
+  { id: 'lista', label: 'Listă lucrări' },
   { id: 'salariul-meu', label: 'Salariul meu' },
   { id: 'neconformitati', label: 'Neconformități' },
   { id: 'ghid', label: 'Ghid' },

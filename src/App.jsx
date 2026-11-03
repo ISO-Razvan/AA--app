@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { getLucrari, getNoteNoiDeLaMedici } from './services/dataService'
+import { getLucrari, getNoteNoiDeLaMedici, getProductieTehnician } from './services/dataService'
 import { getSession, getProfile, onAuthStateChange, signOut } from './services/auth'
 import { subscribeToTable } from './services/realtime'
 import { esteTehnician as rolTehnician, estePatron, esteMedic, areAccesOperational } from './utils/roluri'
@@ -73,6 +73,28 @@ function AppContent({ profile, onSignOut }) {
     [navigate]
   )
 
+  // Tehnicianul vede toate lucrările în Listă/Kanban, dar poate raporta o
+  // neconformitate doar pe ale lui — ID-urile lucrărilor în care are o etapă.
+  const [idsLucrariMele, setIdsLucrariMele] = useState(null)
+  const tehnicianId = profile.tehnician_id
+  useEffect(() => {
+    if (!esteTehnician || !tehnicianId) return undefined
+    const incarca = async () => {
+      try {
+        const randuri = await getProductieTehnician(tehnicianId)
+        setIdsLucrariMele(new Set(randuri.map((r) => r.lucrare_id)))
+      } catch {
+        setIdsLucrariMele(new Set())
+      }
+    }
+    incarca()
+    return subscribeToTable('productie_lucrare', incarca)
+  }, [esteTehnician, tehnicianId])
+  const lucrariMele = useMemo(
+    () => (idsLucrariMele ? lucrari.filter((l) => idsLucrariMele.has(l.id)) : []),
+    [lucrari, idsLucrariMele]
+  )
+
   const refresh = useCallback(async () => {
     setLoading(true)
     const data = await getLucrari()
@@ -135,8 +157,16 @@ function AppContent({ profile, onSignOut }) {
           {esteTehnician ? (
             paginaActiva === 'salariul-meu' ? (
               <SalariulMeuPage />
+            ) : paginaActiva === 'lista' ? (
+              <LucrariList
+                lucrari={lucrari}
+                loading={loading}
+                onDataChanged={refresh}
+                onRowClick={deschideFisa}
+                readOnly
+              />
             ) : paginaActiva === 'neconformitati' ? (
-              <NeconformitatiPage profile={profile} lucrari={lucrari} onOpenLucrare={deschideFisa} />
+              <NeconformitatiPage profile={profile} lucrari={lucrariMele} onOpenLucrare={deschideFisa} />
             ) : paginaActiva === 'ghid' ? (
               <GhidPage />
             ) : (

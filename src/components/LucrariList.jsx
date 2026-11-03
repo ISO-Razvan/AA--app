@@ -59,7 +59,9 @@ function matchesSearch(l, query) {
   return haystack.includes(query.toLowerCase())
 }
 
-export default function LucrariList({ lucrari, loading, onDataChanged, onRowClick, onNewLucrare }) {
+// `readOnly` (tehnician): doar vizualizare — fără înregistrare, import/export, ștergere,
+// restaurare sau mutat carduri pe Kanban.
+export default function LucrariList({ lucrari, loading, onDataChanged, onRowClick, onNewLucrare, readOnly = false }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const fileInputRef = useRef(null)
   const [importSummary, setImportSummary] = useState(null)
@@ -248,6 +250,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                     : `${sourceLucrari.length} lucrări active`}
           </p>
         </div>
+        {!readOnly && (
         <div className="lucrari-list-toolbar-actions">
           <button type="button" className="btn btn-primary" onClick={onNewLucrare}>
             + Înregistrare lucrare
@@ -266,6 +269,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
             onChange={handleFileSelected}
           />
         </div>
+        )}
       </div>
 
       <div className="lucrari-search-row">
@@ -370,7 +374,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
       )}
 
       {sorted.length > 0 && view === 'kanban' && (
-        <LucrariKanban lucrari={sorted} onRowClick={onRowClick} />
+        <LucrariKanban lucrari={sorted} onRowClick={onRowClick} readOnly={readOnly} />
       )}
 
       {sorted.length > 0 && view === 'lista' && (
@@ -406,21 +410,25 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                       <td className="lucrari-table-nr">{l.nr_inregistrare}</td>
                       <td className="lucrari-col-optional">{l.clinica || '—'}</td>
                       <td className="lucrari-col-optional">{formatData(l.data_intrare)}</td>
-                      <td className="lucrari-table-livrare">
-                        <span className="lucrari-termene-row">
-                          <span className="lucrari-termene-label">Termen predare</span>
-                          <span className="lucrari-termene-data">{formatData(l.termen_predare)}</span>
-                        </span>
-                        <span className="lucrari-termene-row">
-                          <span className="lucrari-termene-label">Next date</span>
-                          <span className="lucrari-termene-data">{formatData(l.next_date)}</span>
-                        </span>
+                      <td>
+                        <div className="lucrari-table-livrare">
+                          <span className="lucrari-termene-row">
+                            <span className="lucrari-termene-label">Termen predare</span>
+                            <span className="lucrari-termene-data">{formatData(l.termen_predare)}</span>
+                          </span>
+                          <span className="lucrari-termene-row">
+                            <span className="lucrari-termene-label">Next date</span>
+                            <span className="lucrari-termene-data">{formatData(l.next_date)}</span>
+                          </span>
+                        </div>
                       </td>
                       <td><span className={`badge ${status.badgeClass}`}>{status.label}</span></td>
                       <td className="lucrari-col-optional"><span className="badge badge-neutral">{detaliiLabel(l)}</span></td>
-                      <td className="lucrari-col-optional lucrari-table-nota">{l.nota || '—'}</td>
+                      <td className="lucrari-col-optional lucrari-table-nota">
+                        <div className="lucrari-nota-text">{l.nota || '—'}</div>
+                      </td>
                       <td>
-                        {l.arhivat ? (
+                        {readOnly ? null : l.arhivat ? (
                           <button
                             type="button"
                             className="lucrari-restore-btn"
@@ -462,7 +470,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                     <IndicatorNoteMedic nr={l.note_noi_medic} />
                   </h3>
                   <div className="lucrare-card-top-right">
-                    {l.arhivat ? (
+                    {readOnly ? null : l.arhivat ? (
                       <button
                         type="button"
                         className="lucrari-restore-btn"
@@ -511,7 +519,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                 {l.nota && (
                   <div>
                     <span className="field-label">Notă</span>
-                    <p>{l.nota}</p>
+                    <p className="lucrari-nota-text">{l.nota}</p>
                   </div>
                 )}
               </li>
