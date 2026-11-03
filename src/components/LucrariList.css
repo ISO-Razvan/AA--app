@@ -180,8 +180,20 @@
 }
 
 .lucrari-table-nota {
+  min-width: 180px;
   max-width: 240px;
   color: var(--color-text-secondary);
+}
+
+/* Nota din listă: cel mult 2 rânduri, restul se vede în fișa lucrării. Așa
+   rândurile rămân subțiri, iar liniile dintre ele continue. */
+.lucrari-nota-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: break-word;
 }
 
 .lucrari-table-livrare {
