@@ -1,7 +1,7 @@
 .setup-page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .setup-page h2 {
@@ -9,57 +9,135 @@
   font-weight: 700;
 }
 
-.setup-page-hint {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  margin-top: calc(-1 * var(--space-4));
+/* Meniul din stânga + secțiunea aleasă în dreapta. */
+.setup-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
 }
 
-.setup-subnav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+.setup-meniu {
   position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--color-bg);
-  padding: var(--space-3) 0;
+  top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
-.setup-subnav-item {
-  min-height: var(--tap-min);
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
+.setup-meniu-grup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setup-meniu-titlu {
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.setup-meniu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  text-decoration: none;
   white-space: nowrap;
-  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
-.setup-subnav-item:hover {
-  border-color: var(--color-blue);
-  color: var(--color-text);
+.setup-meniu-item:hover {
+  background: var(--color-surface-alt);
+  color: var(--brand-navy);
 }
 
-.setup-subnav-item.active {
-  background: var(--color-blue-strong);
-  border-color: var(--color-blue-strong);
+.setup-meniu-item.active {
+  background: var(--brand-teal);
+  color: #fff;
+  font-weight: 700;
+}
+
+.setup-meniu-nr {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.setup-meniu-item.active .setup-meniu-nr {
+  background: rgba(255, 255, 255, 0.25);
   color: #fff;
 }
 
-.setup-section {
-  scroll-margin-top: 76px;
+.setup-continut {
+  min-width: 0;
 }
 
-@media (max-width: 880px) {
-  .setup-subnav {
-    top: 68px;
+/* Sub ~900px meniul devine un rând de taburi, cu defilare orizontală. */
+@media (max-width: 900px) {
+  .setup-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
   }
 
-  .setup-section {
-    scroll-margin-top: 144px;
+  .setup-meniu {
+    top: 0;
+    z-index: 20;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .setup-meniu-grup {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+  }
+
+  .setup-meniu-titlu {
+    margin: 0;
+    padding: 0 var(--space-1) 0 0;
+  }
+
+  .setup-meniu-item {
+    min-height: var(--tap-min);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+  }
+
+  .setup-meniu-item.active {
+    border-color: var(--brand-teal);
+  }
+}
+
+/* Sub 880px bara de sus a aplicației (meniul glisant) e lipită sus. */
+@media (max-width: 880px) {
+  .setup-meniu {
+    top: 68px;
   }
 }

@@ -30,11 +30,26 @@ function AppContent({ profile, onSignOut }) {
   const { nrInregistrare } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const esteTehnician = rolTehnician(profile)
   // Financiar și Salarii — doar patronul (coordonatorul vede restul aplicației).
   const accesFinanciar = estePatron(profile)
 
   const [pagina, setPagina] = useState(esteTehnician ? 'task-urile-mele' : 'dashboard')
+  // Setup are rute proprii (/setup/<secțiune>); celelalte pagini rămân pe stare.
+  const laSetup = !esteTehnician && (location.pathname === '/setup' || location.pathname.startsWith('/setup/'))
+  const paginaActiva = laSetup ? 'setup' : pagina
+  const navigheazaPagina = useCallback(
+    (id) => {
+      if (id === 'setup') {
+        navigate('/setup')
+        return
+      }
+      setPagina(id)
+      if (laSetup) navigate('/')
+    },
+    [navigate, laSetup]
+  )
   const [lucrari, setLucrari] = useState([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -105,7 +120,7 @@ function AppContent({ profile, onSignOut }) {
 
   return (
     <div className="app-shell">
-      <Sidebar activePage={pagina} onNavigate={setPagina} profile={profile} onSignOut={onSignOut} />
+      <Sidebar activePage={paginaActiva} onNavigate={navigheazaPagina} profile={profile} onSignOut={onSignOut} />
 
       <main className="app-main">
         {!esteTehnician && (
@@ -118,18 +133,18 @@ function AppContent({ profile, onSignOut }) {
         )}
         <div className="app-main-inner">
           {esteTehnician ? (
-            pagina === 'salariul-meu' ? (
+            paginaActiva === 'salariul-meu' ? (
               <SalariulMeuPage />
-            ) : pagina === 'neconformitati' ? (
+            ) : paginaActiva === 'neconformitati' ? (
               <NeconformitatiPage profile={profile} lucrari={lucrari} onOpenLucrare={deschideFisa} />
-            ) : pagina === 'ghid' ? (
+            ) : paginaActiva === 'ghid' ? (
               <GhidPage />
             ) : (
               <TaskurileMelePage tehnicianId={profile.tehnician_id} />
             )
           ) : (
             <>
-              {pagina === 'dashboard' && (
+              {paginaActiva === 'dashboard' && (
                 <Dashboard
                   lucrari={lucrariCuNote}
                   loading={loading}
@@ -138,7 +153,7 @@ function AppContent({ profile, onSignOut }) {
                   onOpenNote={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}?tab=note`)}
                 />
               )}
-              {pagina === 'lista' && (
+              {paginaActiva === 'lista' && (
                 <LucrariList
                   lucrari={lucrariCuNote}
                   loading={loading}
@@ -147,10 +162,10 @@ function AppContent({ profile, onSignOut }) {
                   onNewLucrare={() => setCreating(true)}
                 />
               )}
-              {pagina === 'setup' && <SetupPage profile={profile} onDataChanged={refresh} />}
-              {pagina === 'taskuri' && <TaskuriPage profile={profile} />}
-              {pagina === 'capacitate' && <CapacitatePage />}
-              {pagina === 'neconformitati' && (
+              {paginaActiva === 'setup' && <SetupPage profile={profile} onDataChanged={refresh} />}
+              {paginaActiva === 'taskuri' && <TaskuriPage profile={profile} />}
+              {paginaActiva === 'capacitate' && <CapacitatePage />}
+              {paginaActiva === 'neconformitati' && (
                 <NeconformitatiPage
                   profile={profile}
                   lucrari={lucrari}
@@ -159,15 +174,15 @@ function AppContent({ profile, onSignOut }) {
                   onOpenLucrare={deschideFisa}
                 />
               )}
-              {pagina === 'furnizori' && <FurnizoriPage />}
-              {pagina === 'ghid' && <GhidPage />}
-              {pagina === 'obiective' && accesFinanciar && <ObiectivePage />}
-              {pagina === 'salarii' && accesFinanciar && (
+              {paginaActiva === 'furnizori' && <FurnizoriPage />}
+              {paginaActiva === 'ghid' && <GhidPage />}
+              {paginaActiva === 'obiective' && accesFinanciar && <ObiectivePage />}
+              {paginaActiva === 'salarii' && accesFinanciar && (
                 <SalariiPage
                   onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
                 />
               )}
-              {pagina === 'financiar-rapoarte' && accesFinanciar && (
+              {paginaActiva === 'financiar-rapoarte' && accesFinanciar && (
                 <FinanciarPage
                   onOpenLucrare={(lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)}
                 />
@@ -301,6 +316,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<AppContent profile={profile} onSignOut={signOut} />} />
         <Route path="/comanda/:nrInregistrare" element={<AppContent profile={profile} onSignOut={signOut} />} />
+        <Route path="/setup/*" element={<AppContent profile={profile} onSignOut={signOut} />} />
       </Routes>
     </AjutorProvider>
   )

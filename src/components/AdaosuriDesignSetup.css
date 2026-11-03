@@ -1,3 +1,7 @@
+.adaosuri-card {
+  padding: var(--space-5);
+}
+
 .adaosuri-header h3 {
   margin-bottom: var(--space-1);
 }
@@ -56,6 +60,10 @@
 }
 
 @media (max-width: 760px) {
+  .adaosuri-card {
+    padding: var(--space-4);
+  }
+
   .adaosuri-camp {
     grid-template-columns: 1fr;
   }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getSetariSalarii, updateSetariSalarii } from '../services/dataService'
 import './AdaosuriDesignSetup.css'
 
-const CAMPURI = [
+export const CAMPURI = [
   {
     cheie: 'adaos_implant',
     eticheta: 'Implant (per element simplu)',
