@@ -14,6 +14,7 @@ import { areAccesOperational, estePatron } from '../utils/roluri'
 import { MODEL_OPTIONS } from '../data/configDefaults'
 import { calculeazaDinti, dinDintiSalvati, toggleImplant, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
 import { statusDinRanduri } from '../utils/statusLucrare'
+import { bazaCaz, lucrariDinCaz, incasareCaz } from '../utils/caz'
 import DentalChart from './DentalChart.jsx'
 import SearchableSelect from './SearchableSelect.jsx'
 import DatePicker from './DatePicker.jsx'
@@ -50,7 +51,20 @@ const TABS = [
 
 // `tabInitial` — ex. 'note', când fișa e deschisă din „Note noi de la medici".
 // `onNeconformitate` — „Înregistrează neconformitate" din tabul Note (patron/coordonator).
-export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdated, tabInitial, onNoteCitite, onNeconformitate }) {
+// `lucrariToate` + `onDeschideLucrare`: bara „Caz AA-101"; `onAdaugaInCaz`: butonul
+// „+ Adaugă încă o lucrare pe acest caz" (doar patron/coordonator).
+export default function LucrareDetailPanel({
+  lucrare,
+  profile,
+  onClose,
+  onUpdated,
+  tabInitial,
+  onNoteCitite,
+  onNeconformitate,
+  lucrariToate = [],
+  onDeschideLucrare,
+  onAdaugaInCaz,
+}) {
   // Patronul și coordonatorul editează fișa; tehnicianul o vede doar pentru
   // citire (baza de date îi permite oricum doar citirea, prin view-ul fără
   // date financiare). Recalcularea cu prețurile curente e doar a patronului.
@@ -278,6 +292,13 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
 
   const qrUrl = `${window.location.origin}/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`
 
+  // Cazul: mai multe lucrări legate (același pacient). Bara apare doar cu cel puțin 2.
+  const bazaCazului = bazaCaz(lucrare)
+  const membriCaz = lucrariDinCaz(lucrariToate, bazaCazului)
+  const esteCaz = membriCaz.length > 1
+  const incasareCazului = esteCaz && estePatronul ? incasareCaz(membriCaz) : null
+  const poateAdaugaInCaz = poateEdita && !lucrare.arhivat && !!onAdaugaInCaz
+
   return (
     <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="detail-panel" role="dialog" aria-modal="true" aria-label={`Detalii lucrare ${lucrare.nr_inregistrare}`}>
@@ -347,6 +368,43 @@ export default function LucrareDetailPanel({ lucrare, profile, onClose, onUpdate
             </button>
           </div>
         </header>
+
+        {(esteCaz || poateAdaugaInCaz) && (
+          <div className="detail-caz">
+            {esteCaz && (
+              <div className="detail-caz-bara">
+                <span className="detail-caz-titlu">
+                  Caz {bazaCazului}: {membriCaz.length} lucrări
+                </span>
+                <ul className="detail-caz-lista">
+                  {membriCaz.map((m) => (
+                    <li key={m.id}>
+                      {m.id === lucrare.id ? (
+                        <span className="detail-caz-link detail-caz-link-curent" aria-current="true">
+                          {m.nr_inregistrare} · {m.tip_lucrare || '—'}
+                        </span>
+                      ) : (
+                        <button type="button" className="detail-caz-link" onClick={() => onDeschideLucrare?.(m)}>
+                          {m.nr_inregistrare} · {m.tip_lucrare || '—'}
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {incasareCazului != null && (
+                  <span className="detail-caz-suma">
+                    Încasare caz: {incasareCazului.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei
+                  </span>
+                )}
+              </div>
+            )}
+            {poateAdaugaInCaz && (
+              <button type="button" className="btn btn-secondary detail-caz-adauga" onClick={() => onAdaugaInCaz(lucrare)}>
+                + Adaugă încă o lucrare pe acest caz
+              </button>
+            )}
+          </div>
+        )}
 
         <nav className="detail-panel-tabs" aria-label="Secțiuni lucrare">
           {taburi.map((t) => (

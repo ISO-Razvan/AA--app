@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate, useParams, useSearch
 import { getLucrari, getNoteNoiDeLaMedici, getProductieTehnician } from './services/dataService'
 import { getSession, getProfile, onAuthStateChange, signOut } from './services/auth'
 import { subscribeToTable } from './services/realtime'
+import { bazaCaz, urmatorulNrInCaz } from './utils/caz'
 import { esteTehnician as rolTehnician, estePatron, esteMedic, areAccesOperational } from './utils/roluri'
 import Sidebar from './components/Sidebar.jsx'
 import Login from './components/Login.jsx'
@@ -53,6 +54,8 @@ function AppContent({ profile, onSignOut }) {
   const [lucrari, setLucrari] = useState([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  // „Încă o lucrare pe acest caz": datele precompletate din fișa curentă.
+  const [cazNou, setCazNou] = useState(null)
   // Note de la medici necitite încă de laborator (patron/coordonator) —
   // indicator pe Listă/Kanban și secțiune pe Dashboard.
   const [noteNoi, setNoteNoi] = useState([])
@@ -93,6 +96,22 @@ function AppContent({ profile, onSignOut }) {
   const lucrariMele = useMemo(
     () => (idsLucrariMele ? lucrari.filter((l) => idsLucrariMele.has(l.id)) : []),
     [lucrari, idsLucrariMele]
+  )
+
+  const adaugaInCaz = useCallback(
+    (lucrare) => {
+      const baza = bazaCaz(lucrare)
+      setCazNou({
+        caz_id: baza,
+        nr_inregistrare: urmatorulNrInCaz(lucrari, baza),
+        clinica: lucrare.clinica,
+        medic: lucrare.medic,
+        pacient: lucrare.pacient,
+        data_intrare: lucrare.data_intrare,
+        termen_predare: lucrare.termen_predare,
+      })
+    },
+    [lucrari]
   )
 
   const refresh = useCallback(async () => {
@@ -243,6 +262,22 @@ function AppContent({ profile, onSignOut }) {
           onUpdated={refresh}
           onNoteCitite={reincarcaNoteNoi}
           onNeconformitate={areAccesOperational(profile) ? neconformitateDinNota : undefined}
+          lucrariToate={lucrari}
+          onDeschideLucrare={deschideFisa}
+          onAdaugaInCaz={esteTehnician ? undefined : adaugaInCaz}
+        />
+      )}
+
+      {!esteTehnician && cazNou && (
+        <LucrareModal
+          profile={profile}
+          precompletare={cazNou}
+          onClose={() => setCazNou(null)}
+          onSaved={async (creata) => {
+            setCazNou(null)
+            await refresh()
+            if (creata?.nr_inregistrare) deschideFisa(creata)
+          }}
         />
       )}
     </div>

@@ -135,7 +135,7 @@ insert into setari_salarii (id) values (1) on conflict do nothing;
 
 create table if not exists lucrari (
   id uuid primary key default gen_random_uuid(),
-  nr_inregistrare text not null unique, -- generat secvențial, format AA-001
+  nr_inregistrare text not null unique, -- generat secvențial, format AA-001 (pe un caz: AA-101-1, AA-101-2)
   clinica text,
   medic text,
   pacient text,
@@ -209,6 +209,12 @@ alter table lucrari add column if not exists adaosuri_design jsonb;
 alter table lucrari add column if not exists refacere_pentru uuid references lucrari (id) on delete set null;
 alter table lucrari add column if not exists fara_incasare boolean not null default false;
 alter table lucrari add column if not exists fara_comisioane boolean not null default false;
+
+-- Caz = mai multe lucrări legate (același pacient), fiecare cu propriul tip și
+-- propriul flux. caz_id = nr. de bază (ex. 'AA-101') pe toate lucrările legate;
+-- lucrările fără caz au null. Lucrările de pe caz au nr. 'AA-101-1', 'AA-101-2'.
+alter table lucrari add column if not exists caz_id text;
+create index if not exists lucrari_caz_id_idx on lucrari (caz_id) where caz_id is not null;
 
 -- Programare producție per lucrare — un rând per (lucrare, etapă), cu
 -- tehnicianul alocat, data planificată și starea de finalizare. Afișat ca
@@ -848,7 +854,8 @@ select
   case when r.patron then l.adaosuri_design end as adaosuri_design,
   l.refacere_pentru,
   l.fara_incasare,
-  l.fara_comisioane
+  l.fara_comisioane,
+  l.caz_id
 from public.lucrari l
 cross join (
   select public.este_patron() as patron, public.are_acces_operational() as operational, public.tehnicianul_meu() as tehnician
@@ -895,7 +902,7 @@ grant select (
   id, nr_inregistrare, clinica, medic, pacient, tip_lucrare, dinti, nr_elemente,
   culoare, implant, try_in, model, data_intrare, termen_predare, ora_programare,
   next_date, nota, arhivat, data_arhivare, created_at,
-  refacere_pentru, fara_incasare, fara_comisioane
+  refacere_pentru, fara_incasare, fara_comisioane, caz_id
 ) on public.lucrari to authenticated;
 
 -- `extra_uri` se scrie ca selecție [{ extra_id, cantitate }]; prețurile le
@@ -905,13 +912,13 @@ grant select (
 grant insert (
   nr_inregistrare, clinica, medic, pacient, tip_lucrare, dinti, nr_elemente,
   culoare, implant, try_in, model, data_intrare, termen_predare, ora_programare,
-  next_date, nota, extra_uri, arhivat, data_arhivare
+  next_date, nota, extra_uri, arhivat, data_arhivare, caz_id
 ) on public.lucrari to authenticated;
 
 grant update (
   clinica, medic, pacient, tip_lucrare, dinti, nr_elemente,
   culoare, implant, try_in, model, data_intrare, termen_predare, ora_programare,
-  next_date, nota, extra_uri, arhivat, data_arhivare
+  next_date, nota, extra_uri, arhivat, data_arhivare, caz_id
 ) on public.lucrari to authenticated;
 
 grant delete on public.lucrari to authenticated;

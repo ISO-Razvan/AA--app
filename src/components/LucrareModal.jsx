@@ -20,22 +20,25 @@ function formatDataOra(dataStr, oraStr) {
   return oraStr ? `${dataFmt}, ${oraStr}` : dataFmt
 }
 
-export default function LucrareModal({ profile, onClose, onSaved }) {
+// `precompletare` (opțional) = „încă o lucrare pe un caz": nr. de pe caz, caz_id și
+// datele copiate din lucrarea curentă (clinică, medic, pacient, data intrării,
+// termen). Tipul, dinții, culoarea etc. le completează utilizatorul.
+export default function LucrareModal({ profile, onClose, onSaved, precompletare = null }) {
   // Tipurile noi de lucrare (cu prețul lor) le adaugă doar patronul, din Setup sau de aici.
   const poateAdaugaTip = estePatron(profile)
   const [selectateNumere, setSelectateNumere] = useState([])
   const [linkPairs, setLinkPairs] = useState([])
   const [implantNumere, setImplantNumere] = useState([])
   const [nrElemente, setNrElemente] = useState(0)
-  const [clinica, setClinica] = useState('')
-  const [medic, setMedic] = useState('')
-  const [pacient, setPacient] = useState('')
+  const [clinica, setClinica] = useState(precompletare?.clinica || '')
+  const [medic, setMedic] = useState(precompletare?.medic || '')
+  const [pacient, setPacient] = useState(precompletare?.pacient || '')
   const [tipLucrare, setTipLucrare] = useState('')
   const [culoare, setCuloare] = useState('')
   const [tryIn, setTryIn] = useState(false)
   const [model, setModel] = useState('')
-  const [dataIntrare, setDataIntrare] = useState(todayISO())
-  const [termenPredare, setTermenPredare] = useState('')
+  const [dataIntrare, setDataIntrare] = useState(precompletare?.data_intrare || todayISO())
+  const [termenPredare, setTermenPredare] = useState(precompletare?.termen_predare || '')
   const [oraProgramare, setOraProgramare] = useState('')
   const [nota, setNota] = useState('')
   const [extraSelectie, setExtraSelectie] = useState([])
@@ -64,7 +67,7 @@ export default function LucrareModal({ profile, onClose, onSaved }) {
         getConfigList('culori'),
         getConfigList('medici'),
         getConfigList('clinici'),
-        generateNrInregistrare(),
+        precompletare ? Promise.resolve(precompletare.nr_inregistrare) : generateNrInregistrare(),
         getExtraUriNume(),
       ])
       // Try-in rămâne controlat exclusiv de bifa Try-in.
@@ -117,7 +120,9 @@ export default function LucrareModal({ profile, onClose, onSaved }) {
     setError('')
     try {
       const dinti = calculeazaDinti(selectateNumere, linkPairs, implantNumere)
-      await addLucrare({
+      const creata = await addLucrare({
+        nr_inregistrare: precompletare?.nr_inregistrare,
+        caz_id: precompletare?.caz_id,
         clinica,
         medic,
         pacient,
@@ -134,7 +139,7 @@ export default function LucrareModal({ profile, onClose, onSaved }) {
         nota,
         extra_uri: extraSelectie.map((s) => ({ extra_id: s.extra_id, cantitate: s.cantitate })),
       })
-      await onSaved()
+      await onSaved(creata)
     } catch (err) {
       setError(err.message || 'A apărut o eroare la salvare.')
       setSaving(false)
@@ -143,12 +148,24 @@ export default function LucrareModal({ profile, onClose, onSaved }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-panel" role="dialog" aria-modal="true" aria-label="Înregistrare lucrare nouă">
+      <div
+        className="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label={precompletare ? `Încă o lucrare pe cazul ${precompletare.caz_id}` : 'Înregistrare lucrare nouă'}
+      >
         <form onSubmit={handleSubmit} className="lucrare-form">
           <header className="modal-header">
             <div>
-              <TitluCuAjutor id="lucrare-noua">Înregistrare lucrare nouă</TitluCuAjutor>
+              <TitluCuAjutor id="lucrare-noua">
+                {precompletare ? `Încă o lucrare pe cazul ${precompletare.caz_id}` : 'Înregistrare lucrare nouă'}
+              </TitluCuAjutor>
               {nrPreview && <p className="modal-header-nr">Nr. înregistrare: {nrPreview}</p>}
+              {precompletare && (
+                <p className="modal-header-nr">
+                  Clinica, medicul, pacientul și termenele sunt copiate din lucrarea curentă; alege tipul lucrării și completează restul.
+                </p>
+              )}
             </div>
             <button type="button" className="btn btn-ghost modal-close" onClick={onClose} aria-label="Închide">
               ✕

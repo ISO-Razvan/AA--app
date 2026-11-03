@@ -185,12 +185,26 @@ async function updateExtra(id, patch) {
 async function addLucrare(input) {
   const nr_inregistrare = input.nr_inregistrare || (await generateNrInregistrare())
   const built = buildLucrareInput(input, nr_inregistrare)
+  // caz_id se trimite doar pe un caz: lucrările obișnuite nu depind de coloana nouă.
+  const cazId = input.caz_id || null
   const { data, error } = await supabase
     .from('lucrari')
-    .insert({ ...built, extra_uri: selectieExtra(input.extra_uri) })
+    .insert({ ...built, ...(cazId ? { caz_id: cazId } : {}), extra_uri: selectieExtra(input.extra_uri) })
     .select('id, nr_inregistrare')
     .single()
+  if (error?.code === '23505') {
+    throw new Error(
+      `Numărul ${nr_inregistrare} e deja folosit (probabil altcineva tocmai a adăugat o lucrare pe același caz). Închide fereastra și încearcă din nou.`
+    )
+  }
   fail(error, 'Nu s-a putut înregistra lucrarea')
+  if (cazId) {
+    // Lucrarea de bază intră și ea în caz (caz_id = nr-ul ei), o singură dată.
+    // Triggerul financiar păstrează valorile ei la o schimbare doar de caz_id.
+    // Dacă nu reușește, cazul se vede oricum: lucrarea de bază contează ca membru după nr.
+    const { error: e2 } = await supabase.from('lucrari').update({ caz_id: cazId }).eq('nr_inregistrare', cazId).is('caz_id', null)
+    if (e2) console.warn('Lucrarea de bază nu a primit caz_id:', e2.message)
+  }
   return data
 }
 

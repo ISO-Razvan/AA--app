@@ -335,3 +335,88 @@
     padding: var(--space-3);
   }
 }
+
+/* Cazul: mai multe lucrări legate (același pacient) + butonul de adăugare. */
+.detail-caz {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-purple-light);
+  flex-shrink: 0;
+}
+
+.detail-caz-bara {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+
+.detail-caz-titlu {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-purple-dark);
+}
+
+.detail-caz-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+
+.detail-caz-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-purple);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-purple-dark);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.detail-caz-link:hover {
+  background: var(--color-purple-soft);
+}
+
+.detail-caz-link-curent {
+  background: var(--color-purple-strong);
+  border-color: var(--color-purple-strong);
+  color: #fff;
+  cursor: default;
+}
+
+.detail-caz-suma {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.detail-caz-adauga {
+  margin-left: auto;
+  min-height: 36px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .detail-caz {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .detail-caz-adauga {
+    width: 100%;
+    margin-left: 0;
+  }
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { importLucrari, updateLucrare, deleteLucrare, getEtapeProductie, getToateAlocarile } from '../services/dataService'
 import { lucrariToCSV, parseCSV, downloadCSV, CSV_COLUMNS } from '../utils/csv'
+import { bazaCaz, cazuri } from '../utils/caz'
 import { azi } from '../utils/date'
 import { statusDinRanduri, STATUS_LUCRARE } from '../utils/statusLucrare'
 import { subscribeToTable } from '../services/realtime'
@@ -59,10 +60,26 @@ function matchesSearch(l, query) {
   return haystack.includes(query.toLowerCase())
 }
 
+// Marcaj discret la lucrările care fac parte dintr-un caz (mai multe lucrări legate).
+function MarcajCaz({ lucrare, cazuriMap }) {
+  const baza = bazaCaz(lucrare)
+  const membri = cazuriMap.get(baza)
+  if (!membri) return null
+  return (
+    <span className="lucrari-caz-marker" title={`Caz ${baza} · ${membri.length} lucrări`}>
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M6.5 9.5l3-3M5 11a2.5 2.5 0 010-3.5l1.5-1.5M11 5a2.5 2.5 0 010 3.5L9.5 10" />
+      </svg>
+      Caz
+    </span>
+  )
+}
+
 // `readOnly` (tehnician): doar vizualizare — fără înregistrare, import/export, ștergere,
 // restaurare sau mutat carduri pe Kanban.
 export default function LucrariList({ lucrari, loading, onDataChanged, onRowClick, onNewLucrare, readOnly = false }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
+  const cazuriMap = useMemo(() => cazuri(lucrari), [lucrari])
   const fileInputRef = useRef(null)
   const [importSummary, setImportSummary] = useState(null)
   const [importing, setImporting] = useState(false)
@@ -407,7 +424,10 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                       </td>
                       <td className="rezumat-medic">{l.medic || '—'}</td>
                       <td className="rezumat-tip">{l.tip_lucrare}</td>
-                      <td className="lucrari-table-nr">{l.nr_inregistrare}</td>
+                      <td className="lucrari-table-nr">
+                        {l.nr_inregistrare}
+                        <MarcajCaz lucrare={l} cazuriMap={cazuriMap} />
+                      </td>
                       <td className="lucrari-col-optional">{l.clinica || '—'}</td>
                       <td className="lucrari-col-optional">{formatData(l.data_intrare)}</td>
                       <td>
@@ -468,6 +488,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
                   <h3 className="lucrare-card-pacient rezumat-pacient">
                     {l.pacient || '—'}
                     <IndicatorNoteMedic nr={l.note_noi_medic} />
+                    <MarcajCaz lucrare={l} cazuriMap={cazuriMap} />
                   </h3>
                   <div className="lucrare-card-top-right">
                     {readOnly ? null : l.arhivat ? (

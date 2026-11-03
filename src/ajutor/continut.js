@@ -175,6 +175,8 @@ export const AJUTOR_PAGINI = [
       'Schema dentară, culoarea, clientul, tipul, termenele și nota se modifică direct aici.',
       'Schimbarea dinților, a numărului de elemente, a tipului, a Try-in-ului sau a extra-urilor **recalculează automat prețul**.',
       'Codul QR din colț deschide fișa de pe telefon (ex. lipit pe cutia lucrării).',
+      '**+ Adaugă încă o lucrare pe acest caz** — pentru același pacient cu mai multe lucrări (ex. coroană + punte). Se deschide formularul cu clinica, medicul, pacientul și termenele copiate; alegi tipul lucrării și dinții. Numărul devine AA-101-1, AA-101-2 etc. Fiecare lucrare are propria producție, propriile note și propriul preț.',
+      'Bara **Caz AA-101: N lucrări** apare când cazul are cel puțin 2 lucrări: ai link către fiecare, iar patronul vede și suma încasată pe tot cazul. În Listă, lucrările dintr-un caz au marcajul **Caz**.',
     ],
     atentie: [
       '**Șterge lucrarea** e definitiv.',

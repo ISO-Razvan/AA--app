@@ -428,3 +428,19 @@
     display: flex;
   }
 }
+
+/* Marcaj discret: lucrarea face parte dintr-un caz (mai multe lucrări legate). */
+.lucrari-caz-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: var(--space-2);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-purple-soft);
+  color: var(--color-purple-dark);
+  font-size: 0.68rem;
+  font-weight: 700;
+  vertical-align: middle;
+  white-space: nowrap;
+}
