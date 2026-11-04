@@ -191,32 +191,82 @@
   min-width: 0;
 }
 
-.taskuri-sarcina-design {
-  flex-wrap: wrap;
-}
-
-.taskuri-sarcina-design .taskuri-sarcina-row {
-  flex: 1 1 200px;
+/* Caseta lucrării: cardul + butonul „deschide fișa" în interiorul lui (jos, în dreapta). */
+.taskuri-sarcina-caseta {
+  position: relative;
+  flex: 1;
   min-width: 0;
+  display: flex;
 }
 
-/* Butoanele pe rândul de sub lucrare, ca să nu strângă textul. */
+.taskuri-sarcina-caseta .taskuri-sarcina-row {
+  flex: 1;
+  padding-bottom: calc(var(--space-4) + 4px);
+}
+
+.taskuri-sarcina-caseta .taskuri-sarcina-fisa {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  align-self: auto;
+}
+
+/* Designer: „Validare" și „Finalizat" — în dreapta casetei, unul sub altul, mici și
+   cu aspect clar de buton. */
 .taskuri-design-actiuni {
-  order: 3;
-  flex: 1 0 100%;
   display: flex;
+  flex-direction: column;
+  justify-content: center;
   gap: var(--space-2);
+  flex-shrink: 0;
+  width: 92px;
 }
 
 .taskuri-design-actiuni .btn {
-  flex: 1;
+  width: 100%;
 }
 
 .taskuri-btn-validare,
 .taskuri-btn-finalizat {
-  min-height: 36px;
-  padding: 0 var(--space-3);
-  font-size: 0.82rem;
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+.taskuri-btn-validare {
+  border: 1.5px solid var(--brand-teal);
+  background: var(--color-surface);
+  color: var(--brand-teal-dark);
+}
+
+.taskuri-btn-validare:hover:not(:disabled) {
+  background: var(--color-blue-soft);
+}
+
+.taskuri-btn-finalizat {
+  border: 1.5px solid var(--color-success-strong);
+  background: var(--color-success-strong);
+  color: #fff;
+}
+
+.taskuri-btn-finalizat:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* Fereastră îngustă: butoanele trec pe un rând sub casetă. */
+@container (max-width: 420px) {
+  .taskuri-sarcina-item {
+    flex-wrap: wrap;
+  }
+
+  .taskuri-design-actiuni {
+    flex: 1 0 100%;
+    flex-direction: row;
+    width: auto;
+  }
 }
 
 .taskuri-validare {

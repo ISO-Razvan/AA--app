@@ -116,11 +116,19 @@ function InchidereLucrare({ intrare, tehnicieni, esteSumeVizibile, astazi, onInc
 
   const seteazaTehnician = (etapaId, id) => setTehnicianPe((prev) => ({ ...prev, [etapaId]: id }))
 
-  // Scurtătura: același tehnician pe toate etapele (mai puțin Model).
+  // Scurtătura: același tehnician pe etapele la care poate lucra (mai puțin Model). La o
+  // etapă care are tehnicieni cu rolul ei și nu-l include pe cel ales (ex. Livrare, a lui
+  // ADM), rămâne tehnicianul de dinainte — altfel etapa ar fi trecută pe cineva care nu o face.
   const aplicaLaToate = (id) => {
     setAcelasi(id)
     if (!id) return
-    setTehnicianPe(Object.fromEntries(etape.filter(({ etapa }) => !esteEtapaModel(etapa)).map(({ etapa }) => [etapa.id, id])))
+    setTehnicianPe((prev) =>
+      Object.fromEntries(
+        etape
+          .filter(({ etapa }) => !esteEtapaModel(etapa))
+          .map(({ etapa, rand }) => [etapa.id, candidatiEtapa(etapa, rand, tehnicieni).some((t) => t.id === id) ? id : prev[etapa.id] || ''])
+      )
+    )
   }
 
   // Impactul pe salarii, per tehnician (doar patronul — coordonatorul nu vede sume).
@@ -184,6 +192,7 @@ function InchidereLucrare({ intrare, tehnicieni, esteSumeVizibile, astazi, onInc
 
             <label className="rs-acelasi">
               <span className="field-label">Același tehnician pentru toate etapele</span>
+              <span className="rs-nota">Se aplică etapelor la care poate lucra; celelalte (ex. Livrare) rămân cum sunt.</span>
               <select className="text-input rs-acelasi-select" value={acelasi} onChange={(e) => aplicaLaToate(e.target.value)}>
                 <option value="">— alege —</option>
                 {tehnicieni.map((t) => (

@@ -130,7 +130,7 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
   // niciunul) lista rămâne simplă, ca înainte.
   const roluri = tehnician.roluri || []
   const sectiuni = etape.filter(
-    (e) => (!esteEtapaModel(e) && roluri.includes(e.id)) || sarciniZiToate.some((s) => s.etapa?.id === e.id)
+    (e) => (!esteEtapaModel(e) && roluri.includes(e.id)) || sarciniZiToate.some((s) => s.etapa?.id === e.id && !s.alocare.finalizat)
   )
   const peSectiuni = sectiuni.length > 1
 
@@ -146,21 +146,24 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
             />
           </label>
         )}
-        <button type="button" className="taskuri-sarcina-row" onClick={() => onOpenLucrare(lucrare)}>
-          <div className="taskuri-sarcina-top">
-            <span className="taskuri-sarcina-pacient rezumat-pacient">{lucrare.pacient || '—'}</span>
-            <div className="taskuri-sarcina-top-badges">
-              {etapa && <span className="badge badge-purple">{etapa.nume}</span>}
-              {alocare.finalizat && <span className="badge badge-success">Finalizat</span>}
+        <div className="taskuri-sarcina-caseta">
+          <button type="button" className="taskuri-sarcina-row" onClick={() => onOpenLucrare(lucrare)}>
+            <div className="taskuri-sarcina-top">
+              <span className="taskuri-sarcina-pacient rezumat-pacient">{lucrare.pacient || '—'}</span>
+              <div className="taskuri-sarcina-top-badges">
+                {etapa && <span className="badge badge-purple">{etapa.nume}</span>}
+                {alocare.finalizat && <span className="badge badge-success">Finalizat</span>}
+              </div>
             </div>
-          </div>
-          <p className="taskuri-sarcina-line rezumat-medic">{lucrare.medic || '—'}</p>
-          <p className="taskuri-sarcina-line rezumat-tip">{lucrare.tip_lucrare}</p>
-          <p className="taskuri-sarcina-line taskuri-sarcina-meta">
-            <span className="taskuri-sarcina-nr">{lucrare.nr_inregistrare}</span>
-            {lucrare.clinica && ` · ${lucrare.clinica}`}
-          </p>
-        </button>
+            <p className="taskuri-sarcina-line rezumat-medic">{lucrare.medic || '—'}</p>
+            <p className="taskuri-sarcina-line rezumat-tip">{lucrare.tip_lucrare}</p>
+            <p className="taskuri-sarcina-line taskuri-sarcina-meta">
+              <span className="taskuri-sarcina-nr">{lucrare.nr_inregistrare}</span>
+              {lucrare.clinica && ` · ${lucrare.clinica}`}
+            </p>
+          </button>
+          <DeschideFisaButton className="taskuri-sarcina-fisa" onClick={() => onOpenLucrare(lucrare)} />
+        </div>
         {esteDesign(alocare) && !alocare.finalizat && (
           <div className="taskuri-design-actiuni">
             <button type="button" className="btn btn-secondary taskuri-btn-validare" onClick={() => handleTrimite(alocare, true)} disabled={ocupat === alocare.id}>
@@ -171,7 +174,6 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
             </button>
           </div>
         )}
-        <DeschideFisaButton className="taskuri-sarcina-fisa" onClick={() => onOpenLucrare(lucrare)} />
       </li>
   )
 

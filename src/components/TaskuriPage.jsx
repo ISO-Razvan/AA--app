@@ -378,7 +378,11 @@ export default function TaskuriPage({ profile }) {
   const sectiuni = useMemo(() => {
     if (!tehnicianSelectat) return []
     const roluri = new Set(tehnicianSelectat.roluri || [])
-    return etape.filter((e) => (!esteEtapaModel(e) && roluri.has(e.id)) || sarciniPeEtapaSiZi.has(e.id))
+    // O etapă din afara rolurilor apare doar cât mai are sarcini NEfăcute (să nu dispară);
+    // cele deja finalizate rămân în istoric („Făcute în săptămâna asta"), nu ca secțiune.
+    const maiAreDeFacut = (etapaId) =>
+      Object.values(sarciniPeEtapaSiZi.get(etapaId) || {}).some((grupuri) => grupuri.some((g) => !g.finalizat))
+    return etape.filter((e) => (!esteEtapaModel(e) && roluri.has(e.id)) || maiAreDeFacut(e.id))
   }, [etape, tehnicianSelectat, sarciniPeEtapaSiZi])
 
   // Toate neprogramatele secțiunilor (pentru „Asignează" din fereastra zilei).
