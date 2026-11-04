@@ -199,7 +199,7 @@ export const AJUTOR_PAGINI = [
     pasi: [
       'La fiecare etapă alegi **tehnicianul** și **data planificată** (la fel ca din Task-uri).',
       'Bifa **Finalizat** marchează etapa terminată. Etapa „Model" se bifează direct, fără alocare.',
-      '**„Lucrarea este acum la etapa…"** — dacă lucrarea a avansat fără bife, alegi etapa curentă și cele dinainte se bifează automat.',
+      '**„Lucrarea este acum la etapa…"** — alegi etapa la care e lucrarea: cele dinainte se bifează, iar cea aleasă și cele de după se debifează. Merge și înainte, și înapoi, fără restricții (după o confirmare).',
       'Când toate etapele sunt bifate, poți **arhiva** lucrarea (sau se arhivează singură la generarea devizului).',
     ],
     atentie: ['Livrarea se planifică singură din termenul de predare — schimbă termenul, nu data Livrării.'],

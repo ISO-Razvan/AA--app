@@ -14,6 +14,9 @@ import { azi } from '../utils/date'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import './ProductieTimeline.css'
 
+// Valoarea din selector pentru „toate etapele finalizate”.
+const TOATE = '__toate__'
+
 function formatData(dataStr) {
   if (!dataStr) return '—'
   const [an, luna, zi] = dataStr.split('-')
@@ -103,42 +106,42 @@ export default function ProductieTimeline({
     })
   }
 
-  // Recuperare: lucrarea a avansat fizic mai mult decât arată aplicația. Bifează
-  // ca finalizate toate etapele dinaintea celei alese (în ordinea din Setup),
-  // cu data de azi. Scrie prin `setProductieAlocare` (upsert doar pe coloanele
-  // date), deci tehnicianul deja alocat rămâne, iar la o etapă fără rând
-  // tehnicianul rămâne necompletat. Etapa aleasă și cele de după nu se ating.
-  // Realtime propagă bifările (Kanban avansează singur), ca la orice bifare.
-  const handleRecuperare = async (etapaIdTinta) => {
-    const indexTinta = etape.findIndex((e) => e.id === etapaIdTinta)
+  // Mutare manuală, în ambele sensuri și fără restricții: „Lucrarea este acum la etapa X"
+  // bifează ca finalizate toate etapele dinaintea lui X (cu data de azi) și debifează X și
+  // cele de după (dacă erau bifate). Alegerea „Finalizată" bifează totul. Scrie prin
+  // `setProductieAlocare` (doar coloanele date), deci tehnicianul alocat rămâne. Ordinea
+  // contează: întâi bifările, apoi debifările (bifarea Design-ului completează singură
+  // Validarea, iar dacă ținta e chiar Validarea, debifarea ei trebuie să vină ultima).
+  const handleRecuperare = async (valoare) => {
+    const indexTinta = valoare === TOATE ? etape.length : etape.findIndex((e) => e.id === valoare)
     if (indexTinta < 0) return
     const deBifat = etape.slice(0, indexTinta).filter((e) => !randPentru(e.id)?.finalizat)
-    if (deBifat.length === 0) {
-      await confirm(`Toate etapele dinaintea „${etape[indexTinta].nume}” sunt deja finalizate — nu e nimic de bifat.`, {
+    const deDebifat = etape.slice(indexTinta).filter((e) => randPentru(e.id)?.finalizat)
+    const nl = String.fromCharCode(10)
+    const tinta = valoare === TOATE ? 'Finalizată' : etape[indexTinta].nume
+    if (deBifat.length === 0 && deDebifat.length === 0) {
+      await confirm(`Lucrarea este deja la „${tinta}” — nu e nimic de schimbat.`, {
         title: 'Nimic de actualizat',
         confirmLabel: 'Închide',
         cancelLabel: 'Anulează',
       })
       return
     }
-    const cuTehnician = deBifat.some((e) => randPentru(e.id)?.tehnician_id)
-    const etapaTinta = etape[indexTinta].nume
     const mesaj = [
-      `Lucrarea este acum la etapa „${etapaTinta}”. Se vor bifa ca finalizate, cu data de azi (${formatData(azi())}):`,
-      ...deBifat.map((e) => `• ${e.nume}`),
-      '',
-      `Etapa „${etapaTinta}” și cele de după rămân neschimbate.`,
-      ...(cuTehnician ? ['Etapele cu tehnician alocat vor conta pentru acesta la Salarii, în luna curentă.'] : []),
-    ].join(String.fromCharCode(10))
-    const ok = await confirm(mesaj, {
-      title: 'Marchezi etapele anterioare ca finalizate?',
-      confirmLabel: 'Bifează etapele',
-    })
+      `Lucrarea va fi mutată la „${tinta}”.`,
+      ...(deBifat.length ? ['', `Se bifează ca finalizate, cu data de azi (${formatData(azi())}):`, ...deBifat.map((e) => `• ${e.nume}`)] : []),
+      ...(deDebifat.length ? ['', 'Se debifează (devin nefinalizate):', ...deDebifat.map((e) => `• ${e.nume}`)] : []),
+      ...([...deBifat, ...deDebifat].some((e) => randPentru(e.id)?.tehnician_id)
+        ? ['', 'Etapele cu tehnician alocat se schimbă și la Salarii (luna bifării, respectiv dispar din luna în care erau).']
+        : []),
+    ].join(nl)
+    const ok = await confirm(mesaj, { title: 'Muți lucrarea la altă etapă?', confirmLabel: 'Mută lucrarea' })
     if (!ok) return
     setRecuperare(true)
     try {
       const data = azi()
-      await Promise.all(deBifat.map((e) => setProductieAlocare(lucrareId, e.id, { finalizat: true, data_finalizare: data })))
+      for (const e of deBifat) await setProductieAlocare(lucrareId, e.id, { finalizat: true, data_finalizare: data })
+      for (const e of deDebifat) await setProductieAlocare(lucrareId, e.id, { finalizat: false, data_finalizare: null })
       await reincarcaRanduri()
     } finally {
       setRecuperare(false)
@@ -209,8 +212,9 @@ export default function ProductieTimeline({
                 {e.nume}
               </option>
             ))}
+            <option value={TOATE}>Finalizată (toate etapele)</option>
           </select>
-          <p className="productie-hint">Etapele dinaintea celei alese se bifează automat ca finalizate.</p>
+          <p className="productie-hint">Etapele dinaintea celei alese se bifează, iar cea aleasă și cele de după se debifează. Poți merge înainte sau înapoi.</p>
         </div>
       )}
 
