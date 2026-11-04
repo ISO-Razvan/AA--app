@@ -60,6 +60,10 @@ export default function TaskuriZiModal({
   const [showPrint, setShowPrint] = useState(false)
   const [selectieNoua, setSelectieNoua] = useState('')
   const [asignand, setAsignand] = useState(false)
+  // Finalizatele sunt ascunse implicit; PDF-ul rămâne cu lista completă a zilei.
+  const [arataFinalizate, setArataFinalizate] = useState(false)
+  const nrFinalizate = sarcini.filter((g) => g.finalizat).length
+  const vizibile = arataFinalizate ? sarcini : sarcini.filter((g) => !g.finalizat)
 
   const optiuniNeplanificate = (lucrariNeplanificate || []).map(({ lucrare, etape }) => ({
     value: `${lucrare.id}|${etape.map((e) => e.id).join(',')}`,
@@ -88,6 +92,11 @@ export default function TaskuriZiModal({
             <div>
               <h2>{tehnician.nume}</h2>
               <p className="taskuri-zi-modal-data">{formatZiLunga(zi)}</p>
+              {sarcini.length > 0 && (
+                <p className="taskuri-zi-contor">
+                  {nrFinalizate}/{sarcini.length} finalizate
+                </p>
+              )}
             </div>
             <button type="button" className="btn btn-ghost modal-close" onClick={onClose} aria-label="Închide">
               ✕
@@ -104,6 +113,16 @@ export default function TaskuriZiModal({
               >
                 Descarcă PDF
               </button>
+              {nrFinalizate > 0 && (
+                <button
+                  type="button"
+                  className={`btn ${arataFinalizate ? 'btn-primary' : 'btn-secondary'}`}
+                  aria-pressed={arataFinalizate}
+                  onClick={() => setArataFinalizate((v) => !v)}
+                >
+                  Arată și finalizatele
+                </button>
+              )}
             </div>
 
             {isMobil && (
@@ -129,14 +148,16 @@ export default function TaskuriZiModal({
 
             {sarcini.length === 0 ? (
               <p className="taskuri-panel-hint">Nicio sarcină programată pentru această zi.</p>
+            ) : vizibile.length === 0 ? (
+              <p className="taskuri-panel-hint">Toate cele {sarcini.length} lucrări ale zilei sunt finalizate. Apasă „Arată și finalizatele" ca să le vezi.</p>
             ) : (
               <ul className="taskuri-zi-sarcini-list">
-                {sarcini.map((grup) => {
+                {vizibile.map((grup) => {
                   const { lucrare } = grup
                   const termen = termenPentru(lucrare)
                   const areEtapeDeScos = grup.etapaIds.some((id) => id !== etapaDinTermenId)
                   return (
-                    <li key={grup.cheie} className="taskuri-zi-sarcina-item">
+                    <li key={grup.cheie} className={`taskuri-zi-sarcina-item ${grup.finalizat ? 'taskuri-zi-sarcina-finalizata' : ''}`}>
                       <button type="button" className="taskuri-zi-sarcina-row" onClick={() => onOpenLucrare(lucrare)}>
                         <div className="taskuri-zi-sarcina-principal">
                           <span className="taskuri-zi-pacient rezumat-pacient">{lucrare.pacient || '—'}</span>

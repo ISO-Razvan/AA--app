@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getEtapeProductie, getToateAlocarile } from '../services/dataService'
 import { subscribeToTable } from '../services/realtime'
-import { statusDinRanduri } from '../utils/statusLucrare'
+import { statusLucrare } from '../utils/statusLucrare'
 import './CautareGlobala.css'
 
 const MIN_CARACTERE = 2
@@ -18,16 +18,16 @@ export default function CautareGlobala({ lucrari, onSelect }) {
   const [query, setQuery] = useState('')
   const [deschis, setDeschis] = useState(false)
   const [activ, setActiv] = useState(0)
-  const [totalEtape, setTotalEtape] = useState(0)
+  const [etape, setEtape] = useState([])
   const [alocari, setAlocari] = useState([])
   const containerRef = useRef(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
     let montat = true
-    Promise.all([getEtapeProductie(), getToateAlocarile()]).then(([etape, toate]) => {
+    Promise.all([getEtapeProductie(), getToateAlocarile()]).then(([etapeNoi, toate]) => {
       if (!montat) return
-      setTotalEtape(etape.length)
+      setEtape(etapeNoi)
       setAlocari(toate)
     })
     const unsubscribe = subscribeToTable('productie_lucrare', async () => {
@@ -60,7 +60,7 @@ export default function CautareGlobala({ lucrari, onSelect }) {
   }, [deschis])
 
   const statusPentru = (lucrareId) =>
-    statusDinRanduri(totalEtape, alocari.filter((a) => a.lucrare_id === lucrareId))
+    statusLucrare(etape, alocari.filter((a) => a.lucrare_id === lucrareId))
 
   const reseteaza = () => {
     setQuery('')

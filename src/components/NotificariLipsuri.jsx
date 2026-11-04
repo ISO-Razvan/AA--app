@@ -10,16 +10,16 @@ import './NotificariLipsuri.css'
 // `productie_lucrare`, ca o lucrare care se finalizează să iasă din listă singură.
 export default function NotificariLipsuri({ lucrari, onOpenLucrare }) {
   const [deschis, setDeschis] = useState(false)
-  const [totalEtape, setTotalEtape] = useState(null)
+  const [etape, setEtape] = useState(null)
   const [alocari, setAlocari] = useState([])
   const radacinaRef = useRef(null)
 
   useEffect(() => {
     let montat = true
     Promise.all([getEtapeProductie(), getToateAlocarile()])
-      .then(([etape, toate]) => {
+      .then(([etapeNoi, toate]) => {
         if (!montat) return
-        setTotalEtape(etape.length)
+        setEtape(etapeNoi)
         setAlocari(toate)
       })
       .catch(() => {})
@@ -39,8 +39,8 @@ export default function NotificariLipsuri({ lucrari, onOpenLucrare }) {
 
   // Până se știu etapele, nu se poate hotărî ce e finalizat — nu arătăm nimic.
   const intrari = useMemo(
-    () => (totalEtape == null ? [] : lucrariCuLipsuri({ lucrari, totalEtape, alocari })),
-    [lucrari, totalEtape, alocari]
+    () => (etape == null ? [] : lucrariCuLipsuri({ lucrari, etape, alocari })),
+    [lucrari, etape, alocari]
   )
 
   // Panoul se închide la clic în afară și la Escape.

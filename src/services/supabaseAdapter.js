@@ -6,6 +6,8 @@
 
 import { supabase } from './supabaseClient'
 import { azi as todayISO } from '../utils/date'
+import { motivBlocareRedenumire } from '../utils/etapaProductie'
+import { statusLucrare } from '../utils/statusLucrare'
 
 function fail(error, mesaj) {
   if (error) throw new Error(mesaj ? `${mesaj}: ${error.message}` : error.message)
@@ -575,6 +577,21 @@ async function setFinalizareEtapa(lucrareId, etapaId, finalizat) {
     .select()
     .single()
   fail(error, 'Nu s-a putut salva bifa Finalizat')
+  return data
+}
+
+// „Trimite la validare" / „Anulează trimiterea": marcajul stă pe rândul de Design al
+// lucrării. Scrie prin UPDATE (nu upsert), ca să meargă și pentru tehnicianul căruia îi
+// aparține rândul. Designul NU se finalizează aici (deci nu intră în salariu).
+async function setTrimisLaValidare(lucrareId, etapaId, trimis) {
+  const { data, error } = await supabase
+    .from('productie_lucrare')
+    .update({ trimis_la_validare_la: trimis ? new Date().toISOString() : null })
+    .eq('lucrare_id', lucrareId)
+    .eq('etapa_id', etapaId)
+    .select()
+    .single()
+  fail(error, trimis ? 'Nu s-a putut trimite lucrarea la validare' : 'Nu s-a putut anula trimiterea la validare')
   return data
 }
 
@@ -1191,6 +1208,44 @@ async function addEtapaProductie(nume) {
   return data
 }
 
+// Marchează o etapă drept „etapa de validare" (cod stabil, independent de nume) sau scoate
+// marcajul. Maximum o etapă cu acest cod (index unic în baza de date): dacă alta îl are,
+// întâi se scoate de pe ea.
+async function seteazaEtapaValidare(id, activ) {
+  if (activ) {
+    const { error: e0 } = await supabase.from('etape_productie').update({ cod: null }).eq('cod', 'validare').neq('id', id)
+    fail(e0, 'Nu s-a putut muta marcajul de validare')
+  }
+  const { data, error } = await supabase
+    .from('etape_productie')
+    .update({ cod: activ ? 'validare' : null })
+    .eq('id', id)
+    .select()
+    .single()
+  fail(error, 'Nu s-a putut salva marcajul de validare. Ai rulat SQL-ul pentru validare în Supabase?')
+  return data
+}
+
+// Redenumește o etapă: schimbă DOAR coloana `nume`. Id-ul rămâne același, deci
+// producția, comisioanele și rolurile tehnicienilor (care se leagă de id) rămân valabile.
+async function redenumesteEtapaProductie(id, nume) {
+  const valoare = String(nume || '').trim()
+  if (!valoare) throw new Error('Numele etapei nu poate fi gol.')
+  const { data: etape, error: e1 } = await supabase.from('etape_productie').select('*')
+  fail(e1, 'Nu s-au putut citi etapele existente')
+  const curenta = (etape || []).find((e) => e.id === id)
+  if (!curenta) throw new Error('Etapa nu mai există.')
+  const motiv = curenta.cod === 'validare' ? null : motivBlocareRedenumire(curenta.nume)
+  if (motiv) throw new Error(`Etapa „${curenta.nume}” nu se poate redenumi: ${motiv}.`)
+  if ((etape || []).some((e) => e.id !== id && e.nume.trim().toLowerCase() === valoare.toLowerCase())) {
+    throw new Error(`Există deja o etapă cu numele „${valoare}”.`)
+  }
+  const { data, error } = await supabase.from('etape_productie').update({ nume: valoare }).eq('id', id).select().single()
+  if (error?.code === '23505') throw new Error(`Există deja o etapă cu numele „${valoare}”.`)
+  fail(error, 'Nu s-a putut redenumi etapa')
+  return data
+}
+
 async function updateEtapaDurata(id, durataMinute) {
   const valoare = durataMinute === '' || durataMinute == null ? 0 : Number(durataMinute)
   const { data, error } = await supabase
@@ -1349,14 +1404,14 @@ async function creeazaDeviz({ medic, clinica, lucrari }) {
 // să poată continua; cele deja arhivate nu se ating (își păstrează data).
 async function arhiveazaLucrarileFinalizate(lucrareIds) {
   const [{ data: etape, error: e1 }, { data: randuri, error: e2 }] = await Promise.all([
-    supabase.from('etape_productie').select('id'),
-    supabase.from('productie_lucrare').select('lucrare_id, finalizat').in('lucrare_id', lucrareIds),
+    supabase.from('etape_productie').select('*'),
+    supabase.from('productie_lucrare').select('*').in('lucrare_id', lucrareIds),
   ])
   fail(e1 || e2, 'Devizul a fost creat, dar starea lucrărilor nu s-a putut verifica pentru arhivare')
-  const totalEtape = (etape || []).length
-  if (totalEtape === 0) return 0
+  if ((etape || []).length === 0) return 0
+  // Aceeași regulă ca statusul „Finalizat”: etapele APLICABILE lucrării (Validare doar dacă i se aplică).
   const finalizate = lucrareIds.filter(
-    (id) => (randuri || []).filter((r) => r.lucrare_id === id && r.finalizat).length >= totalEtape
+    (id) => statusLucrare(etape, (randuri || []).filter((r) => r.lucrare_id === id)).id === 'finalizat'
   )
   if (finalizate.length === 0) return 0
   const { data, error } = await supabase
@@ -1398,6 +1453,9 @@ export const supabaseAdapter = {
   deleteEtapaProductie,
   reordoneazaEtapeProductie,
   updateEtapaDurata,
+  redenumesteEtapaProductie,
+  seteazaEtapaValidare,
+  setTrimisLaValidare,
   getTehnicieni,
   addTehnician,
   updateTehnician,

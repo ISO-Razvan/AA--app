@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getConfigList, getLucrari, getEtapeProductie, getToateAlocarile, getLucrareIdsFacturate, creeazaDeviz } from '../services/dataService'
-import { statusDinRanduri } from '../utils/statusLucrare'
+import { statusLucrare } from '../utils/statusLucrare'
 import { formatSuma } from './SalariiPage.jsx'
 import SearchableSelect from './SearchableSelect.jsx'
 import { useConfirm } from '../hooks/useConfirm.jsx'
@@ -59,7 +59,7 @@ export default function DevizNouModal({ onClose, onGenerated }) {
       .filter((l) => l.clinica === clinica && !l.fara_incasare)
       .map((l) => {
         const randuri = alocari.filter((a) => a.lucrare_id === l.id)
-        return { ...l, status: statusDinRanduri(etape.length, randuri) }
+        return { ...l, status: statusLucrare(etape, randuri) }
       })
       .filter((l) => l.status.id === 'finalizat' || l.status.id === 'in_lucru')
   }, [lucrari, etape, alocari, clinica])

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getEtapeProductie, getToateAlocarile } from '../services/dataService'
 import { azi, adaugaZile } from '../utils/date'
-import { statusDinRanduri } from '../utils/statusLucrare'
+import { statusLucrare } from '../utils/statusLucrare'
 import { etapaCurentaPentru } from '../utils/etapaProductie'
 import { subscribeToTable } from '../services/realtime'
 import { formatDataOraNota } from './NoteComanda.jsx'
@@ -56,7 +56,7 @@ export default function Dashboard({ lucrari: toateLucrarile, loading, onOpenLucr
   }, [load])
 
   const statusPentru = (lucrareId) =>
-    statusDinRanduri(etape.length, alocari.filter((a) => a.lucrare_id === lucrareId))
+    statusLucrare(etape, alocari.filter((a) => a.lucrare_id === lucrareId))
 
   const { activeCount, urgenteCount, sePredauAzi, intarziateCount } = useMemo(() => {
     const astazi = azi()

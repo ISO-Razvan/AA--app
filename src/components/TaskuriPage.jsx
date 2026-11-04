@@ -10,6 +10,7 @@ import {
   useSensors,
   useDraggable,
   useDroppable,
+  useDndContext,
 } from '@dnd-kit/core'
 import {
   getTehnicieni,
@@ -21,15 +22,17 @@ import {
   updateLucrare,
 } from '../services/dataService'
 import { azi, adaugaZile } from '../utils/date'
-import { configLivrare } from '../utils/etapaProductie'
-import { etapeNeplanificateTehnician, lucrariRestante } from '../utils/etapeNeplanificate'
-import { etapeDinCasete, filtreazaCasete, aplicaPatchAlocari, urgentaCaseta } from '../utils/casetePlanificare'
+import { configLivrare, esteEtapaModel } from '../utils/etapaProductie'
+import { esteEtapaDesign } from '../utils/adaosuriDesign'
+import { neprogramatePeEtapa, etapeFaraTehnician, lucrariRestante } from '../utils/etapeNeplanificate'
+import { filtreazaCasete, aplicaPatchAlocari, urgentaCaseta } from '../utils/casetePlanificare'
 import { estePatron } from '../utils/roluri'
 import { dataScurta } from '../utils/urgenta'
 import { subscribeToTable } from '../services/realtime'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import TaskuriZiModal from './TaskuriZiModal.jsx'
 import RestanteModal from './RestanteModal.jsx'
+import FacuteSaptamana from './FacuteSaptamana.jsx'
 import DeschideFisaButton from './DeschideFisaButton.jsx'
 import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
 import './TaskuriPage.css'
@@ -75,8 +78,12 @@ function formatIntervalSaptamana(zile) {
 
 // Zonă de „drop" — coloana unei zile din calendar, sau panoul „Lucrări
 // neplanificate". `id` e fie o dată ISO, fie NEPLANIFICATE_ID.
-function DropZone({ id, className, children }) {
-  const { setNodeRef, isOver } = useDroppable({ id })
+function DropZone({ id, etapaId, className, children }) {
+  // O casetă se poate pune doar pe zilele/zona din secțiunea ETAPEI ei: zonele
+  // celorlalte secțiuni nu sunt active cât se trage (nu se evidențiază).
+  const { active } = useDndContext()
+  const compatibila = !etapaId || !active || active.data.current?.etapaId === etapaId
+  const { setNodeRef, isOver } = useDroppable({ id, disabled: !compatibila })
   return (
     <div ref={setNodeRef} className={`${className} ${isOver ? 'taskuri-drop-over' : ''}`}>
       {children}
@@ -179,6 +186,8 @@ export default function TaskuriPage({ profile }) {
   const [tehnicieni, setTehnicieni] = useState([])
   const [etape, setEtape] = useState([])
   const [lucrari, setLucrari] = useState([])
+  // Și lucrările arhivate (finalizatele se arhivează la deviz) — pentru istoricul „Făcute în săptămâna asta".
+  const [lucrariToate, setLucrariToate] = useState([])
   const [alocari, setAlocari] = useState([])
   const [loading, setLoading] = useState(true)
   const [tehnicianSelectat, setTehnicianSelectat] = useState(null)
@@ -186,8 +195,9 @@ export default function TaskuriPage({ profile }) {
   const [mutandKey, setMutandKey] = useState(null)
   const [ziModalDeschisa, setZiModalDeschisa] = useState(null)
   const [alertaDeschisa, setAlertaDeschisa] = useState(false)
-  const [etapaFiltru, setEtapaFiltru] = useState(null)
   const [doarUrgente, setDoarUrgente] = useState(false)
+  // Lucrările finalizate sunt ascunse implicit din zilele calendarului.
+  const [arataFinalizate, setArataFinalizate] = useState(false)
   const [mesajEroare, setMesajEroare] = useState('')
   // Ce se trage acum (pentru copia care urmărește mouse-ul).
   const [activ, setActiv] = useState(null)
@@ -220,6 +230,7 @@ export default function TaskuriPage({ profile }) {
     setTehnicieni(t)
     setEtape(e)
     setLucrari(l.filter((x) => !x.arhivat))
+    setLucrariToate(l)
     setAlocari(a)
     setLoading(false)
   }, [])
@@ -235,6 +246,7 @@ export default function TaskuriPage({ profile }) {
   const reincarcaLucrarile = useCallback(async () => {
     const l = await getLucrari()
     setLucrari(l.filter((x) => !x.arhivat))
+    setLucrariToate(l)
   }, [])
 
   // Realtime — orice bifare/mutare venită de oriunde (Kanban, fișa lucrării,
@@ -269,22 +281,29 @@ export default function TaskuriPage({ profile }) {
     return cfg.automata ? cfg.etapa.id : null
   }, [etape, tehnicieni])
 
-  // Etapele neplanificate ale tehnicianului selectat, după rolurile lui — logica
-  // e în utils/etapeNeplanificate.js. Nu intră etapele bifate și nici lucrările
-  // restante (termen depășit), care merg în alerta „lucrări restante".
-  const lucrariNeplanificate = useMemo(
-    () => etapeNeplanificateTehnician({ lucrari, etape, alocari, tehnician: tehnicianSelectat, livrareAutoId, astazi }),
-    [lucrari, etape, alocari, tehnicianSelectat, livrareAutoId, astazi]
+  // Ce așteaptă programare, pe etapă: o lucrare apare doar la etapa ei CURENTĂ din
+  // Kanban (la Design, cât timp Model nu e bifat) — logica e în
+  // utils/etapeNeplanificate.js. Nu intră lucrările restante (termen depășit), care
+  // merg în alerta „lucrări restante".
+  const programatePeEtapa = useMemo(
+    () => neprogramatePeEtapa({ lucrari, etape, alocari, livrareAutoId, astazi }),
+    [lucrari, etape, alocari, livrareAutoId, astazi]
   )
 
-  // Filtrele rapide de deasupra casetelor. Un filtru pe o etapă care nu mai există
-  // în lista curentă (alt tehnician) se ignoră.
-  const etapeCasete = useMemo(() => etapeDinCasete(lucrariNeplanificate, etape), [lucrariNeplanificate, etape])
-  const etapaFiltruActiva = etapeCasete.some((e) => e.id === etapaFiltru) ? etapaFiltru : null
-  const casete = useMemo(
-    () => filtreazaCasete({ casete: lucrariNeplanificate, etapaId: etapaFiltruActiva, doarUrgente, astazi }),
-    [lucrariNeplanificate, etapaFiltruActiva, doarUrgente, astazi]
+  // Etape la care așteaptă lucrări, dar pe care nu le are niciun tehnician în roluri.
+  const etapeFaraOm = useMemo(
+    () => etapeFaraTehnician({ etape, tehnicieni, programatePeEtapa }),
+    [etape, tehnicieni, programatePeEtapa]
   )
+
+  // Casetele unei etape, cu filtrul „doar urgente".
+  const casetePentru = (etapaId) =>
+    filtreazaCasete({
+      casete: (programatePeEtapa.get(etapaId) || []).map(({ lucrare, etapa }) => ({ lucrare, etape: [etapa] })),
+      etapaId: null,
+      doarUrgente,
+      astazi,
+    })
 
   // Lucrările restante: termenul de predare a trecut (sunt deja în clinică), dar
   // au etape neprogramate și nebifate — se închid din alertă, nu se mai planifică.
@@ -333,25 +352,96 @@ export default function TaskuriPage({ profile }) {
     return map
   }, [alocari, lucrari, tehnicianSelectat, zileSaptamana])
 
+  // Secțiunile tehnicianului selectat: câte una pe etapă din rolurile lui (în ordinea
+  // din Setup), plus orice etapă la care are deja sarcini în săptămâna vizibilă, ca să
+  // nu dispară sarcini dacă un rol i-a fost scos.
+  const sarciniPeEtapaSiZi = useMemo(() => {
+    const map = new Map()
+    if (!tehnicianSelectat) return map
+    for (const a of alocari) {
+      if (a.tehnician_id !== tehnicianSelectat.id) continue
+      if (!a.data_planificata || !zileSaptamana.includes(a.data_planificata)) continue
+      const lucrare = lucrari.find((l) => l.id === a.lucrare_id)
+      if (!lucrare) continue
+      if (!map.has(a.etapa_id)) map.set(a.etapa_id, Object.fromEntries(zileSaptamana.map((zi) => [zi, []])))
+      map.get(a.etapa_id)[a.data_planificata].push({
+        cheie: `${lucrare.id}|${a.etapa_id}|${a.data_planificata}`,
+        lucrare,
+        alocari: [a],
+        etapaIds: [a.etapa_id],
+        finalizat: !!a.finalizat,
+      })
+    }
+    return map
+  }, [alocari, lucrari, tehnicianSelectat, zileSaptamana])
+
+  const sectiuni = useMemo(() => {
+    if (!tehnicianSelectat) return []
+    const roluri = new Set(tehnicianSelectat.roluri || [])
+    return etape.filter((e) => (!esteEtapaModel(e) && roluri.has(e.id)) || sarciniPeEtapaSiZi.has(e.id))
+  }, [etape, tehnicianSelectat, sarciniPeEtapaSiZi])
+
+  // Toate neprogramatele secțiunilor (pentru „Asignează" din fereastra zilei).
+  const lucrariNeplanificate = useMemo(
+    () =>
+      sectiuni
+        .flatMap((e) => (programatePeEtapa.get(e.id) || []).map(({ lucrare, etapa }) => ({ lucrare, etape: [etapa] })))
+        .sort((x, y) => {
+          const tx = x.lucrare.termen_predare
+          const ty = y.lucrare.termen_predare
+          if (tx === ty) return 0
+          if (!tx) return 1
+          if (!ty) return -1
+          return tx < ty ? -1 : 1
+        }),
+    [sectiuni, programatePeEtapa]
+  )
+
   // Variantă pentru un element grupat din „Lucrări neplanificate" — un
   // singur drag scrie același patch (tehnician + dată, sau ștergerea lor) pe
   // câte un rând `productie_lucrare` pentru FIECARE etapă din grup.
   // Ecranul se actualizează imediat (caseta trece în zi); dacă scrierea în baza de
   // date eșuează, revine starea de dinainte și apare un mesaj clar.
+  //
+  // Programarea Designului pe o zi bifează automat etapa Model (data finalizării =
+  // azi), ca lucrarea să treacă pe Kanban în coloana Design. Rândul Model rămâne fără
+  // tehnician, deci nu generează comision (Model nici nu are comision definit).
   const handleAlocareMultipla = async (lucrareId, etapaIds, patch) => {
     const cheie = `${lucrareId}-${etapaIds.join(',')}`
     const inainte = alocariRef.current
+    const etapaModel = etape.find(esteEtapaModel)
+    const etapaDesign = etape.find(esteEtapaDesign)
+    const bifeazaModel =
+      !!patch.data_planificata &&
+      !!etapaModel &&
+      !!etapaDesign &&
+      etapaIds.includes(etapaDesign.id) &&
+      !inainte.find((a) => a.lucrare_id === lucrareId && a.etapa_id === etapaModel.id)?.finalizat
+    const patchModel = { finalizat: true, data_finalizare: azi() }
     setMutandKey(cheie)
     setMesajEroare('')
-    setAlocari(aplicaPatchAlocari(inainte, lucrareId, etapaIds, patch))
+    let optimist = aplicaPatchAlocari(inainte, lucrareId, etapaIds, patch)
+    if (bifeazaModel) optimist = aplicaPatchAlocari(optimist, lucrareId, [etapaModel.id], patchModel)
+    setAlocari(optimist)
+    const nr = lucrari.find((l) => l.id === lucrareId)?.nr_inregistrare || 'lucrarea'
     try {
       await Promise.all(etapaIds.map((etapaId) => setProductieAlocare(lucrareId, etapaId, patch)))
-      await reincarcaAlocarile()
     } catch (err) {
       setAlocari(inainte)
-      const nr = lucrari.find((l) => l.id === lucrareId)?.nr_inregistrare || 'lucrarea'
       setMesajEroare(`Nu s-a putut salva programarea pentru ${nr}: ${err.message || 'eroare necunoscută'}. Lucrarea a revenit la loc — încearcă din nou.`)
       reincarcaAlocarile().catch(() => {})
+      setMutandKey(null)
+      return
+    }
+    if (bifeazaModel) {
+      try {
+        await setProductieAlocare(lucrareId, etapaModel.id, patchModel)
+      } catch (err) {
+        setMesajEroare(`Designul pentru ${nr} a fost programat, dar etapa Model nu s-a putut bifa automat: ${err.message || 'eroare necunoscută'}. Bifeaz-o din fișa lucrării.`)
+      }
+    }
+    try {
+      await reincarcaAlocarile()
     } finally {
       setMutandKey(null)
     }
@@ -441,20 +531,147 @@ export default function TaskuriPage({ profile }) {
     setActiv(null)
     const { active, over } = event
     if (!over || !tehnicianSelectat) return
-    const { lucrareId, etapaIds, source, day: sourceDay } = active.data.current || {}
+    const { lucrareId, etapaIds, etapaId, source, day: sourceDay } = active.data.current || {}
     if (!lucrareId || !etapaIds || etapaIds.length === 0) return
-    const targetId = over.id
+    const [prefix, sufix] = String(over.id).split('|')
 
-    if (targetId === NEPLANIFICATE_ID) {
-      if (source === 'neplanificate') return
+    if (prefix === NEPLANIFICATE_ID) {
+      // Zona de neprogramate a etapei: doar a etapei casetei.
+      if (sufix !== etapaId || source === 'neplanificate') return
       scoateDinPlanificare(lucrareId, etapaIds)
     } else {
-      if (source === 'calendar' && sourceDay === targetId) return
-      planificaPeZi(lucrareId, etapaIds, targetId)
+      // Ziua unei secțiuni: doar din aceeași etapă.
+      if (prefix !== etapaId) return
+      if (source === 'calendar' && sourceDay === sufix) return
+      planificaPeZi(lucrareId, etapaIds, sufix)
     }
   }
 
   const deschideLucrarea = (lucrare) => navigate(`/comanda/${encodeURIComponent(lucrare.nr_inregistrare)}`)
+
+  // O secțiune = o etapă din rolurile tehnicianului: calendarul cu sarcinile lui pe
+  // acea etapă + lucrările care așteaptă programare la ea.
+  const renderSectiune = (etapa) => {
+    const peZi = sarciniPeEtapaSiZi.get(etapa.id) || {}
+    const nrProgramate = zileSaptamana.reduce((n, zi) => n + (peZi[zi] || []).length, 0)
+    const toateNeprogramate = programatePeEtapa.get(etapa.id) || []
+    const casete = casetePentru(etapa.id)
+    return (
+      <section key={etapa.id} className="taskuri-sectiune" aria-label={`Etapa ${etapa.nume}`}>
+        <h3 className="taskuri-sectiune-titlu">
+          <span>{etapa.nume}</span>
+          <span className="taskuri-sectiune-nr">
+            {nrProgramate} {nrProgramate === 1 ? 'programată' : 'programate'} în săptămână · {toateNeprogramate.length} neprogramate
+          </span>
+        </h3>
+
+        <div className="card taskuri-calendar taskuri-calendar-sticky">
+          <div className={`taskuri-week-grid ${isMobil ? 'taskuri-week-grid-mobil' : ''}`}>
+            {zileSaptamana.map((zi, i) => {
+              if (isMobil && i !== ziAfisataMobil) return null
+              const toateZi = peZi[zi] || []
+              const finalizateZi = toateZi.filter((g) => g.finalizat).length
+              const ramaseZi = toateZi.length - finalizateZi
+              const carduri = arataFinalizate ? toateZi : toateZi.filter((g) => !g.finalizat)
+              return (
+                <DropZone
+                  key={zi}
+                  id={`${etapa.id}|${zi}`}
+                  etapaId={etapa.id}
+                  className={`taskuri-day-column ${zi === astazi ? 'taskuri-day-azi' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="taskuri-day-header"
+                    onClick={() => setZiModalDeschisa(zi)}
+                    aria-label={`Vezi detaliile zilei de ${NUME_ZILE[i]}`}
+                  >
+                    <span className="taskuri-day-nume">{NUME_ZILE[i]}</span>
+                    <span className="taskuri-day-data">
+                      {formatZiScurt(zi)}
+                      {ramaseZi > 0 && (
+                        <span className="taskuri-day-nr" title="Lucrări rămase de făcut în această zi">{ramaseZi}</span>
+                      )}
+                    </span>
+                    {toateZi.length > 0 && (
+                      <span className="taskuri-day-contor" title="Finalizate din cele programate în această zi">
+                        {finalizateZi}/{toateZi.length} finalizate
+                      </span>
+                    )}
+                  </button>
+                  <div className="taskuri-day-body">
+                    {carduri.length === 0 && (
+                      <p className="taskuri-day-empty">{toateZi.length > 0 ? '✓ Toate finalizate' : '—'}</p>
+                    )}
+                    {carduri.map((grup) => (
+                      <DraggableTaskCard
+                        key={grup.cheie}
+                        dragId={`planificat-${grup.cheie}`}
+                        data={{ lucrareId: grup.lucrare.id, etapaIds: grup.etapaIds, etapaId: etapa.id, source: 'calendar', day: zi }}
+                        disabled={!!mutandKey && mutandKey.startsWith(`${grup.lucrare.id}-`)}
+                        dragDisabled={isMobil || grup.finalizat}
+                        onOpen={() => deschideLucrarea(grup.lucrare)}
+                        title={titluCard(grup.lucrare, [etapa])}
+                        className={`taskuri-task-card taskuri-day-card ${grup.finalizat ? 'taskuri-day-card-finalizat' : ''}`}
+                      >
+                        <span className="taskuri-day-card-rand rezumat-pacient">{grup.lucrare.pacient || '—'}</span>
+                        <span className="taskuri-day-card-rand taskuri-day-card-tip">{grup.lucrare.tip_lucrare}</span>
+                        {grup.finalizat && <span className="taskuri-day-card-fin">✓ Finalizat</span>}
+                      </DraggableTaskCard>
+                    ))}
+                  </div>
+                </DropZone>
+              )
+            })}
+          </div>
+        </div>
+
+        <section className="card taskuri-casete" aria-label={`Lucrări neprogramate la ${etapa.nume}`}>
+          <div className="taskuri-casete-antet">
+            <h4 className="taskuri-panel-title">
+              Neprogramate la {etapa.nume}
+              {toateNeprogramate.length > 0 && (
+                <span className="taskuri-casete-nr">
+                  {casete.length === toateNeprogramate.length ? casete.length : `${casete.length} din ${toateNeprogramate.length}`}
+                </span>
+              )}
+            </h4>
+          </div>
+          <DropZone id={`${NEPLANIFICATE_ID}|${etapa.id}`} etapaId={etapa.id} className="taskuri-casete-lista">
+            {toateNeprogramate.length === 0 ? (
+              <p className="taskuri-panel-hint">Nicio lucrare nu așteaptă programare la {etapa.nume}.</p>
+            ) : casete.length === 0 ? (
+              <p className="taskuri-panel-hint">
+                Nicio lucrare urgentă.{' '}
+                <button type="button" className="taskuri-filtre-reset" onClick={() => setDoarUrgente(false)}>
+                  Arată toate
+                </button>
+              </p>
+            ) : (
+              casete.map(({ lucrare }) => {
+                const cheieGrup = `${lucrare.id}-${etapa.id}`
+                const urgenta = urgentaCaseta(lucrare.termen_predare, astazi)
+                return (
+                  <DraggableTaskCard
+                    key={lucrare.id}
+                    dragId={`neplanificat-${etapa.id}-${lucrare.id}`}
+                    data={{ lucrareId: lucrare.id, etapaIds: [etapa.id], etapaId: etapa.id, source: 'neplanificate' }}
+                    disabled={mutandKey === cheieGrup}
+                    dragDisabled={isMobil}
+                    onOpen={() => deschideLucrarea(lucrare)}
+                    title={titluCard(lucrare, [etapa])}
+                    className={`taskuri-task-card taskuri-caseta taskuri-caseta-${urgenta.nivel}`}
+                  >
+                    <CasetaContinut lucrare={lucrare} urgenta={urgenta} />
+                  </DraggableTaskCard>
+                )
+              })
+            )}
+          </DropZone>
+        </section>
+      </section>
+    )
+  }
 
   return (
     <div className="taskuri-page">
@@ -505,39 +722,75 @@ export default function TaskuriPage({ profile }) {
               ))}
             </ul>
 
-            <div className="card taskuri-calendar taskuri-calendar-sticky">
-              <div className="taskuri-week-nav">
-                <button
-                  type="button"
-                  className="btn btn-secondary taskuri-week-btn"
-                  onClick={() => setSaptamanaOffset((v) => v - 1)}
-                  aria-label="Săptămâna precedentă"
-                >
-                  ←
-                </button>
-                <div className="taskuri-week-current">
-                  {tehnicianSelectat && <span className="taskuri-week-tehnician">{tehnicianSelectat.nume}</span>}
-                  <span className="taskuri-week-label">{formatIntervalSaptamana(zileSaptamana)}</span>
-                  {!esteSaptamanaCurenta && (
-                    <button type="button" className="btn btn-ghost taskuri-week-today" onClick={() => setSaptamanaOffset(0)}>
-                      Săptămâna curentă
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-secondary taskuri-week-btn"
-                  onClick={() => setSaptamanaOffset((v) => v + 1)}
-                  aria-label="Săptămâna următoare"
-                >
-                  →
-                </button>
-              </div>
+            {etapeFaraOm.length > 0 && (
+              <ul className="taskuri-avertismente" aria-label="Etape fără tehnician">
+                {etapeFaraOm.map(({ etapa, nr }) => (
+                  <li key={etapa.id} className="taskuri-avertisment">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M8 2.2L14.4 13.4H1.6L8 2.2z" />
+                      <path d="M8 6.6v3.2M8 11.6v.1" />
+                    </svg>
+                    <span>
+                      <strong>Nicio persoană alocată la {etapa.nume}</strong> — {nr} {nr === 1 ? 'lucrare așteaptă' : 'lucrări așteaptă'} această etapă.
+                      Adaug-o la rolurile unui tehnician din Setup → Tehnicieni.
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-              {!tehnicianSelectat ? (
-                <p className="taskuri-panel-hint taskuri-calendar-hint">Alege un tehnician ca să vezi calendarul lui.</p>
-              ) : (
-                <>
+            {!tehnicianSelectat ? (
+              <p className="taskuri-panel-hint taskuri-calendar-hint">Alege un tehnician ca să vezi etapele și calendarul lui.</p>
+            ) : (
+              <>
+                <div className="card taskuri-bara-saptamana">
+                  <div className="taskuri-week-nav">
+                    <button
+                      type="button"
+                      className="btn btn-secondary taskuri-week-btn"
+                      onClick={() => setSaptamanaOffset((v) => v - 1)}
+                      aria-label="Săptămâna precedentă"
+                    >
+                      ←
+                    </button>
+                    <div className="taskuri-week-current">
+                      <span className="taskuri-week-tehnician">{tehnicianSelectat.nume}</span>
+                      <span className="taskuri-week-label">{formatIntervalSaptamana(zileSaptamana)}</span>
+                      {!esteSaptamanaCurenta && (
+                        <button type="button" className="btn btn-ghost taskuri-week-today" onClick={() => setSaptamanaOffset(0)}>
+                          Săptămâna curentă
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary taskuri-week-btn"
+                      onClick={() => setSaptamanaOffset((v) => v + 1)}
+                      aria-label="Săptămâna următoare"
+                    >
+                      →
+                    </button>
+                  </div>
+
+                  <div className="taskuri-filtre taskuri-bara-filtre" role="group" aria-label="Filtre rapide">
+                    <button
+                      type="button"
+                      className={`taskuri-filtru ${arataFinalizate ? 'activ' : ''}`}
+                      aria-pressed={arataFinalizate}
+                      onClick={() => setArataFinalizate((v) => !v)}
+                    >
+                      Arată și finalizatele
+                    </button>
+                    <button
+                      type="button"
+                      className={`taskuri-filtru taskuri-filtru-urgente ${doarUrgente ? 'activ' : ''}`}
+                      aria-pressed={doarUrgente}
+                      onClick={() => setDoarUrgente((v) => !v)}
+                    >
+                      Doar urgente
+                    </button>
+                  </div>
+
                   {isMobil && (
                     <div className="taskuri-day-nav">
                       <button
@@ -550,15 +803,15 @@ export default function TaskuriPage({ profile }) {
                         ‹
                       </button>
                       <div className="taskuri-day-pills">
-                        {NUME_ZILE.map((nume, i) => (
+                        {NUME_ZILE.map((nume, idx) => (
                           <button
                             key={nume}
                             type="button"
-                            className={`taskuri-day-pill ${i === ziAfisataMobil ? 'active' : ''} ${zileSaptamana[i] === astazi ? 'taskuri-day-pill-azi' : ''}`}
-                            onClick={() => setZiAfisataMobil(i)}
+                            className={`taskuri-day-pill ${idx === ziAfisataMobil ? 'active' : ''} ${zileSaptamana[idx] === astazi ? 'taskuri-day-pill-azi' : ''}`}
+                            onClick={() => setZiAfisataMobil(idx)}
                           >
                             <span className="taskuri-day-pill-nume">{nume.slice(0, 2)}</span>
-                            <span className="taskuri-day-pill-data">{formatZiScurt(zileSaptamana[i])}</span>
+                            <span className="taskuri-day-pill-data">{formatZiScurt(zileSaptamana[idx])}</span>
                           </button>
                         ))}
                       </div>
@@ -573,134 +826,29 @@ export default function TaskuriPage({ profile }) {
                       </button>
                     </div>
                   )}
+                </div>
 
-                  <div className={`taskuri-week-grid ${isMobil ? 'taskuri-week-grid-mobil' : ''}`}>
-                    {zileSaptamana.map((zi, i) => {
-                      if (isMobil && i !== ziAfisataMobil) return null
-                      return (
-                        <DropZone key={zi} id={zi} className={`taskuri-day-column ${zi === astazi ? 'taskuri-day-azi' : ''}`}>
-                          <button
-                            type="button"
-                            className="taskuri-day-header"
-                            onClick={() => setZiModalDeschisa(zi)}
-                            aria-label={`Vezi detaliile zilei de ${NUME_ZILE[i]}`}
-                          >
-                            <span className="taskuri-day-nume">{NUME_ZILE[i]}</span>
-                            <span className="taskuri-day-data">
-                              {formatZiScurt(zi)}
-                              {(taskuriPeZi[zi] || []).length > 0 && (
-                                <span className="taskuri-day-nr" title="Lucrări în această zi">{taskuriPeZi[zi].length}</span>
-                              )}
-                            </span>
-                          </button>
-                          <div className="taskuri-day-body">
-                            {(taskuriPeZi[zi] || []).length === 0 && <p className="taskuri-day-empty">—</p>}
-                            {(taskuriPeZi[zi] || []).map((grup) => (
-                              <DraggableTaskCard
-                                key={grup.cheie}
-                                dragId={`planificat-${grup.cheie}`}
-                                data={{ lucrareId: grup.lucrare.id, etapaIds: grup.etapaIds, source: 'calendar', day: zi }}
-                                disabled={!!mutandKey && mutandKey.startsWith(`${grup.lucrare.id}-`)}
-                                dragDisabled={isMobil || grup.finalizat}
-                                onOpen={() => deschideLucrarea(grup.lucrare)}
-                                title={titluCard(grup.lucrare, grup.etapaIds.map((id) => etapaById(id)).filter(Boolean))}
-                                className="taskuri-task-card taskuri-day-card"
-                              >
-                                <span className="taskuri-day-card-rand rezumat-pacient">{grup.lucrare.pacient || '—'}</span>
-                                <span className="taskuri-day-card-rand taskuri-day-card-tip">{grup.lucrare.tip_lucrare}</span>
-                              </DraggableTaskCard>
-                            ))}
-                          </div>
-                        </DropZone>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <section className="card taskuri-casete" aria-label="Lucrări neprogramate">
-              <div className="taskuri-casete-antet">
-                <h3 className="taskuri-panel-title">
-                  Lucrări neprogramate
-                  {tehnicianSelectat && lucrariNeplanificate.length > 0 && (
-                    <span className="taskuri-casete-nr">
-                      {casete.length === lucrariNeplanificate.length ? casete.length : `${casete.length} din ${lucrariNeplanificate.length}`}
-                    </span>
-                  )}
-                </h3>
-                {tehnicianSelectat && lucrariNeplanificate.length > 0 && (
-                  <div className="taskuri-filtre" role="group" aria-label="Filtre rapide">
-                    <button
-                      type="button"
-                      className={`taskuri-filtru ${etapaFiltruActiva === null ? 'activ' : ''}`}
-                      aria-pressed={etapaFiltruActiva === null}
-                      onClick={() => setEtapaFiltru(null)}
-                    >
-                      Toate etapele
-                    </button>
-                    {etapeCasete.map((e) => (
-                      <button
-                        key={e.id}
-                        type="button"
-                        className={`taskuri-filtru ${etapaFiltruActiva === e.id ? 'activ' : ''}`}
-                        aria-pressed={etapaFiltruActiva === e.id}
-                        onClick={() => setEtapaFiltru(e.id)}
-                      >
-                        {e.nume}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className={`taskuri-filtru taskuri-filtru-urgente ${doarUrgente ? 'activ' : ''}`}
-                      aria-pressed={doarUrgente}
-                      onClick={() => setDoarUrgente((v) => !v)}
-                    >
-                      <IconUrgenta nivel="rosu" />
-                      Doar urgente
-                    </button>
-                  </div>
+                {sectiuni.length === 0 ? (
+                  <p className="taskuri-panel-hint taskuri-calendar-hint">
+                    {tehnicianSelectat.nume} nu are încă niciun rol de producție. Adaugă-i o etapă din Setup → Tehnicieni.
+                  </p>
+                ) : (
+                  sectiuni.map(renderSectiune)
                 )}
-              </div>
-
-              {!tehnicianSelectat ? (
-                <p className="taskuri-panel-hint">Alege un tehnician ca să vezi lucrările lui neprogramate.</p>
-              ) : (
-                <DropZone id={NEPLANIFICATE_ID} className="taskuri-casete-lista">
-                  {lucrariNeplanificate.length === 0 ? (
-                    <p className="taskuri-panel-hint">Nicio lucrare neprogramată pentru acest tehnician.</p>
-                  ) : casete.length === 0 ? (
-                    <p className="taskuri-panel-hint">
-                      Nicio lucrare pentru filtrele alese.{' '}
-                      <button type="button" className="taskuri-filtre-reset" onClick={() => { setEtapaFiltru(null); setDoarUrgente(false) }}>
-                        Șterge filtrele
-                      </button>
-                    </p>
-                  ) : (
-                    casete.map(({ lucrare, etape: etapeGrup }) => {
-                      const etapaIds = etapeGrup.map((e) => e.id)
-                      const cheieGrup = `${lucrare.id}-${etapaIds.join(',')}`
-                      const urgenta = urgentaCaseta(lucrare.termen_predare, astazi)
-                      return (
-                        <DraggableTaskCard
-                          key={lucrare.id}
-                          dragId={`neplanificat-${lucrare.id}`}
-                          data={{ lucrareId: lucrare.id, etapaIds, source: 'neplanificate' }}
-                          disabled={mutandKey === cheieGrup}
-                          dragDisabled={isMobil}
-                          onOpen={() => deschideLucrarea(lucrare)}
-                          title={titluCard(lucrare, etapeGrup)}
-                          className={`taskuri-task-card taskuri-caseta taskuri-caseta-${urgenta.nivel}`}
-                        >
-                          <CasetaContinut lucrare={lucrare} urgenta={urgenta} />
-                        </DraggableTaskCard>
-                      )
-                    })
-                  )}
-                </DropZone>
-              )}
-            </section>
+              </>
+            )}
           </div>
+
+          {tehnicianSelectat && (
+            <FacuteSaptamana
+              tehnicianId={tehnicianSelectat.id}
+              alocari={alocari}
+              lucrari={lucrariToate}
+              etape={etape}
+              astazi={astazi}
+              onOpenLucrare={deschideLucrarea}
+            />
+          )}
 
           <DragOverlay dropAnimation={null}>
             {activ &&

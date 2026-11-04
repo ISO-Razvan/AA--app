@@ -11,6 +11,12 @@
 // Funcții pure, fără React și fără acces la baza de date — testate în
 // etapeNeplanificate.test.js (`node --test src/utils`).
 
+import { esteEtapaModel, esteEtapaValidare, etapaCurentaPentru } from './etapaProductie.js'
+import { esteEtapaDesign } from './adaosuriDesign.js'
+
+// Re-exportat: RestanteModal și testele îl importă de aici.
+export { esteEtapaModel }
+
 const NUME_LUNI = [
   'ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie',
   'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie',
@@ -18,9 +24,6 @@ const NUME_LUNI = [
 
 // O etapă e „alocată" când are tehnician ȘI dată planificată.
 export const esteAlocata = (rand) => !!(rand?.tehnician_id && rand?.data_planificata)
-
-// Etapa „Model" se bifează fără tehnician (se identifică după nume, ca în fișa lucrării).
-export const esteEtapaModel = (etapa) => etapa?.nume === 'Model'
 
 // Termen depășit = mai vechi decât azi (termenul de azi încă nu e depășit).
 export const termenDepasit = (termen, astazi) => !!termen && termen < astazi
@@ -46,37 +49,69 @@ function esteNeprogramata(lucrare, etapaId, rand, livrareAutoId) {
   return !esteAlocata(rand)
 }
 
-// Etapele neplanificate ale tehnicianului (după rolurile lui) — [{ lucrare, etape }],
-// cele mai urgente primele. Nu intră:
-//  - etapele bifate (sunt făcute, chiar dacă n-au tehnician sau dată);
-//  - lucrările restante (au termenul depășit, merg în alertă);
-//  - Livrarea automată dacă lucrarea are deja termen (data ei e termenul).
-export function etapeNeplanificateTehnician({ lucrari, etape, alocari, tehnician, livrareAutoId, astazi }) {
-  if (!tehnician) return []
-  const roluri = tehnician.roluri || []
-  const rezultat = []
-  for (const l of lucrari) {
-    if (termenDepasit(l.termen_predare, astazi)) continue
-    const etapeNealocate = []
-    for (const etapaId of roluri) {
-      const rand = alocari.find((a) => a.lucrare_id === l.id && a.etapa_id === etapaId)
-      if (rand?.finalizat) continue
-      if (!esteNeprogramata(l, etapaId, rand, livrareAutoId)) continue
-      const etapa = etape.find((e) => e.id === etapaId)
-      if (etapa) etapeNealocate.push(etapa)
-    }
-    if (etapeNealocate.length > 0) rezultat.push({ lucrare: l, etape: etapeNealocate })
+// Etapa în care lucrarea așteaptă programare ACUM (sau null): etapa ei curentă din
+// Kanban — prima etapă nefinalizată, în ordinea din Setup (etapaCurentaPentru) — dacă
+// rândul ei nu are încă dată planificată. Excepția „Model": lucrarea nouă stă în
+// coloana Model, dar se programează la DESIGN (Model se bifează automat când se
+// programează designul). Livrarea cu termen se planifică singură, deci nu apare.
+export function etapaDeProgramat({ lucrare, etape, randuriLucrare, livrareAutoId }) {
+  const { etapa: curenta } = etapaCurentaPentru(etape, randuriLucrare)
+  if (!curenta) return null
+  // Validare (lucrare trimisă de designer) nu se programează: așteaptă validarea.
+  if (esteEtapaValidare(curenta)) return null
+  let tinta = curenta
+  if (esteEtapaModel(curenta)) {
+    tinta = etape.find(esteEtapaDesign) || etape[etape.findIndex((e) => e.id === curenta.id) + 1] || null
   }
-  // Fără termen, la coada listei; sortarea e stabilă.
-  rezultat.sort((a, b) => {
-    const ta = a.lucrare.termen_predare
-    const tb = b.lucrare.termen_predare
-    if (ta === tb) return 0
-    if (!ta) return 1
-    if (!tb) return -1
-    return ta < tb ? -1 : 1
-  })
+  if (!tinta) return null
+  const rand = randuriLucrare.find((r) => r.etapa_id === tinta.id)
+  if (rand?.finalizat || rand?.data_planificata) return null
+  if (tinta.id === livrareAutoId && lucrare.termen_predare) return null
+  return tinta
+}
+
+// Lucrările de programat, pe etapă: Map(etapa_id -> [{ lucrare, etapa }]), cele mai
+// urgente primele (fără termen, la coadă). O lucrare apare la O SINGURĂ etapă — cea
+// curentă — nu la toate etapele tehnicianului. Nu intră lucrările restante (termen
+// depășit): merg în alerta „lucrări restante". Un tehnician vede doar etapele din
+// rolurile lui (`tehnicieni.roluri`).
+export function neprogramatePeEtapa({ lucrari, etape, alocari, livrareAutoId, astazi }) {
+  const randuriPeLucrare = new Map()
+  for (const r of alocari) {
+    if (!randuriPeLucrare.has(r.lucrare_id)) randuriPeLucrare.set(r.lucrare_id, [])
+    randuriPeLucrare.get(r.lucrare_id).push(r)
+  }
+  const rezultat = new Map()
+  for (const lucrare of lucrari) {
+    if (termenDepasit(lucrare.termen_predare, astazi)) continue
+    const etapa = etapaDeProgramat({ lucrare, etape, randuriLucrare: randuriPeLucrare.get(lucrare.id) || [], livrareAutoId })
+    if (!etapa) continue
+    if (!rezultat.has(etapa.id)) rezultat.set(etapa.id, [])
+    rezultat.get(etapa.id).push({ lucrare, etapa })
+  }
+  for (const lista of rezultat.values()) {
+    // Fără termen, la coada listei; sortarea e stabilă.
+    lista.sort((x, y) => {
+      const tx = x.lucrare.termen_predare
+      const ty = y.lucrare.termen_predare
+      if (tx === ty) return 0
+      if (!tx) return 1
+      if (!ty) return -1
+      return tx < ty ? -1 : 1
+    })
+  }
   return rezultat
+}
+
+// Etapele (în ordinea din Setup) la care așteaptă lucrări, dar pe care nu le are
+// niciun tehnician în roluri — lucrări blocate pe nesimțite. Model nu intră: nu se
+// programează. [{ etapa, nr }]
+export function etapeFaraTehnician({ etape, tehnicieni, programatePeEtapa }) {
+  return etape
+    .filter((e) => !esteEtapaModel(e) && !esteEtapaValidare(e))
+    .filter((e) => !tehnicieni.some((t) => (t.roluri || []).includes(e.id)))
+    .map((e) => ({ etapa: e, nr: programatePeEtapa.get(e.id)?.length || 0 }))
+    .filter((x) => x.nr > 0)
 }
 
 // Lucrările restante: termen_predare < azi și cel puțin o etapă neprogramată și
@@ -90,7 +125,9 @@ export function lucrariRestante({ lucrari, etape, alocari, livrareAutoId, astazi
     if (!termenDepasit(l.termen_predare, astazi)) continue
     const nebifate = []
     let areNeprogramata = false
-    for (const etapa of etape) {
+    // Validare nu se închide retroactiv: nu are tehnician și se aplică doar când designul
+    // trece prin validare.
+    for (const etapa of etape.filter((e) => !esteEtapaValidare(e))) {
       const rand = alocari.find((a) => a.lucrare_id === l.id && a.etapa_id === etapa.id) || null
       if (rand?.finalizat) continue
       nebifate.push({ etapa, rand })

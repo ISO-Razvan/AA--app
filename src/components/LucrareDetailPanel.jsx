@@ -13,7 +13,7 @@ import {
 import { areAccesOperational, estePatron } from '../utils/roluri'
 import { MODEL_OPTIONS } from '../data/configDefaults'
 import { calculeazaDinti, dinDintiSalvati, toggleImplant, toggleLinkPair, toggleToothSelection } from '../utils/dintiGrupuri'
-import { statusDinRanduri } from '../utils/statusLucrare'
+import { statusLucrare as calculeazaStatus } from '../utils/statusLucrare'
 import { bazaCaz, lucrariDinCaz, incasareCaz } from '../utils/caz'
 import { campuriLipsa } from '../utils/informatiiLipsa'
 import CampLipsa from './CampLipsa.jsx'
@@ -138,7 +138,7 @@ export default function LucrareDetailPanel({
   useEffect(() => {
     async function loadStatus() {
       const [etape, randuri] = await Promise.all([getEtapeProductie(), getProductieLucrare(lucrare.id)])
-      setStatusLucrare(statusDinRanduri(etape.length, randuri))
+      setStatusLucrare(calculeazaStatus(etape, randuri))
     }
     loadStatus()
   }, [lucrare.id])

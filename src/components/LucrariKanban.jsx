@@ -12,6 +12,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { getEtapeProductie, getToateAlocarile, getTehnicieni, setProductieAlocare } from '../services/dataService'
 import { azi, adaugaZile } from '../utils/date'
 import { etapaCurentaPentru } from '../utils/etapaProductie'
+import { scrieriMutareKanban } from '../utils/kanbanMutare'
 import { subscribeToTable } from '../services/realtime'
 import { IndicatorNoteMedic } from './NoteComanda.jsx'
 import './LucrariKanban.css'
@@ -111,30 +112,23 @@ export default function LucrariKanban({ lucrari, onRowClick, readOnly = false })
   // coloană. Scrie prin `setProductieAlocare`, aceeași cale folosită de
   // bifarea normală — Realtime propagă mutarea și în celelalte ecrane
   // (Task-uri, fișa lucrării), fără cod suplimentar.
+  // Ce se scrie e decis în utils/kanbanMutare.js (inclusiv Validare: spre ea Designul
+  // se TRIMITE la validare, nu se finalizează).
   const handleMutare = async (lucrare, etapeOrdonate, targetId) => {
     const randuriLucrare = alocari.filter((a) => a.lucrare_id === lucrare.id)
-    const { etapa: etapaCurenta } = etapaCurentaPentru(etapeOrdonate, randuriLucrare)
-    const oldIndex = etapaCurenta ? etapeOrdonate.findIndex((e) => e.id === etapaCurenta.id) : etapeOrdonate.length
-    const targetIndex = targetId === COLOANA_FINALIZAT ? etapeOrdonate.length : etapeOrdonate.findIndex((e) => e.id === targetId)
-    if (targetIndex === oldIndex) return
+    const scrieri = scrieriMutareKanban({
+      etape: etapeOrdonate,
+      randuriLucrare,
+      tintaId: targetId,
+      finalizatId: COLOANA_FINALIZAT,
+      azi: azi(),
+      acum: new Date().toISOString(),
+    })
+    if (scrieri.length === 0) return
 
     setMutandId(lucrare.id)
     try {
-      const azi_ = azi()
-      const scrieri = []
-      if (targetIndex > oldIndex) {
-        for (let i = oldIndex; i < targetIndex; i++) {
-          scrieri.push(setProductieAlocare(lucrare.id, etapeOrdonate[i].id, { finalizat: true, data_finalizare: azi_ }))
-        }
-        if (targetIndex < etapeOrdonate.length) {
-          scrieri.push(setProductieAlocare(lucrare.id, etapeOrdonate[targetIndex].id, { finalizat: false, data_finalizare: null }))
-        }
-      } else {
-        for (let i = targetIndex; i < oldIndex; i++) {
-          scrieri.push(setProductieAlocare(lucrare.id, etapeOrdonate[i].id, { finalizat: false, data_finalizare: null }))
-        }
-      }
-      await Promise.all(scrieri)
+      await Promise.all(scrieri.map((w) => setProductieAlocare(lucrare.id, w.etapa_id, w.patch)))
       await reincarcaAlocarile()
     } finally {
       setMutandId(null)

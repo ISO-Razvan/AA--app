@@ -3,7 +3,7 @@ import { importLucrari, updateLucrare, deleteLucrare, getEtapeProductie, getToat
 import { lucrariToCSV, parseCSV, downloadCSV, CSV_COLUMNS } from '../utils/csv'
 import { bazaCaz, cazuri } from '../utils/caz'
 import { azi } from '../utils/date'
-import { statusDinRanduri, STATUS_LUCRARE } from '../utils/statusLucrare'
+import { statusLucrare, STATUS_LUCRARE } from '../utils/statusLucrare'
 import { subscribeToTable } from '../services/realtime'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import LucrariKanban from './LucrariKanban.jsx'
@@ -84,7 +84,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   const [importSummary, setImportSummary] = useState(null)
   const [importing, setImporting] = useState(false)
   const [search, setSearch] = useState('')
-  const [totalEtape, setTotalEtape] = useState(0)
+  const [etape, setEtape] = useState([])
   const [alocari, setAlocari] = useState([])
   const [deletingId, setDeletingId] = useState(null)
   const [restoringId, setRestoringId] = useState(null)
@@ -96,8 +96,8 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
 
   useEffect(() => {
     async function load() {
-      const [etape, toateAlocarile] = await Promise.all([getEtapeProductie(), getToateAlocarile()])
-      setTotalEtape(etape.length)
+      const [etapeNoi, toateAlocarile] = await Promise.all([getEtapeProductie(), getToateAlocarile()])
+      setEtape(etapeNoi)
       setAlocari(toateAlocarile)
     }
     load()
@@ -115,7 +115,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
   }, [reincarcaAlocarile])
 
   const statusPentru = (lucrareId) =>
-    statusDinRanduri(totalEtape, alocari.filter((a) => a.lucrare_id === lucrareId))
+    statusLucrare(etape, alocari.filter((a) => a.lucrare_id === lucrareId))
 
   const sourceLucrari = useMemo(() => {
     if (modFiltrare === 'toate') return lucrari
@@ -165,7 +165,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
     })
     return arr
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtered, sortField, sortDir, alocari, totalEtape])
+  }, [filtered, sortField, sortDir, alocari, etape])
 
   const handleSort = (field) => {
     if (field === sortField) {

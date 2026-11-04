@@ -5,7 +5,10 @@ import {
   deleteEtapaProductie,
   reordoneazaEtapeProductie,
   updateEtapaDurata,
+  redenumesteEtapaProductie,
+  seteazaEtapaValidare,
 } from '../services/dataService'
+import { motivBlocareRedenumire } from '../utils/etapaProductie'
 import './EtapeProductieList.css'
 
 export default function EtapeProductieList({ onChange }) {
@@ -14,6 +17,11 @@ export default function EtapeProductieList({ onChange }) {
   const [nume, setNume] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  // Redenumirea: o singură etapă o dată, direct în rând.
+  const [editId, setEditId] = useState(null)
+  const [numeEditat, setNumeEditat] = useState('')
+  const [editError, setEditError] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -57,6 +65,56 @@ export default function EtapeProductieList({ onChange }) {
     await load()
   }
 
+  const pornesteRedenumirea = (etapa) => {
+    setEditId(etapa.id)
+    setNumeEditat(etapa.nume)
+    setEditError('')
+  }
+
+  const anuleazaRedenumirea = () => {
+    setEditId(null)
+    setEditError('')
+  }
+
+  const salveazaRedenumirea = async (etapa) => {
+    if (editSaving) return
+    const valoare = numeEditat.trim()
+    if (!valoare) {
+      setEditError('Numele etapei nu poate fi gol.')
+      return
+    }
+    if (valoare === etapa.nume) {
+      anuleazaRedenumirea()
+      return
+    }
+    if (etape.some((e) => e.id !== etapa.id && e.nume.trim().toLowerCase() === valoare.toLowerCase())) {
+      setEditError(`Există deja o etapă cu numele „${valoare}”.`)
+      return
+    }
+    setEditSaving(true)
+    setEditError('')
+    try {
+      await redenumesteEtapaProductie(etapa.id, valoare)
+      setEditId(null)
+      await load()
+    } catch (err) {
+      setEditError(err.message)
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  // „Etapă de validare": cod stabil în baza de date (nu nume), ca etapa să poată fi redenumită.
+  const handleValidare = async (etapa, activ) => {
+    setError('')
+    try {
+      await seteazaEtapaValidare(etapa.id, activ)
+      await load()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   const handleDurataChange = (id, valoare) => {
     setEtape((prev) => prev.map((e) => (e.id === id ? { ...e, durata_minute: valoare } : e)))
   }
@@ -82,12 +140,71 @@ export default function EtapeProductieList({ onChange }) {
             <p className="etape-loading">Se încarcă…</p>
           ) : (
             <ul className="etape-list">
-              {etape.map((etapa, i) => (
+              {etape.map((etapa, i) => {
+                const editeaza = editId === etapa.id
+                const esteValidare = etapa.cod === 'validare'
+                // Validare se identifică prin cod, deci se poate redenumi; Model/Design/Livrare nu.
+                const motivSistem = motivBlocareRedenumire(etapa.nume)
+                const motivBlocat = esteValidare ? null : motivSistem
+                return (
                 <li key={etapa.id} className="etape-row">
                   <div className="etape-row-top">
                     <span className="etape-order">{i + 1}</span>
-                    <span className="etape-nume">{etapa.nume}</span>
+                    {editeaza ? (
+                      <input
+                        type="text"
+                        className="text-input etape-nume-input"
+                        value={numeEditat}
+                        onChange={(e) => {
+                          setNumeEditat(e.target.value)
+                          setEditError('')
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            salveazaRedenumirea(etapa)
+                          } else if (e.key === 'Escape') {
+                            anuleazaRedenumirea()
+                          }
+                        }}
+                        aria-label={`Numele etapei „${etapa.nume}”`}
+                        autoFocus
+                        disabled={editSaving}
+                      />
+                    ) : (
+                      <span className="etape-nume">
+                        {etapa.nume}
+                        {esteValidare && <span className="etape-badge-validare" title="Etapa în care designerul trimite lucrările la validare">Validare</span>}
+                      </span>
+                    )}
+                    {editeaza ? (
+                      <div className="etape-actions">
+                        <button
+                          type="button"
+                          className="btn btn-primary etape-edit-save"
+                          onClick={() => salveazaRedenumirea(etapa)}
+                          disabled={editSaving}
+                        >
+                          {editSaving ? 'Se salvează…' : 'Salvează'}
+                        </button>
+                        <button type="button" className="btn btn-ghost etape-edit-cancel" onClick={anuleazaRedenumirea} disabled={editSaving}>
+                          Anulează
+                        </button>
+                      </div>
+                    ) : (
                     <div className="etape-actions">
+                      <button
+                        type="button"
+                        className="btn btn-ghost etape-move-btn"
+                        onClick={() => pornesteRedenumirea(etapa)}
+                        disabled={!!motivBlocat || editId !== null}
+                        title={motivBlocat ? `Nu se poate redenumi: ${motivBlocat}` : 'Redenumește'}
+                        aria-label={`Redenumește „${etapa.nume}”`}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M11.2 2.3a1.6 1.6 0 012.3 2.3L5.4 12.7l-3.1.8.8-3.1 8.1-8.1z" />
+                        </svg>
+                      </button>
                       <button
                         type="button"
                         className="btn btn-ghost etape-move-btn"
@@ -115,7 +232,15 @@ export default function EtapeProductieList({ onChange }) {
                         Șterge
                       </button>
                     </div>
+                    )}
                   </div>
+                  {editeaza && editError && <p className="etape-error etape-edit-error">{editError}</p>}
+                  {!motivSistem && (
+                    <label className="etape-validare-toggle">
+                      <input type="checkbox" checked={esteValidare} onChange={(e) => handleValidare(etapa, e.target.checked)} />
+                      <span>Etapă de validare — designerul trimite aici lucrările, fără să finalizeze designul</span>
+                    </label>
+                  )}
                   <div className="etape-durata">
                     <label className="etape-durata-label" htmlFor={`durata-${etapa.id}`}>
                       Durată estimată per element
@@ -135,7 +260,8 @@ export default function EtapeProductieList({ onChange }) {
                     </div>
                   </div>
                 </li>
-              ))}
+                )
+              })}
               {etape.length === 0 && <li className="etape-empty">Nicio etapă definită încă.</li>}
             </ul>
           )}

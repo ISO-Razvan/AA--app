@@ -2,7 +2,7 @@
 // marcajul roșu „Lipsește" din fișa lucrării. Funcții pure, testate în
 // informatiiLipsa.test.js; calculul vine doar din datele lucrării.
 
-import { statusDinRanduri } from './statusLucrare.js'
+import { statusLucrare } from './statusLucrare.js'
 
 // Câmpurile obligatorii — UN SINGUR LOC: adaugi sau scoți un rând și clopoțelul,
 // panoul și fișa se schimbă împreună. `cheie` = coloana din `lucrari`;
@@ -37,14 +37,14 @@ export function campuriLipsa(valori) {
 
 // O lucrare e finalizată când toate etapele din Setup sunt bifate (aceeași regulă
 // ca în căutarea globală, Listă și Kanban).
-export function esteFinalizata(totalEtape, randuriProductie) {
-  return statusDinRanduri(totalEtape, randuriProductie).id === 'finalizat'
+export function esteFinalizata(etape, randuriProductie) {
+  return statusLucrare(etape, randuriProductie).id === 'finalizat'
 }
 
 // Lucrările nefinalizate (și nearhivate) cu cel puțin un câmp obligatoriu gol,
 // cele mai recente primele: [{ lucrare, lipsa: [{ cheie, eticheta }] }].
 // Lucrările vechi, deja finalizate, nu intră — ca să nu inunde notificările.
-export function lucrariCuLipsuri({ lucrari, totalEtape, alocari }) {
+export function lucrariCuLipsuri({ lucrari, etape, alocari }) {
   const randuriPeLucrare = new Map()
   for (const r of alocari) {
     if (!randuriPeLucrare.has(r.lucrare_id)) randuriPeLucrare.set(r.lucrare_id, [])
@@ -53,7 +53,7 @@ export function lucrariCuLipsuri({ lucrari, totalEtape, alocari }) {
   const rezultat = []
   for (const lucrare of lucrari) {
     if (lucrare.arhivat) continue
-    if (esteFinalizata(totalEtape, randuriPeLucrare.get(lucrare.id) || [])) continue
+    if (esteFinalizata(etape, randuriPeLucrare.get(lucrare.id) || [])) continue
     const lipsa = campuriLipsa(lucrare)
     if (lipsa.length > 0) rezultat.push({ lucrare, lipsa })
   }

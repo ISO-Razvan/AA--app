@@ -8,8 +8,8 @@ import {
   updateLucrare,
 } from '../services/dataService'
 import { subscribeToTable } from '../services/realtime'
-import { statusDinRanduri } from '../utils/statusLucrare'
-import { configLivrare } from '../utils/etapaProductie'
+import { statusLucrare } from '../utils/statusLucrare'
+import { configLivrare, esteEtapaModel, etapeAplicabile } from '../utils/etapaProductie'
 import { azi } from '../utils/date'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import './ProductieTimeline.css'
@@ -41,9 +41,11 @@ export default function ProductieTimeline({
   tehnicianId = null,
 }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
-  const [etape, setEtape] = useState([])
+  const [etapeToate, setEtape] = useState([])
   const [tehnicieni, setTehnicieni] = useState([])
   const [randuri, setRanduri] = useState([])
+  // Etapa Validare apare doar la lucrările cărora li se aplică (trimise la validare sau cu rând pentru ea).
+  const etape = etapeAplicabile(etapeToate, randuri)
   const [loading, setLoading] = useState(true)
   const [recuperare, setRecuperare] = useState(false)
 
@@ -174,7 +176,7 @@ export default function ProductieTimeline({
     )
   }
 
-  const status = statusDinRanduri(etape.length, randuri)
+  const status = statusLucrare(etape, randuri)
   const livrare = configLivrare(etape, tehnicieni)
   const livrareAutoId = livrare.automata ? livrare.etapa.id : null
 
@@ -236,7 +238,7 @@ export default function ProductieTimeline({
         // Etapa „Model" nu se alocă unui tehnician/dată din acest tab — se
         // afișează doar ca marcaj de stare pe cronologie (cuplat de numele
         // etapei, nu de un id stabil, pentru că etapele n-au un „tip" separat).
-        const esteModel = etapa.nume === 'Model'
+        const esteModel = esteEtapaModel(etapa)
         return (
           <div className={`productie-item ${finalizat ? 'productie-item-finalizata' : ''}`} key={etapa.id}>
             <span

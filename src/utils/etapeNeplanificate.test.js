@@ -1,7 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  etapeNeplanificateTehnician,
+  neprogramatePeEtapa,
+  etapaDeProgramat,
+  etapeFaraTehnician,
   lucrariRestante,
   lunaSalariu,
   zileDepasite,
@@ -70,18 +72,67 @@ test('ordine: cele mai vechi primele', () => {
   assert.deepEqual(r.map((x) => x.lucrare.id), ['a', 'c', 'b'])
 })
 
-test('restantele nu apar în lista normală de neprogramate; cele în termen da', () => {
-  const lucrari = [lucrare('veche', '2026-10-20'), lucrare('noua', '2026-11-20')]
-  const lista = etapeNeplanificateTehnician({ lucrari, etape, alocari: [], tehnician: tehnicieni[0], livrareAutoId: 'e-livrare', astazi: ASTAZI })
-  assert.deepEqual(lista.map((x) => x.lucrare.id), ['noua'])
+const neprogramate = (lucrari, alocari = [], livrareAutoId = 'e-livrare') =>
+  neprogramatePeEtapa({ lucrari, etape, alocari, livrareAutoId, astazi: ASTAZI })
+const ids = (map, etapaId) => (map.get(etapaId) || []).map((x) => x.lucrare.id)
+
+test('restantele nu apar în neprogramate; lucrările în termen da', () => {
+  const m = neprogramate([lucrare('veche', '2026-10-20'), lucrare('noua', '2026-11-20')])
+  assert.deepEqual(ids(m, 'e-design'), ['noua'])
 })
 
-test('lista normală: Livrarea automată și etapele bifate nu intră', () => {
-  const lucrari = [lucrare('l1', '2026-11-20')]
-  const baza = { lucrari, etape, livrareAutoId: 'e-livrare', astazi: ASTAZI }
-  assert.deepEqual(etapeNeplanificateTehnician({ ...baza, alocari: [], tehnician: tehnicieni[1] }), [])
-  const bifata = [rand('l1', 'e-design', { finalizat: true })]
-  assert.deepEqual(etapeNeplanificateTehnician({ ...baza, alocari: bifata, tehnician: tehnicieni[0] }), [])
+test('lucrarea nouă (Model nebifat) apare la DESIGN, nu la Model și nu la alte etape', () => {
+  const m = neprogramate([lucrare('l1', '2026-11-20')])
+  assert.deepEqual(ids(m, 'e-design'), ['l1'])
+  assert.equal(m.has('e-model'), false)
+  assert.equal(m.has('e-frezare'), false)
+  assert.equal(m.has('e-livrare'), false)
+})
+
+test('după Design se programează etapa curentă următoare (doar ea)', () => {
+  const alocari = [rand('l1', 'e-model', { finalizat: true }), rand('l1', 'e-design', { finalizat: true })]
+  const m = neprogramate([lucrare('l1', '2026-11-20')], alocari)
+  assert.deepEqual(ids(m, 'e-frezare'), ['l1'])
+  assert.equal(m.has('e-design'), false)
+})
+
+test('etapă cu dată planificată = programată: nu mai apare nicăieri', () => {
+  const alocari = [rand('l1', 'e-design', { tehnician_id: 't-ana', data_planificata: '2026-11-10' })]
+  assert.equal(neprogramate([lucrare('l1', '2026-11-20')], alocari).size, 0)
+  // chiar fără tehnician pe rând: contează data
+  assert.equal(neprogramate([lucrare('l1', '2026-11-20')], [rand('l1', 'e-design', { data_planificata: '2026-11-10' })]).size, 0)
+})
+
+test('Design bifat, dar Model nebifat: etapa curentă rămâne Model -> nu apare', () => {
+  const alocari = [rand('l1', 'e-design', { finalizat: true })]
+  assert.equal(neprogramate([lucrare('l1', '2026-11-20')], alocari).size, 0)
+})
+
+test('Livrarea cu termen se planifică singură: nu apare; fără termen apare', () => {
+  const toateInafara = [rand('l1', 'e-model', { finalizat: true }), rand('l1', 'e-design', { finalizat: true }), rand('l1', 'e-frezare', { finalizat: true })]
+  assert.equal(neprogramate([lucrare('l1', '2026-11-20')], toateInafara).size, 0)
+  const faraTermen = neprogramate([lucrare('l2', null)], [rand('l2', 'e-model', { finalizat: true }), rand('l2', 'e-design', { finalizat: true }), rand('l2', 'e-frezare', { finalizat: true })])
+  assert.deepEqual(ids(faraTermen, 'e-livrare'), ['l2'])
+})
+
+test('lucrarea finalizată nu apare; ordinea: termenul cel mai apropiat primul, fără termen la coadă', () => {
+  const toate = etape.map((e) => rand('gata', e.id, { finalizat: true }))
+  const m = neprogramate([lucrare('gata', '2026-11-20'), lucrare('b', '2026-11-25'), lucrare('a', '2026-11-05'), lucrare('c', null)], toate)
+  assert.deepEqual(ids(m, 'e-design'), ['a', 'b', 'c'])
+})
+
+test('etapaDeProgramat: aceeași etapă pe care o arată Kanban, cu excepția Model', () => {
+  const randuriLucrare = [rand('l1', 'e-model', { finalizat: true })]
+  assert.equal(etapaDeProgramat({ lucrare: lucrare('l1', '2026-11-20'), etape, randuriLucrare, livrareAutoId: null })?.id, 'e-design')
+  assert.equal(etapaDeProgramat({ lucrare: lucrare('l1', '2026-11-20'), etape, randuriLucrare: [], livrareAutoId: null })?.id, 'e-design')
+})
+
+test('etape fără tehnician: doar cele la care așteaptă lucrări; Model nu intră', () => {
+  const programate = neprogramate([lucrare('l1', '2026-11-20')], [rand('l1', 'e-model', { finalizat: true }), rand('l1', 'e-design', { finalizat: true })])
+  const lipsa = etapeFaraTehnician({ etape, tehnicieni, programatePeEtapa: programate })
+  assert.deepEqual(lipsa.map((x) => [x.etapa.id, x.nr]), [['e-frezare', 1]])
+  // nicio lucrare blocată -> niciun avertisment
+  assert.deepEqual(etapeFaraTehnician({ etape, tehnicieni, programatePeEtapa: neprogramate([]) }), [])
 })
 
 test('candidați: cei cu rolul etapei, altfel toți; cel existent rămâne', () => {

@@ -240,3 +240,14 @@
     align-items: stretch;
   }
 }
+
+.taskuri-zi-contor {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-success-strong);
+}
+
+.taskuri-zi-sarcina-finalizata {
+  opacity: 0.6;
+}
