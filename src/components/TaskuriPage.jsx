@@ -35,6 +35,7 @@ import RestanteModal from './RestanteModal.jsx'
 import FacuteSaptamana from './FacuteSaptamana.jsx'
 import DeschideFisaButton from './DeschideFisaButton.jsx'
 import { TitluCuAjutor } from '../ajutor/Ajutor.jsx'
+import EticheaPrintare from './EticheaPrintare.jsx'
 import './TaskuriPage.css'
 
 const NEPLANIFICATE_ID = '__neplanificate__'
@@ -152,6 +153,7 @@ function CasetaContinut({ lucrare, urgenta }) {
     <>
       <span className="taskuri-caseta-pacient">{lucrare.pacient || '—'}</span>
       <span className="taskuri-caseta-tip">{lucrare.tip_lucrare || '—'}</span>
+      <EticheaPrintare tip={lucrare.tip_lucrare} />
       <span className="taskuri-caseta-jos">
         <span className="taskuri-caseta-meta">{lucrare.nr_elemente ?? 0} elem.</span>
         {urgenta.nivel !== 'neutru' && (

@@ -4,6 +4,7 @@ import { azi, adaugaZile } from '../utils/date'
 import { etapaCurentaPentru } from '../utils/etapaProductie'
 import { subscribeToTable } from '../services/realtime'
 import { IndicatorNoteMedic } from './NoteComanda.jsx'
+import EticheaPrintare from './EticheaPrintare.jsx'
 import './LucrariKanban.css'
 
 function formatData(dataStr) {
@@ -136,6 +137,7 @@ export default function LucrariKanban({ lucrari, onRowClick }) {
                       </div>
                       <p className="kanban-card-medic rezumat-medic">{lucrare.medic || '—'}</p>
                       <p className="kanban-card-tip rezumat-tip">{lucrare.tip_lucrare}</p>
+                      <EticheaPrintare tip={lucrare.tip_lucrare} />
                       <div className="kanban-card-meta">
                         <span className="kanban-card-nr">{lucrare.nr_inregistrare}</span>
                         <span

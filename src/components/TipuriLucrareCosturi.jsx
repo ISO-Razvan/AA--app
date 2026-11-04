@@ -8,6 +8,7 @@ import {
   recalculeazaValoriFinanciare,
 } from '../services/dataService'
 import { useConfirm } from '../hooks/useConfirm.jsx'
+import { invalideazaTipuriPrintate } from '../hooks/useTipuriPrintate'
 import './TipuriLucrareCosturi.css'
 
 function formatRON(valoare) {
@@ -57,6 +58,17 @@ export default function TipuriLucrareCosturi({ onChange }) {
       pret_implant: tip.pret_implant,
       all_on: valoare,
     })
+  }
+
+  const handleTogglePrintare = async (tip, valoare) => {
+    handleChange(tip.id, 'se_printeaza', valoare)
+    await updateTipLucrareCosturi(tip.id, {
+      cost_laborator: tip.cost_laborator,
+      incasare: tip.incasare,
+      pret_implant: tip.pret_implant,
+      se_printeaza: valoare,
+    })
+    invalideazaTipuriPrintate()
   }
 
   const handleBlurNume = async (tip) => {
@@ -166,6 +178,7 @@ export default function TipuriLucrareCosturi({ onChange }) {
                 <th>Preț pe implant</th>
                 <th>Profit</th>
                 <th title="Lucrările de acest tip primesc adaosul „thimble” pentru Design">All-on</th>
+                <th title="Lucrările de acest tip se printează (nu se frezează): primesc semnul PRINTARE pe casete">Se printează</th>
                 <th></th>
               </tr>
             </thead>
@@ -236,6 +249,15 @@ export default function TipuriLucrareCosturi({ onChange }) {
                         checked={!!tip.all_on}
                         onChange={(e) => handleToggleAllOn(tip, e.target.checked)}
                         aria-label={`All-on — ${tip.nume}`}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="costuri-all-on"
+                        checked={!!tip.se_printeaza}
+                        onChange={(e) => handleTogglePrintare(tip, e.target.checked)}
+                        aria-label={`Se printează — ${tip.nume}`}
                       />
                     </td>
                     <td>

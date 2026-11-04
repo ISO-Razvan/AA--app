@@ -8,6 +8,7 @@ import CalendarLunar from './CalendarLunar.jsx'
 import FacuteSaptamana from './FacuteSaptamana.jsx'
 import PrintChecklist from './PrintChecklist.jsx'
 import DeschideFisaButton from './DeschideFisaButton.jsx'
+import EticheaPrintare from './EticheaPrintare.jsx'
 import './TaskuriTehnicianContent.css'
 
 function formatZiLunga(dataStr) {
@@ -157,6 +158,7 @@ export default function TaskuriTehnicianContent({ tehnician, initialDate, onOpen
             </div>
             <p className="taskuri-sarcina-line rezumat-medic">{lucrare.medic || '—'}</p>
             <p className="taskuri-sarcina-line rezumat-tip">{lucrare.tip_lucrare}</p>
+            <EticheaPrintare tip={lucrare.tip_lucrare} />
             <p className="taskuri-sarcina-line taskuri-sarcina-meta">
               <span className="taskuri-sarcina-nr">{lucrare.nr_inregistrare}</span>
               {lucrare.clinica && ` · ${lucrare.clinica}`}

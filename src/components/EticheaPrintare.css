@@ -1,0 +1,16 @@
+.eticheta-printare {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  width: fit-content;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #b45309;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  white-space: nowrap;
+}

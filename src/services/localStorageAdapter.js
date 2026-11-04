@@ -245,6 +245,11 @@ async function getTipuriLucrareDetaliate() {
   return readJSON(KEYS.tipuri_lucrare, [])
 }
 
+async function getTipuriPrintate() {
+  ensureSeeded()
+  return readJSON(KEYS.tipuri_lucrare, []).filter((t) => t.se_printeaza).map((t) => t.nume)
+}
+
 async function updateTipLucrareCosturi(id, { cost_laborator, incasare }) {
   ensureSeeded()
   const tipuri = readJSON(KEYS.tipuri_lucrare, [])
@@ -670,6 +675,7 @@ export const localStorageAdapter = {
   updateTehnician,
   deleteTehnician,
   getTipuriLucrareDetaliate,
+  getTipuriPrintate,
   updateTipLucrareCosturi,
   addTipLucrare,
   renameTipLucrare,

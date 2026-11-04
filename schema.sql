@@ -45,6 +45,9 @@ end $$;
 -- idempotent, nu atinge datele existente.
 alter table tipuri_lucrare add column if not exists all_on boolean not null default false;
 
+-- „Se printează" — bifă pe tipul de lucrare (ex. Wax up): semnul PRINTARE pe casete.
+alter table tipuri_lucrare add column if not exists se_printeaza boolean not null default false;
+
 -- Extra-uri taxabile pe comandă (ex. model printat, bont), configurate din
 -- Setup. `mod_taxare`: 'per_comanda' (cantitate fixă 1) sau 'per_bucata'.
 -- Un extra dezactivat nu mai apare la înregistrare, dar rămâne pe lucrările
@@ -930,6 +933,17 @@ where public.are_acces_operational();
 
 revoke all on public.tipuri_lucrare_nume from anon, authenticated;
 grant select on public.tipuri_lucrare_nume to authenticated;
+
+-- Numele tipurilor care se printează — vizibile și tehnicianului (fără prețuri).
+create or replace view public.tipuri_lucrare_printate
+with (security_barrier = true)
+as
+select t.nume
+from public.tipuri_lucrare t
+where t.se_printeaza and public.rolul_meu() is not null;
+
+revoke all on public.tipuri_lucrare_printate from anon, authenticated;
+grant select on public.tipuri_lucrare_printate to authenticated;
 
 create or replace view public.extra_uri_nume
 with (security_barrier = true)

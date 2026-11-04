@@ -428,9 +428,18 @@ async function getTipuriLucrareDetaliate() {
   return data || []
 }
 
-async function updateTipLucrareCosturi(id, { cost_laborator, incasare, pret_implant, all_on }) {
+// Numele tipurilor care se printează (view fără prețuri, citibil de orice utilizator logat).
+// Dacă view-ul nu există încă (SQL-ul nu a fost rulat), întoarce listă goală.
+async function getTipuriPrintate() {
+  const { data, error } = await supabase.from('tipuri_lucrare_printate').select('nume')
+  if (error) return []
+  return (data || []).map((t) => t.nume)
+}
+
+async function updateTipLucrareCosturi(id, { cost_laborator, incasare, pret_implant, all_on, se_printeaza }) {
   const payload = {
     ...(all_on === undefined ? {} : { all_on: !!all_on }),
+    ...(se_printeaza === undefined ? {} : { se_printeaza: !!se_printeaza }),
     cost_laborator: cost_laborator === '' || cost_laborator == null ? 0 : Number(cost_laborator),
     incasare: incasare === '' || incasare == null ? 0 : Number(incasare),
     pret_implant: pret_implant === '' || pret_implant == null ? 0 : Number(pret_implant),
@@ -1461,6 +1470,7 @@ export const supabaseAdapter = {
   updateTehnician,
   deleteTehnician,
   getTipuriLucrareDetaliate,
+  getTipuriPrintate,
   updateTipLucrareCosturi,
   getSetariSalarii,
   updateSetariSalarii,

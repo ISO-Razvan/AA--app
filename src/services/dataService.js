@@ -38,6 +38,7 @@ export const addTehnician = adapter.addTehnician
 export const updateTehnician = adapter.updateTehnician
 export const deleteTehnician = adapter.deleteTehnician
 export const getTipuriLucrareDetaliate = adapter.getTipuriLucrareDetaliate
+export const getTipuriPrintate = adapter.getTipuriPrintate
 export const updateTipLucrareCosturi = adapter.updateTipLucrareCosturi
 export const getSetariSalarii = adapter.getSetariSalarii
 export const updateSetariSalarii = adapter.updateSetariSalarii
