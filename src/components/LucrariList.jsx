@@ -391,7 +391,7 @@ export default function LucrariList({ lucrari, loading, onDataChanged, onRowClic
       )}
 
       {sorted.length > 0 && view === 'kanban' && (
-        <LucrariKanban lucrari={sorted} onRowClick={onRowClick} readOnly={readOnly} />
+        <LucrariKanban lucrari={sorted} onRowClick={onRowClick} />
       )}
 
       {sorted.length > 0 && view === 'lista' && (

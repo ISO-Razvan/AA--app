@@ -32,11 +32,6 @@
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 
-.kanban-column-over {
-  border-color: var(--color-blue);
-  background: var(--color-blue-soft);
-}
-
 .kanban-column-header {
   display: flex;
   align-items: center;
@@ -93,21 +88,13 @@
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
-  cursor: grab;
-  touch-action: none;
+  cursor: pointer;
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .kanban-card:hover {
   border-color: var(--color-blue);
   box-shadow: var(--shadow-md);
-}
-
-.kanban-card-dragging {
-  cursor: grabbing;
-  box-shadow: var(--shadow-lg);
-  border-color: var(--color-blue);
-  z-index: 10;
 }
 
 .kanban-card-open {

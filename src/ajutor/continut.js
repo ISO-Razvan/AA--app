@@ -115,7 +115,7 @@ export const AJUTOR_PAGINI = [
     pasi: [
       'Caută după nr., pacient, medic, clinică, tip sau notă.',
       '**Active / Arhivate / Toate** — ce lucrări vezi.',
-      '**Listă / Kanban** — pe Kanban, fiecare lucrare stă la prima etapă nebifată (cardurile nu se pot muta).',
+      '**Listă / Kanban** — pe Kanban, fiecare lucrare stă la prima etapă nebifată; e doar pentru vizualizare (cardurile nu se mută).',
       'Clic pe o lucrare deschide fișa. Etapele tale le bifezi tot din fișă sau din *Task-urile mele*.',
     ],
     atentie: [
@@ -130,7 +130,7 @@ export const AJUTOR_PAGINI = [
     pasi: [
       'Caută după nr., pacient, medic, clinică, tip sau notă.',
       '**Active / Arhivate / Toate** — ce lucrări vezi.',
-      '**Listă / Kanban** — pe Kanban, fiecare lucrare stă la prima etapă nebifată; poți trage cardul în altă coloană (etapele sărite se bifează sau debifează automat).',
+      '**Listă / Kanban** — pe Kanban, fiecare lucrare stă la prima etapă nebifată. Kanban-ul e doar pentru vizualizare: cardurile **nu se mută**; etapele se bifează în sistem (Task-uri, Task-urile mele sau fișa lucrării), iar cardul își schimbă singur coloana.',
       'Clic pe o lucrare deschide fișa.',
       '**Bulina mov** de lângă pacient = notă nouă de la medic.',
       '**Clopoțelul** din dreapta sus arată câte lucrări nefinalizate au informații lipsă (clinică, medic, pacient, tip, termen de predare, dinți). Clic pe clopoțel deschide lista; clic pe un rând deschide fișa, unde câmpul lipsă are chenar roșu și textul „Lipsește” — dispare când îl completezi.',
