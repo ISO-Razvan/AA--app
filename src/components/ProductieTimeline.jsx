@@ -9,7 +9,8 @@ import {
 } from '../services/dataService'
 import { subscribeToTable } from '../services/realtime'
 import { statusLucrare } from '../utils/statusLucrare'
-import { configLivrare, esteEtapaModel, etapeAplicabile } from '../utils/etapaProductie'
+import { configLivrare, esteEtapaModel, esteEtapaValidare, etapeAplicabile } from '../utils/etapaProductie'
+import { candidatiEtapa } from '../utils/etapeNeplanificate'
 import { azi } from '../utils/date'
 import { useConfirm } from '../hooks/useConfirm.jsx'
 import './ProductieTimeline.css'
@@ -148,6 +149,19 @@ export default function ProductieTimeline({
     }
   }
 
+  // Admin: alege tehnicianul și/sau data planificată a unei etape direct din fișă
+  // (scrie doar coloanele schimbate; bifa și celelalte câmpuri rămân neatinse).
+  const handleAlocare = async (etapaId, patch) => {
+    const updated = await setProductieAlocare(lucrareId, etapaId, patch)
+    setRanduri((prev) => {
+      const idx = prev.findIndex((r) => r.etapa_id === etapaId)
+      if (idx === -1) return [...prev, updated]
+      const next = [...prev]
+      next[idx] = updated
+      return next
+    })
+  }
+
   const toateFinalizate = etape.length > 0 && etape.every((e) => !!randPentru(e.id)?.finalizat)
 
   const handleArhiveaza = async () => {
@@ -278,11 +292,37 @@ export default function ProductieTimeline({
                   <div className="productie-fields">
                     <div>
                       <span className="field-label">Tehnician alocat</span>
-                      <p className="productie-value">{tehnicianAlocat?.nume || '— neplanificat —'}</p>
+                      {esteAdmin && !arhivat && !esteEtapaValidare(etapa) ? (
+                        <select
+                          className="productie-recuperare-select"
+                          aria-label={`Tehnician pentru ${etapa.nume}`}
+                          value={rand?.tehnician_id || ''}
+                          onChange={(e) => handleAlocare(etapa.id, { tehnician_id: e.target.value || null })}
+                        >
+                          <option value="">— neplanificat —</option>
+                          {candidatiEtapa(etapa, rand, tehnicieni).map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.nume}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="productie-value">{tehnicianAlocat?.nume || '— neplanificat —'}</p>
+                      )}
                     </div>
                     <div>
                       <span className="field-label">Data planificată</span>
-                      <p className="productie-value">{formatData(rand?.data_planificata)}</p>
+                      {esteAdmin && !arhivat && !esteEtapaValidare(etapa) && etapa.id !== livrareAutoId ? (
+                        <input
+                          type="date"
+                          className="productie-recuperare-select"
+                          aria-label={`Data planificată pentru ${etapa.nume}`}
+                          value={rand?.data_planificata || ''}
+                          onChange={(e) => handleAlocare(etapa.id, { data_planificata: e.target.value || null })}
+                        />
+                      ) : (
+                        <p className="productie-value">{formatData(rand?.data_planificata)}</p>
+                      )}
                     </div>
                   </div>
                   {etapa.id === livrareAutoId && <p className="productie-din-termen">din termenul de predare</p>}
